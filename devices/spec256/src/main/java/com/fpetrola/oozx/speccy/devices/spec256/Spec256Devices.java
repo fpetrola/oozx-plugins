@@ -19,6 +19,7 @@
 package com.fpetrola.oozx.speccy.devices.spec256;
 
 import com.fpetrola.oozx.Extension;
+import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.z80.cpu.Core;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
@@ -26,5 +27,6 @@ import com.google.inject.multibindings.Multibinder;
 public class Spec256Devices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder.newSetBinder(binder(), Core.class).addBinding().to(Spec256Core.class);
+    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(Spec256Peripheral.class);
   }
 }
