@@ -123,11 +123,13 @@ jobs:
           devices = []
           # The two small jars somebody writing a plugin needs go up as well: one is the word a
           # way in is marked with, the other is what writes the paperwork while their jar compiles.
-          for pom in sorted(glob.glob('devices/*/pom.xml') + glob.glob('tools/*/pom.xml')
-                            + glob.glob('oozx/plugin-api/pom.xml') + glob.glob('oozx/plugin-processor/pom.xml')):
+          # Only what is here. The two jars somebody writing a plugin compiles against belong to
+          # the emulator and are published from there: publishing them here as well would be two
+          # releases of the same thing, drifting apart.
+          for pom in sorted(glob.glob('devices/*/pom.xml') + glob.glob('tools/*/pom.xml')):
               module = os.path.dirname(pom)
               artifact = artifact_of(pom)
-              if not artifact or not artifact.startswith(('device-', 'tool-', 'plugin-')):
+              if not artifact or not artifact.startswith(('device-', 'tool-')):
                   continue                      # the aggregator is not a plugin
               jars = [j for j in glob.glob(module + '/target/' + artifact + '-*.jar')
                       if not j.endswith(('-sources.jar', '-javadoc.jar'))]
