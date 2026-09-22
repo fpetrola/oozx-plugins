@@ -10,7 +10,7 @@
     <artifactId>device-pentagon</artifactId>
     <packaging>jar</packaging>
 
-    <name>ULAplus: sixty-four colours a program picks itself</name>
+    <name>Pentagon, the Russian clone</name>
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>

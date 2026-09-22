@@ -10,7 +10,7 @@
     <artifactId>device-inves</artifactId>
     <packaging>jar</packaging>
 
-    <name>ULAplus: sixty-four colours a program picks itself</name>
+    <name>Inves Spectrum+, the Spanish one, fault and all</name>
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>

@@ -10,7 +10,7 @@
     <artifactId>device-snapshots</artifactId>
     <packaging>jar</packaging>
 
-    <name>ULAplus: sixty-four colours a program picks itself</name>
+    <name>The snapshot formats the build does not carry: SNA, SZX and SP</name>
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>

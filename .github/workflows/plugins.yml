@@ -42,6 +42,9 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # skipTests and not maven.test.skip on purpose: the tests are compiled but not run, and
+      # the test-jars of bridge and app - which the tests here are built against - are made of
+      # what compiling them produced.
       - name: Build the emulator these plug into
         run: mvn -B -DskipTests install -f oozx/pom.xml
 
@@ -60,6 +63,12 @@ jobs:
               """The module's own artifactId, which is the one outside <parent>."""
               text = re.sub(r'<parent>.*?</parent>', '', open(pom).read(), flags=re.S)
               found = re.search(r'<artifactId>([^<]+)</artifactId>', text)
+              return found.group(1) if found else None
+
+          def named(pom):
+              """What the module calls itself, which is what it is for a person reading a list."""
+              text = re.sub(r'<parent>.*?</parent>', '', open(pom).read(), flags=re.S)
+              found = re.search(r'<name>([^<]+)</name>', text)
               return found.group(1) if found else None
 
           def called(module):
@@ -122,9 +131,10 @@ jobs:
                   print('no jar for ' + artifact, file=sys.stderr)
                   continue
               shutil.copy(jars[0], 'jars/')
-              # Two of them have no window and so no name of their own: the module's will do.
+              # A machine has no window in the Equipment menu, so nothing there names it: what
+              # the module calls itself does, and the folder is the last resort.
               devices.append({'artifact': artifact,
-                              'title': called(module) or os.path.basename(module).capitalize(),
+                              'title': called(module) or named(pom) or os.path.basename(module).capitalize(),
                               'machines': ' '.join(machines(module)),
                               'opens': ' '.join(opens(module))})
 

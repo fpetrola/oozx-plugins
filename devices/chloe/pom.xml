@@ -10,7 +10,7 @@
     <artifactId>device-chloe</artifactId>
     <packaging>jar</packaging>
 
-    <name>ULAplus: sixty-four colours a program picks itself</name>
+    <name>Chloe 140SE and 280SE</name>
     <dependencies>
         <!--
           The 280SE is built on the Spectrum SE, which arrives in its own jar: a plugin that

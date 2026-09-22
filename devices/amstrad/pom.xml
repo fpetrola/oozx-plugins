@@ -10,7 +10,7 @@
     <artifactId>device-amstrad</artifactId>
     <packaging>jar</packaging>
 
-    <name>ULAplus: sixty-four colours a program picks itself</name>
+    <name>The Amstrad machines: +2A, +3 and +3e</name>
     <dependencies>
         <!-- Built on it, so taking this one brings that one. -->
         <dependency>

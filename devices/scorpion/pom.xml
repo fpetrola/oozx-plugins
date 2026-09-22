@@ -10,7 +10,7 @@
     <artifactId>device-scorpion</artifactId>
     <packaging>jar</packaging>
 
-    <name>ULAplus: sixty-four colours a program picks itself</name>
+    <name>Scorpion ZS-256</name>
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>

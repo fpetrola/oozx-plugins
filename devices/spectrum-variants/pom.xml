@@ -10,7 +10,7 @@
     <artifactId>device-spectrum-variants</artifactId>
     <packaging>jar</packaging>
 
-    <name>ULAplus: sixty-four colours a program picks itself</name>
+    <name>The other Sinclairs: the 16K and the NTSC 48K</name>
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>
