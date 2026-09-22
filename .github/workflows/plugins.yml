@@ -42,16 +42,20 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
+      # -U because the runner keeps its ~/.m2 between runs: a download that failed once is
+      # written down as having failed, and every later run repeats the answer instead of asking
+      # again - which is how a plugin that is in central was reported as missing from it.
+      #
       # skipTests and not maven.test.skip on purpose: the tests are compiled but not run, and
       # the test-jars of bridge and app - which the tests here are built against - are made of
       # what compiling them produced.
       - name: Build the emulator these plug into
-        run: mvn -B -DskipTests install -f oozx/pom.xml
+        run: mvn -B -U -DskipTests install -f oozx/pom.xml
 
       # The whole reactor once: a plugin jar is small, but it is compiled against the machine.
       # Running the tests is the other workflow's job; this one only produces the artefacts.
       - name: Build
-        run: mvn -B -DskipTests install
+        run: mvn -B -U -DskipTests install
 
       - name: Find the devices
         id: list
