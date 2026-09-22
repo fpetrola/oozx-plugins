@@ -941,8 +941,9 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   }
 
   private List<GameSearchResult> createMockResults(String query, String machineType, String genreType) {
+    // Whoever can answer, which on a day the web service is down is the catalogue in the build.
     ZxInfoApiHandler api = new ZxInfoApiHandler();
-    List<Hit> search = api.search(query, machineType, genreType);
+    List<Hit> search = com.fpetrola.oozx.api.Catalogues.search(query, machineType, genreType);
 
     List<GameSearchResult> results = new ArrayList<>();
 
