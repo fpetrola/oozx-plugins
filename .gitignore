@@ -1,0 +1,17 @@
+/build/
+/dist/
+/nbproject/private/
+JSpeccy.xml
+/target/
+.idea/
+*.log
+.settings/*
+*.iml
+*.dot
+*.class
+*.jfr
+*/target/**
+**/target/**
+dependency-reduced-pom.xml
+.profileconfig.json
+

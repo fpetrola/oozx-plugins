@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.fpetrola</groupId>
-        <artifactId>machine</artifactId>
+        <artifactId>oozx-plugins</artifactId>
         <version>0.0.2-alu-SNAPSHOT</version>
     </parent>
 
@@ -27,7 +27,6 @@
       `all`, which is every device this build offers and nothing else.
     -->
     <modules>
-        <module>ide</module>
         <module>ulaplus</module>
         <module>chloe</module>
         <module>spectrum128</module>
@@ -43,7 +42,6 @@
         <module>spectrum-se</module>
         <module>tape</module>
         <module>snapshots</module>
-        <module>kit</module>
         <module>debugger</module>
         <module>printer</module>
         <module>mouse</module>
