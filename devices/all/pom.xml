@@ -314,6 +314,37 @@
             <artifactId>tool-poke-finder</artifactId>
             <version>${project.version}</version>
         </dependency>
+    <!--
+      The emulator these plug into, and the two harnesses that live with it: what stands a reader
+      against libspectrum, and the desk a window is clipped onto. Both are needed by tests that
+      are about a plugin and so belong here, and neither can be here, so they are asked for.
+    -->
+    <dependency>
+        <groupId>com.fpetrola</groupId>
+        <artifactId>app</artifactId>
+        <version>${project.version}</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>com.fpetrola</groupId>
+        <artifactId>app</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>com.fpetrola</groupId>
+        <artifactId>bridge</artifactId>
+        <version>${project.version}</version>
+        <scope>test</scope>
+    </dependency>
+    <dependency>
+        <groupId>com.fpetrola</groupId>
+        <artifactId>bridge</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+        <scope>test</scope>
+    </dependency>
     <dependency>
         <groupId>org.junit.platform</groupId>
         <artifactId>junit-platform-suite</artifactId>
