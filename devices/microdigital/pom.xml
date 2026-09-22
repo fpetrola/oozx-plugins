@@ -5,24 +5,25 @@
         <groupId>com.fpetrola</groupId>
         <artifactId>devices</artifactId>
         <version>0.0.2-alu-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
     </parent>
 
-    <artifactId>device-beta128</artifactId>
+    <artifactId>device-microdigital</artifactId>
     <packaging>jar</packaging>
 
-    <name>Beta 128</name>
+    <name>ULAplus: sixty-four colours a program picks itself</name>
     <dependencies>
-        <!-- Tried on the machine it was sold for, which is one that arrives in a jar. -->
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>device-pentagon</artifactId>
+            <artifactId>machines</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>devices-kit</artifactId>
+            <artifactId>core</artifactId>
             <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>
