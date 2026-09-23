@@ -44,9 +44,9 @@
     <dependencies>
         <!-- The word a way in is marked with, which every module here may need to say. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
-            <artifactId>plugin-api</artifactId>
-            <version>${project.version}</version>
+            <groupId>dev.crystal.plugins</groupId>
+            <artifactId>framework-api</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
         </dependency>
     </dependencies>
 
