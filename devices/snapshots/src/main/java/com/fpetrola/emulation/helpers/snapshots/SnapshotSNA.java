@@ -33,6 +33,11 @@ import java.util.logging.Logger;
  *
  * @author jsanchez
  */
+/**
+ * A 128K snapshot needs a 128K machine to be put into, which is another jar's to bring. Nothing
+ * here names one of its classes, so only this says so.
+ */
+@dev.crystal.plugins.api.Needs({"device-spectrum128"})
 public class SnapshotSNA implements SnapshotFile {
 
     @Override

@@ -24,6 +24,11 @@ import com.fpetrola.z80.cpu.Core;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
+/**
+ * The game beside the colours is a snapshot of whatever kind, read by whoever reads that kind:
+ * nothing here names one of their classes, so only this says they have to be here.
+ */
+@dev.crystal.plugins.api.Needs({"device-snapshots"})
 public class Spec256Devices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder.newSetBinder(binder(), Core.class).addBinding().to(Spec256Core.class);

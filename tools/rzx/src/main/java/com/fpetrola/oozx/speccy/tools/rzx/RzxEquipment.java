@@ -23,6 +23,11 @@ import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import java.io.File;
 
 /** The recording player, offered like any other equipment: found, not named by the application. */
+/**
+ * A recording carries a snapshot of whatever kind inside it, so the readers have to be here.
+ * Which ones is not known while this compiles: it asks for whoever reads that file.
+ */
+@dev.crystal.plugins.api.Needs({"device-snapshots"})
 public class RzxEquipment implements Equipment {
   public String name() {
     return "RZX Player";
