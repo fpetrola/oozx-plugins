@@ -36,10 +36,12 @@ jobs:
           repository: fpetrola/oozx
           path: oozx
 
-      # Y el framework contra el que los dos se compilan, que tampoco publica artefactos.
+      # Y el framework contra el que los dos se compilan, que tampoco publica artefactos. A un
+      # tag y no a su rama, para que lo que se empuje alla mientras se trabaja no voltee esto.
       - uses: actions/checkout@v4
         with:
           repository: fpetrola/crystal-plugins
+          ref: hito-5
           path: crystal-plugins
 
       - uses: actions/setup-java@v4
