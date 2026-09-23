@@ -36,6 +36,12 @@ jobs:
           repository: fpetrola/oozx
           path: oozx
 
+      # Y el framework contra el que los dos se compilan, que tampoco publica artefactos.
+      - uses: actions/checkout@v4
+        with:
+          repository: fpetrola/crystal-plugins
+          path: crystal-plugins
+
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -49,6 +55,9 @@ jobs:
       # skipTests and not maven.test.skip on purpose: the tests are compiled but not run, and
       # the test-jars of bridge and app - which the tests here are built against - are made of
       # what compiling them produced.
+      - name: Build the plugin framework
+        run: mvn -B -U -DskipTests install -f crystal-plugins/pom.xml
+
       - name: Build the emulator these plug into
         run: mvn -B -U -DskipTests install -f oozx/pom.xml
 
