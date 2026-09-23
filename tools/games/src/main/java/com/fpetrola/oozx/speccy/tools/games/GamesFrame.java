@@ -673,7 +673,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     new SwingWorker<Metadata, Void>() {
       @Override
       protected Metadata doInBackground() {
-        return new ZxInfoApiHandler().getMetadata();
+        return Catalogues.metadata();
       }
 
       @Override
@@ -941,14 +941,13 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   }
 
   private List<GameSearchResult> createMockResults(String query, String machineType, String genreType) {
-    // Whoever can answer, which on a day the web service is down is the catalogue in the build.
-    ZxInfoApiHandler api = new ZxInfoApiHandler();
-    List<Hit> search = com.fpetrola.oozx.api.Catalogues.search(query, machineType, genreType);
+    // Whoever can answer, which on a day the web service is down is ZXDB read on this machine.
+    List<Hit> search = Catalogues.search(query, machineType, genreType);
 
     List<GameSearchResult> results = new ArrayList<>();
 
     for (Hit hit : search) {
-      GameEntry game = api.withTosecFiles(hit._id, hit._source);
+      GameEntry game = Catalogues.withTosecFiles(hit._id, hit._source);
       if (game.contentType.equals("SOFTWARE")) {
         List<String> screenshots = new ArrayList<>();
         game.screens.forEach(s1 -> {
@@ -979,22 +978,24 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         // database happens to return, which for Three Weeks in Paradise is its 128K tape.
         boolean hasMap = false;
         List<RzxOption> recordings = new ArrayList<>();
+        // The RZX Archive lists recordings ZXDB does not, and knows who made them. ZXDB has come to
+        // list the archive's own as well, from its copy at archive.org, and those are offered once.
+        List<RzxRecording> playable = archive.recordingsFor(idOf(hit._id)).stream()
+            .filter(RzxRecording::isPlayable).toList();
+        Set<String> archived = playable.stream()
+            .map(recording -> DownloadAndUnzip.nameOf(recording.download().url())).collect(Collectors.toSet());
         for (AdditionalDownload download : game.additionalDownloads == null
             ? List.<AdditionalDownload>of() : game.additionalDownloads) {
-          if ("RZX playback file".equals(download.type)) {
+          if ("RZX playback file".equals(download.type) && !archived.contains(DownloadAndUnzip.nameOf(download.path))) {
             recordings.add(new RzxOption(DownloadAndUnzip.nameOf(download.path) + "  (ZXDB)",
                 ZxInfoApiHandler.mediaUrl(download.path)));
           }
           hasMap |= ZxInfoApiHandler.GAME_MAP_TYPE.equalsIgnoreCase(download.type);
         }
-        // The RZX Archive lists recordings ZXDB does not, and knows who made them.
-        for (RzxRecording recording : archive.recordingsFor(idOf(hit._id))) {
-          if (recording.isPlayable()) {
-            String by = recording.submitter() == null || recording.submitter().isBlank()
-                ? "RZX Archive" : "by " + recording.submitter();
-            recordings.add(new RzxOption(recording.title() + "  (" + by + ")",
-                recording.download().url()));
-          }
+        for (RzxRecording recording : playable) {
+          String by = recording.submitter() == null || recording.submitter().isBlank()
+              ? "RZX Archive" : "by " + recording.submitter();
+          recordings.add(new RzxOption(recording.title() + "  (" + by + ")", recording.download().url()));
         }
         boolean hasRzx = !recordings.isEmpty();
 

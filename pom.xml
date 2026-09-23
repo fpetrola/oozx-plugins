@@ -52,6 +52,23 @@
 
     <dependencyManagement>
         <dependencies>
+            <!--
+              The emulator loads plugins with the framework's runtime, and that brings PF4J. A plugin
+              compiled with PF4J at hand gets PF4J's own @Extension processor too, which writes the
+              index the framework writes and leaves the jar refused. What a plugin compiles against
+              is the machine, not what loads it.
+            -->
+            <dependency>
+                <groupId>com.fpetrola</groupId>
+                <artifactId>core</artifactId>
+                <version>${project.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>dev.crystal.plugins</groupId>
+                        <artifactId>framework-guice</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>
                 <artifactId>junit-jupiter</artifactId>
