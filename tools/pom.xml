@@ -49,6 +49,7 @@
         <module>io</module>
         <module>trace</module>
         <module>view</module>
+        <module>looks</module>
         <module>memory-map</module>
         <module>frames</module>
         <module>pokes</module>
