@@ -18,8 +18,10 @@
 package com.fpetrola.oozx.speccy.devices.spec256;
 
 import com.fpetrola.oozx.plugins.BesideTheGame;
+import dev.crystal.plugins.api.Answers;
 
 /** That a game has its colours beside it, said to whoever asks without naming this board. */
+@Answers("gfx")
 public class Spec256Colours implements BesideTheGame {
   public String what() {
     return "256 colors";
