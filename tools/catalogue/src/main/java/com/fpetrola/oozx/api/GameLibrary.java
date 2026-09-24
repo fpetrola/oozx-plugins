@@ -52,14 +52,12 @@ public class GameLibrary {
 
   /**
    * What the emulator knows about a file and this end does not: whether it can open it, where the
-   * game's own bytes are inside it, and whether it has colours of its own beside it.
+   * game's own bytes are inside it.
    */
   public interface Emulator {
     boolean loadable(Path file);
 
     byte[] payload(Path file) throws IOException;
-
-    boolean inColour(Path file);
   }
 
   public GameLibrary(GameFingerprint.Index catalogue, Emulator emulator) {
@@ -72,7 +70,7 @@ public class GameLibrary {
    * the stamp says which catalogue said so.
    */
   public record Copy(String path, long size, long modified, GameSummary game, double score,
-                     int stamp, boolean inColour) {
+                     int stamp) {
 
     public boolean identified() {
       return game != null;
@@ -122,7 +120,7 @@ public class GameLibrary {
     GameFingerprint.Match match = catalogue.identify(emulator.payload(file));
     boolean sure = match != null && match.score() >= certainty;
     Copy copy = new Copy(file.toString(), size, modified, sure ? match.game() : null,
-        match == null ? 0 : match.score(), stamp(), emulator.inColour(file));
+        match == null ? 0 : match.score(), stamp());
     byPath.put(file.toString(), copy);
     return copy;
   }

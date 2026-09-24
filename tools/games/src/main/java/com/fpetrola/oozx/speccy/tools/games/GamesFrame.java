@@ -580,7 +580,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
       result.hasMap = known.hasMap();
     }
     result.hasRzx = copy.identified() && archive.hasRecordings(idOf(copy.game().id));
-    result.inColour = copy.inColour();
+    // Preguntado ahora y no guardado: depende de que plugins estan puestos, y eso cambia.
+    result.inColour = com.fpetrola.oozx.plugins.BesideTheGame.anythingBeside(copy.path());
     return result;
   }
 

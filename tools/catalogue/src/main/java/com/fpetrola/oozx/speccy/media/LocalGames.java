@@ -61,10 +61,6 @@ public class LocalGames {
         public byte[] payload(Path file) throws IOException {
           return SnapshotFactory.payloadOf(file.toFile());
         }
-
-        public boolean inColour(Path file) {
-          return com.fpetrola.oozx.plugins.BesideTheGame.anythingBeside(file.toString());
-        }
       });
       try {
         library.load(file());

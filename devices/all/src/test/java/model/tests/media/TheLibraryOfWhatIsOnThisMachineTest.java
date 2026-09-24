@@ -17,7 +17,6 @@
 package model.tests.media;
 
 import com.fpetrola.emulation.helpers.snapshots.SnapshotFactory;
-import com.fpetrola.oozx.speccy.devices.spec256.Spec256Peripheral;
 import com.fpetrola.oozx.api.GameFingerprint;
 import com.fpetrola.oozx.api.GameLibrary;
 import org.junit.jupiter.api.Test;
@@ -51,23 +50,7 @@ class TheLibraryOfWhatIsOnThisMachineTest {
       public byte[] payload(Path file) throws IOException {
         return SnapshotFactory.payloadOf(file.toFile());
       }
-
-      public boolean inColour(Path file) {
-        return Spec256Peripheral.hasColours(file.toString());
-      }
     });
-  }
-
-  @Test
-  void aGameWithItsOwnColoursBesideItSaysSo(@TempDir Path directory) throws IOException {
-    Files.copy(MANIC_MINER, directory.resolve("whatever.z80"));
-    Files.write(directory.resolve("whatever.gfx"), new byte[8]);
-    Files.copy(MANIC_MINER, directory.resolve("plain.z80"));
-    GameLibrary library = libraryOf();
-    library.scan(directory, CERTAINTY);
-
-    assertTrue(library.of(directory.resolve("whatever.z80")).inColour());
-    assertFalse(library.of(directory.resolve("plain.z80")).inColour());
   }
 
   @Test
