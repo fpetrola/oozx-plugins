@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>zxinfo</artifactId>
+            <artifactId>tool-catalogue</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

@@ -40,14 +40,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * headers, a handful of pokes. Each test breaks the file the way one of those does.
  */
 class IdentifyingAGameByItsContentTest {
-  private static final Path MANIC_MINER = Path.of("../../doc/manicminer.z80");
+  /**
+   * Un juego inventado, del tamanio de un .z80 de 48K. Antes esto leia un juego de verdad que
+   * vivia en el otro repositorio, y al mudarse el catalogo la ruta dejo de existir. Inventarlo
+   * prueba lo mismo -lo que se afirma es que una copia se sigue reconociendo despues de lo que
+   * de verdad se le hace a una imagen- y no hace falta repartir el juego de nadie para probarlo.
+   */
+  private static final byte[] A_GAME = noise(0x4D4D, 29010);
 
   private final GameFingerprint.Index index = new GameFingerprint.Index();
   private byte[] game;
 
   @BeforeEach
-  void fillTheCatalogue() throws IOException {
-    game = Files.readAllBytes(MANIC_MINER);
+  void fillTheCatalogue() {
+    game = A_GAME.clone();
     index.add(GameFingerprint.named("0003012", "manicminer"), GameFingerprint.of(game));
     for (int other = 0; other < 20; other++) {
       index.add(GameFingerprint.named("other" + other, "other" + other), GameFingerprint.of(noise(other, game.length)));
