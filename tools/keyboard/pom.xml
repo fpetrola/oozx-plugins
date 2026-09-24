@@ -30,5 +30,12 @@
     <packaging>jar</packaging>
     <name>tool-keyboard</name>
     <!-- The keyboard of the machine in front, as the photograph of a 48K with its keys going down. -->
+    <dependencies>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>host-input</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
 </project>
 
