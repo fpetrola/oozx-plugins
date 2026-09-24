@@ -6,7 +6,7 @@
         <artifactId>devices</artifactId>
         <version>0.0.2-alu-SNAPSHOT</version>
     </parent>
-    <artifactId>devices-ide</artifactId>
+    <artifactId>device-ide</artifactId>
     <packaging>jar</packaging>
     <name>IDE and MMC stack</name>
     <!--
@@ -16,6 +16,10 @@
       what the six that ARE devices - DivIDE, DivMMC, Simple 8-bit IDE, ZXATASP, ZXCF, ZXMMC -
       are built out of, the way the kit is what their windows are built out of.
     -->
+    <properties>
+        <!-- Una biblioteca de seis dispositivos: no trae extensiones, pero es un plugin. -->
+        <crystal.plugin>true</crystal.plugin>
+    </properties>
     <dependencies>
         <!-- La ventana de las bahias IDE es de las bahias. -->
         <dependency>

@@ -34,6 +34,7 @@
         <module>spectrum-variants</module>
         <module>pentagon</module>
         <module>ay</module>
+        <module>ide</module>
         <module>disk</module>
         <module>memory</module>
         <module>scld</module>

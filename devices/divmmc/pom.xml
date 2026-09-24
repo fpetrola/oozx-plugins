@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>devices-ide</artifactId>
+            <artifactId>device-ide</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
