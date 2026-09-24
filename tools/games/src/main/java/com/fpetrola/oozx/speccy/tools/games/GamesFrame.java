@@ -1104,7 +1104,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
       contextMenu.addSeparator();
     }
     java.util.List<Runnable> refills = new ArrayList<>();
-    JMenu loadItem = machineMenu(result.inColour ? "Load Game   -   256 colors" : "Load Game", result, null);
+    JMenu loadItem = machineMenu("Load Game" + (result.files == null || result.files.isEmpty() ? ""
+        : besides(result.files.get(0))), result, null);
     refills.add(() -> fill(loadItem, result, null));
     // When there is more than one, the whole list, in the order the scorer would have taken
     // them, so what is picked by default is the one at the top.
