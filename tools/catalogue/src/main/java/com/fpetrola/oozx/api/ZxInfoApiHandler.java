@@ -354,9 +354,13 @@ public class ZxInfoApiHandler implements KnowsTheGames {
       // Without a timeout a request nobody answers waits for ever, and that is not a worry but
       // a measurement: a catalogue run stopped on its 494th game and was still in the same read
       // four hours later. The numbers are the ones the downloads already use.
-      Client client = ClientBuilder.newBuilder()
+      // Siguiendo las mudanzas: el archivo contesta 301 desde api.zxinfo.dk hacia otro host, y
+      // sin seguirlo toda pregunta era una negativa, el catalogo de este build contestaba en su
+      // lugar y parecia que lo local le ganaba a internet.
+      Client client = ((org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder) ClientBuilder.newBuilder())
           .connectTimeout(CONNECT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
           .readTimeout(READ_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
+          .setFollowRedirects(true)
           .build();
       try {
         ResteasyWebTarget target = (ResteasyWebTarget) client.target(BASE_URL);
