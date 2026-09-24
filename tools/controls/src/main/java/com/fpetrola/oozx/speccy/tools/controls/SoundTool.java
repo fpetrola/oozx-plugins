@@ -46,6 +46,12 @@ public class SoundTool implements MachineTool {
     return "Mute/Unmute Sound - right-click for the volume";
   }
 
+  /** Desde el menu del escritorio, sobre la maquina activa. */
+  public javax.swing.KeyStroke key() {
+    return javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_M,
+        java.awt.event.InputEvent.CTRL_DOWN_MASK);
+  }
+
   public int place() {
     return 40;
   }

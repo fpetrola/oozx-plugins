@@ -60,6 +60,12 @@ public class TurboTool implements MachineTool {
     return "Full speed - right-click for a speed";
   }
 
+  /** Desde el menu del escritorio, sobre la maquina activa. */
+  public javax.swing.KeyStroke key() {
+    return javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_T,
+        java.awt.event.InputEvent.CTRL_DOWN_MASK);
+  }
+
   public int place() {
     return 10;
   }

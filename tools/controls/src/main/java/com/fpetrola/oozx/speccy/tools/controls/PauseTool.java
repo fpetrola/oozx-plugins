@@ -42,6 +42,12 @@ public class PauseTool implements MachineTool {
     return "Pause";
   }
 
+  /** Desde el menu del escritorio, sobre la maquina activa. */
+  public javax.swing.KeyStroke key() {
+    return javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_SPACE,
+        java.awt.event.InputEvent.CTRL_DOWN_MASK);
+  }
+
   public int place() {
     return 20;
   }

@@ -35,4 +35,10 @@ public class GamesEquipment implements DeskEquipment {
   public String keeps() {
     return "GAME_BROWSER";
   }
+
+  /** Su boton en la barra del escritorio. */
+  @Override
+  public javax.swing.Icon icon() {
+    return com.fpetrola.oozx.speccy.windows.Widgets.loadIcon("1F579.svg");
+  }
 }
