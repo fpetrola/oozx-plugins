@@ -39,7 +39,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  */
 class ContentionRunsTest {
 
-  private final Injector injector = Guice.createInjector(new EmulatorModule(new SpectrumZ80Clock()));
+  private final Injector injector = Guice.createInjector(new EmulatorModule(new SpectrumZ80Clock(),
+      com.fpetrola.oozx.plugins.Plugins.found(com.fpetrola.oozx.Extension.class)));
 
   @Test
   void aRunLookedUpOnceIsTheRunLookedUpOneCycleAtATime() {

@@ -34,7 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /** The variants differ from the machine they are a variant of in exactly what they say they do. */
 class VariantsTest {
-  private final Injector injector = Guice.createInjector(new EmulatorModule(new SpectrumZ80Clock()));
+  private final Injector injector = Guice.createInjector(new EmulatorModule(new SpectrumZ80Clock(),
+      com.fpetrola.oozx.plugins.Plugins.found(com.fpetrola.oozx.Extension.class)));
 
   private Set<?> capabilitiesOf(Class<? extends SpectrumMachine> model) {
     return injector.getInstance(model).onBoard();
