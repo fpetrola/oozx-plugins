@@ -36,6 +36,7 @@ public class ZxInfoApiHandler implements KnowsTheGames {
 
   private final String BASE_URL = "https://api.zxinfo.dk";
 
+
   public String where() {
     return "zxinfo.dk";
   }
@@ -349,7 +350,26 @@ public class ZxInfoApiHandler implements KnowsTheGames {
         || failure.getCause() instanceof java.io.IOException;
   }
 
+  /**
+   * Con el classloader de este jar puesto en el hilo mientras dura la llamada.
+   * <p>
+   * Resteasy busca sus propias piezas por el classloader del hilo, y el del emulador no las
+   * tiene: son bibliotecas que viajan adentro de este plugin. Sin esto, unas veces no encuentra
+   * su ProxyBuilderImpl y otras arma un cliente distinto que no sigue las mudanzas, y lo que se
+   * ve desde afuera es que el catalogo de internet nunca contesta.
+   */
   private <T> T withClient(java.util.function.Function<ZxInfoClient, T> call) {
+    Thread asking = Thread.currentThread();
+    ClassLoader wasThere = asking.getContextClassLoader();
+    asking.setContextClassLoader(getClass().getClassLoader());
+    try {
+      return asking(call);
+    } finally {
+      asking.setContextClassLoader(wasThere);
+    }
+  }
+
+  private <T> T asking(java.util.function.Function<ZxInfoClient, T> call) {
     for (int attempt = 1; ; attempt++) {
       // Without a timeout a request nobody answers waits for ever, and that is not a worry but
       // a measurement: a catalogue run stopped on its 494th game and was still in the same read
