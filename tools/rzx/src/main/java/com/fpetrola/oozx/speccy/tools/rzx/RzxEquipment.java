@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.rzx;
 
+import dev.crystal.plugins.api.Answers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
@@ -28,6 +30,7 @@ import java.io.File;
  * Which ones is not known while this compiles: it asks for whoever reads that file.
  */
 @dev.crystal.plugins.api.Needs({"device-snapshots"})
+@Answers("rzx")
 public class RzxEquipment implements Equipment {
   public String name() {
     return "RZX Player";

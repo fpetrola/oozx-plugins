@@ -112,37 +112,6 @@ jobs:
                       names.append(said.group(1))
               return ' + '.join(names) or None
 
-          def machines(module):
-              """Which machines a snapshot can ask for by name and find in this module.
-
-              Read from the sources rather than by running anything: a machine says which model
-              it is with a plain return, and this is the only place that can tell a person which
-              jar to bring when a snapshot names a machine nobody here has.
-              """
-              found = []
-              for source in sorted(glob.glob(module + '/src/main/java/**/*.java', recursive=True)):
-                  for model in re.findall(r'snapshotModel\(\)\s*\{\s*return\s+MachineTypes\.(\w+)',
-                                          open(source).read()):
-                      if model not in found:
-                          found.append(model)
-              return found
-
-          def opens(module):
-              """Which files this module knows how to open, as a format itself says so.
-
-              Read where a format answers whether a file is one of its own - handles, reads,
-              opens, isATape - and nowhere else, so that a name mentioned in passing elsewhere
-              does not make a jar claim a file it cannot read.
-              """
-              found = []
-              for source in sorted(glob.glob(module + '/src/main/java/**/*.java', recursive=True)):
-                  for body in re.findall(r'\b(?:handles|reads|opens|isATape)\s*\([^)]*\)\s*\{(.*?)\n\s{0,4}\}',
-                                         open(source).read(), re.S):
-                      for extension in re.findall(r'"\.(\w+)"', body):
-                          if extension not in found:
-                              found.append(extension)
-              return found
-
           os.makedirs('jars', exist_ok=True)
           devices = []
           # The two small jars somebody writing a plugin needs go up as well: one is the word a
@@ -164,9 +133,7 @@ jobs:
               # A machine has no window in the Equipment menu, so nothing there names it: what
               # the module calls itself does, and the folder is the last resort.
               devices.append({'artifact': artifact,
-                              'title': called(module) or named(pom) or os.path.basename(module).capitalize(),
-                              'machines': ' '.join(machines(module)),
-                              'opens': ' '.join(opens(module))})
+                              'title': called(module) or named(pom) or os.path.basename(module).capitalize()})
 
           for device in devices:
               print(device['artifact'] + ' -> ' + device['title'], file=sys.stderr)
@@ -202,8 +169,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ matrix.device.artifact }}
           TITLE: ${{ matrix.device.title }}
-          MACHINES: ${{ matrix.device.machines }}
-          OPENS: ${{ matrix.device.opens }}
         run: |
           JAR=$(ls "$TAG"-*.jar | head -1)
           echo "publishing $TAG from $JAR"
@@ -217,12 +182,10 @@ jobs:
             echo "[Extending OOZX](https://github.com/fpetrola/oozx/wiki/Extending-OOZX)."
             echo
             echo "See [Peripherals](https://github.com/fpetrola/oozx/wiki/Peripherals)."
-            # Read back by the emulator: a snapshot naming a machine nobody has is answered with
-            # the jars that bring it, picked out in the plugins window.
-            if [ -n "$MACHINES" ]; then echo; echo "oozx-machines: $MACHINES"; fi
-            if [ -n "$OPENS" ]; then echo; echo "oozx-opens: $OPENS"; fi
           } > notes.md
-          gh release create "$TAG" "$JAR" \
+          # Lo que el plugin responde, para preguntarlo sin bajar el jar.
+          unzip -p "$JAR" META-INF/plugin-metadata.json > "$TAG-plugin-metadata.json"
+          gh release create "$TAG" "$JAR" "$TAG-plugin-metadata.json" \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "$TITLE" \

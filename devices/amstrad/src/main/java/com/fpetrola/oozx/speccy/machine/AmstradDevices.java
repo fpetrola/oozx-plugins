@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.machine;
 
+import dev.crystal.plugins.api.Answers;
+
 import com.fpetrola.oozx.Extension;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
@@ -27,6 +29,7 @@ import com.google.inject.multibindings.Multibinder;
  * A machine that arrives rather than one the emulator was written with: what the build carries
  * is the 48K, and every other machine adds itself the way a board does.
  */
+@Answers({"SPECTRUMPLUS2A", "SPECTRUMPLUS3"})
 public class AmstradDevices extends AbstractModule implements Extension {
 
   protected void configure() {

@@ -21,6 +21,8 @@
  */
 package com.fpetrola.emulation.helpers.snapshots;
 
+import dev.crystal.plugins.api.Answers;
+
 import com.fpetrola.emulation.helpers.machine.Keyboard.JoystickModel;
 import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import z80core.IntMode;
@@ -37,6 +39,7 @@ import java.util.zip.InflaterInputStream;
  *
  * @author jsanchez
  */
+@Answers("szx")
 public class SnapshotSZX implements SnapshotFile {
 
     @Override

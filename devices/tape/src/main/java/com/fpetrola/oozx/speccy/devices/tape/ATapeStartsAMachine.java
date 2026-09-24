@@ -15,6 +15,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */package com.fpetrola.oozx.speccy.devices.tape;
 
+import dev.crystal.plugins.api.Answers;
+
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.machine.StartsAMachineOn;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
@@ -29,6 +31,7 @@ import java.io.File;
  * The emulator used to do this itself, which meant it had to know what a tape is to start at
  * all. It is the deck's, and the deck is a jar.
  */
+@Answers({"tap", "tzx", "csw"})
 public class ATapeStartsAMachine implements StartsAMachineOn {
 
   @Override

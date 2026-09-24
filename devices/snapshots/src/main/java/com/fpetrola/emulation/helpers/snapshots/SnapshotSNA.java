@@ -21,6 +21,8 @@
  */
 package com.fpetrola.emulation.helpers.snapshots;
 
+import dev.crystal.plugins.api.Answers;
+
 import com.fpetrola.emulation.helpers.machine.Keyboard.JoystickModel;
 import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import z80core.IntMode;
@@ -38,6 +40,7 @@ import java.util.logging.Logger;
  * here names one of its classes, so only this says so.
  */
 @dev.crystal.plugins.api.Needs({"device-spectrum128"})
+@Answers("sna")
 public class SnapshotSNA implements SnapshotFile {
 
     @Override
