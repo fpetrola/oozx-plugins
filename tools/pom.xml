@@ -40,6 +40,7 @@
         <module>audio-in</module>
         <module>cassette</module>
         <module>catalogue</module>
+        <module>controls</module>
         <module>games</module>
         <module>rzx</module>
         <module>curvature</module>
@@ -47,6 +48,7 @@
         <module>heatmap</module>
         <module>io</module>
         <module>trace</module>
+        <module>view</module>
         <module>memory-map</module>
         <module>frames</module>
         <module>pokes</module>
