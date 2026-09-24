@@ -49,6 +49,7 @@
         <module>trace</module>
         <module>memory-map</module>
         <module>frames</module>
+        <module>pokes</module>
         <module>poke-finder</module>
     </modules>
 

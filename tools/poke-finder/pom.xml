@@ -15,7 +15,7 @@
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>pokes</artifactId>
+            <artifactId>tool-pokes</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

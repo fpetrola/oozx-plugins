@@ -62,10 +62,8 @@
         </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>pokes</artifactId>
+            <artifactId>tool-pokes</artifactId>
             <version>${project.version}</version>
-            <!-- Los trae la aplicacion: no van adentro del jar del plugin. -->
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
