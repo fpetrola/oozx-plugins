@@ -36,12 +36,25 @@ jobs:
           repository: fpetrola/oozx
           path: oozx
 
-      # Y el framework contra el que los dos se compilan, que tampoco publica artefactos. A un
-      # tag y no a su rama, para que lo que se empuje alla mientras se trabaja no voltee esto.
+      # Y el framework contra el que los dos se compilan, que tampoco publica artefactos. Al tag
+      # que el emulador dice en su propio CI: escrito aca tambien, cada vez que el emulador pasaba
+      # a uno nuevo esto seguia en el viejo y dejaba de compilar.
+      - name: Which framework the emulator is built on
+        id: framework
+        run: |
+          ref=$(grep -A3 'repository: fpetrola/crystal-plugins' oozx/.github/workflows/maven.yml \
+            | sed -n 's/^ *ref: *//p' | head -1)
+          if [ -z "$ref" ]; then
+            echo "::error::oozx/.github/workflows/maven.yml no dice a que tag de crystal-plugins compila"
+            exit 1
+          fi
+          echo "crystal-plugins at $ref"
+          echo "ref=$ref" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v4
         with:
           repository: fpetrola/crystal-plugins
-          ref: bundled-3
+          ref: ${{ steps.framework.outputs.ref }}
           path: crystal-plugins
 
       - uses: actions/setup-java@v4
