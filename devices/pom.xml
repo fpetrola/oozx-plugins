@@ -33,6 +33,7 @@
         <module>amstrad</module>
         <module>spectrum-variants</module>
         <module>pentagon</module>
+        <module>ay</module>
         <module>memory</module>
         <module>scld</module>
         <module>timex</module>
