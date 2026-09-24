@@ -73,8 +73,10 @@ jobs:
       - name: Build the plugin framework
         run: mvn -B -U -DskipTests install -f crystal-plugins/pom.xml
 
+      # Sin meter los plugins adentro de su jar: son los que se construyen aca, despues, y
+      # todavia no estan en ~/.m2. Lo que se compila contra el emulador no necesita ese bundle.
       - name: Build the emulator these plug into
-        run: mvn -B -U -DskipTests install -f oozx/pom.xml
+        run: mvn -B -U -DskipTests -Dcrystal.bundleGroupId= install -f oozx/pom.xml
 
       # The whole reactor once: a plugin jar is small, but it is compiled against the machine.
       # Running the tests is the other workflow's job; this one only produces the artefacts.
