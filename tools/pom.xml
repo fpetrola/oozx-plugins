@@ -42,6 +42,7 @@
         <module>catalogue</module>
         <module>controls</module>
         <module>games</module>
+        <module>help</module>
         <module>rzx</module>
         <module>curvature</module>
         <module>calls</module>
