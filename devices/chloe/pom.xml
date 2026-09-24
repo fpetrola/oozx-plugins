@@ -12,6 +12,11 @@
 
     <name>Chloe 140SE and 280SE</name>
     <dependencies>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-scld</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!--
           The 280SE is built on the Spectrum SE, which arrives in its own jar: a plugin that
           needs another says so here, and the jar says it in its manifest, so taking this one
