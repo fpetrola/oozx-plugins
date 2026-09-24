@@ -17,30 +17,27 @@
 
 package com.fpetrola.oozx.speccy.tools.controls;
 
-import com.fpetrola.oozx.speccy.devices.Desk;
-import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
-import com.fpetrola.oozx.speccy.devices.MachineTool;
+import com.fpetrola.oozx.speccy.devices.DeskEquipment;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
-/** Los ajustes de esta maquina, pegados a su ventana. */
-public class MachineSettingsTool implements MachineTool {
+import javax.swing.Icon;
+import javax.swing.JInternalFrame;
 
-  public javax.swing.Icon icon() {
+public class SettingsEquipment implements DeskEquipment {
+  public String name() {
+    return "Settings";
+  }
+
+  public JInternalFrame open() {
+    return new SettingsInternalFrame();
+  }
+
+  public String keeps() {
+    return "SETTINGS";
+  }
+
+  @Override
+  public Icon icon() {
     return Widgets.loadIcon("2699.svg");
-  }
-
-  public String tooltip() {
-    return "Settings of this machine, clipped onto it";
-  }
-
-  public int place() {
-    return 25;
-  }
-
-  public void use(EmulatorWindow window) {
-    SettingsInternalFrame settings = new SettingsInternalFrame();
-    settings.setLocation(80, 80);
-    Desk.theOne().place(settings);
-    settings.setMachineWindow((javax.swing.JInternalFrame) window);
   }
 }

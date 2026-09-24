@@ -15,12 +15,16 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package com.fpetrola.oozx.speccy.tools.view;
+package com.fpetrola.oozx.speccy.tools.controls;
 
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
+import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
 import com.fpetrola.oozx.speccy.windows.Widgets;
+
+import javax.swing.JInternalFrame;
+import javax.swing.JOptionPane;
 
 /** Como se ve la pantalla: escalado, television y color. */
 public class ScreenSettingsTool implements MachineTool {
@@ -38,6 +42,13 @@ public class ScreenSettingsTool implements MachineTool {
   }
 
   public void use(EmulatorWindow window) {
-    Desk.theOne().openScreenSettings(window);
+    JInternalFrame frame = (JInternalFrame) window;
+    if (!(Desk.theOne().coreOf(frame).getPanel() instanceof SpeccyScreen screen)) {
+      JOptionPane.showMessageDialog(null, "This emulator has no adjustable screen.",
+          "Screen", JOptionPane.INFORMATION_MESSAGE);
+      return;
+    }
+    Desk.theOne().place(new ScreenSettingsInternalFrame(frame.getTitle(),
+        screen.getScreenSettings()));
   }
 }
