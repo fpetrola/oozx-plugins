@@ -14,6 +14,11 @@
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>
+            <artifactId>device-memory</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
             <artifactId>device-scld</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -12,6 +12,11 @@
 
     <name>The Amstrad machines: +2A, +3 and +3e</name>
     <dependencies>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-memory</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Built on it, so taking this one brings that one. -->
         <dependency>
             <groupId>com.fpetrola</groupId>
