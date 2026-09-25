@@ -17,10 +17,13 @@
 
 package com.fpetrola.oozx.speccy.devices.simpleide;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.IdeBayFrame;
 
+@Offers("Plug in: Simple 8-bit IDE")
 public class SimpleIdeEquipment implements Equipment {
   public String name() {
     return "Simple 8-bit IDE";

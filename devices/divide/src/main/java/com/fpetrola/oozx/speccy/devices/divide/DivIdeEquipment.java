@@ -16,9 +16,12 @@
  */
 package com.fpetrola.oozx.speccy.devices.divide;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: DivIDE")
 public class DivIdeEquipment implements Equipment {
   public String name() {
     return "DivIDE";

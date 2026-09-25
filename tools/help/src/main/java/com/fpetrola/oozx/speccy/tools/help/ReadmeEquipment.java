@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.help;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeskEquipment;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.parser.Parser;
@@ -31,6 +33,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
+@Offers("Read the help")
 public class ReadmeEquipment implements DeskEquipment {
   private static final String STYLE = "body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }"
       + "h1 { color: #1f77b4; border-bottom: 2px solid #1f77b4; padding-bottom: 10px; }"

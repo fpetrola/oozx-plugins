@@ -17,10 +17,13 @@
 
 package com.fpetrola.oozx.speccy.devices.ulaplus;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 /** The sixty-four colours, offered on the desk's own menu like anything else somebody fits. */
+@Offers("Plug in: ULAplus")
 public class UlaPlusEquipment implements Equipment {
   public String name() {
     return "ULAplus";

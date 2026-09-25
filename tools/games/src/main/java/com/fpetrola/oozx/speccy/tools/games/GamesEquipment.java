@@ -17,11 +17,14 @@
 
 package com.fpetrola.oozx.speccy.tools.games;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeskEquipment;
 
 import javax.swing.JInternalFrame;
 
 /** The game browser, offered like any other equipment: found, not named by the application. */
+@Offers("Browse the game catalogue")
 public class GamesEquipment implements DeskEquipment {
   public String name() {
     return "Game Browser";

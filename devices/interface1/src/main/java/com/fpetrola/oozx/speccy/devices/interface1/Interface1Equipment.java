@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.devices.interface1;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: Interface 1")
 public class Interface1Equipment implements Equipment {
   public String name() {
     return "Interface 1";

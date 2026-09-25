@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.view;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.windows.Widgets;
@@ -38,6 +40,7 @@ import java.util.WeakHashMap;
  * La pantalla sola, llenando el monitor. El panel se muda a una ventana sin bordes y vuelve, en
  * vez de dibujarse en otro lado, asi la maquina sigue andando y el teclado sigue funcionando.
  */
+@Offers("Play in full screen")
 public class FullscreenTool implements MachineTool {
 
   /** Donde estaba cada pantalla y la ventana que la tiene ahora, mientras esta a pantalla completa. */

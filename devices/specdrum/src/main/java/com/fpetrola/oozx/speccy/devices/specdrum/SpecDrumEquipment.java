@@ -16,10 +16,13 @@
  */
 package com.fpetrola.oozx.speccy.devices.specdrum;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DacFrame;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: SpecDrum")
 public class SpecDrumEquipment implements Equipment {
   public String name() {
     return "SpecDrum";

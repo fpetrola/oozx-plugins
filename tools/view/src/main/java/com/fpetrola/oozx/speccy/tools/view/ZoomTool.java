@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.view;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
@@ -25,6 +27,7 @@ import com.fpetrola.oozx.speccy.windows.Widgets;
 import javax.swing.SwingUtilities;
 
 /** Una, dos o tres veces el tamanio de la pantalla. */
+@Offers("Zoom the screen")
 public class ZoomTool implements MachineTool {
 
   public javax.swing.Icon icon() {

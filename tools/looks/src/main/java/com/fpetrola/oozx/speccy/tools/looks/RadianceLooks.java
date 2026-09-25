@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.looks;
 
+import dev.crystal.plugins.api.Offers;
+
 import org.pushingpixels.radiance.theming.api.RadianceThemingCortex;
 
 import java.util.List;
@@ -25,6 +27,7 @@ import java.util.List;
  * Radiance dice que pieles tiene y se las pone solo: ponerle el look por clase lo deja sin piel,
  * y todo lo que pinte despues falla por eso.
  */
+@Offers("Change the look: Radiance")
 public class RadianceLooks extends FromThisPlugin {
 
   public String family() {

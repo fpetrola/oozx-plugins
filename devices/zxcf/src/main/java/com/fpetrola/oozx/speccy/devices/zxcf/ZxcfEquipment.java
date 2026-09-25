@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.devices.zxcf;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: ZXCF CompactFlash")
 public class ZxcfEquipment implements Equipment {
   public String name() {
     return "ZXCF CompactFlash";

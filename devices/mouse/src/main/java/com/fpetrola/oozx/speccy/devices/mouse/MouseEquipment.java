@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.devices.mouse;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: Kempston Mouse")
 public class MouseEquipment implements Equipment {
   public String name() {
     return "Kempston Mouse";

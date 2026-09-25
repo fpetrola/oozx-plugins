@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.view;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.windows.Widgets;
@@ -25,6 +27,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
 /** La maquina tal como esta, escrita en un archivo que se abre despues como cualquier snapshot. */
+@Offers("Save a snapshot of the machine")
 public class SnapshotTool implements MachineTool {
 
   public javax.swing.Icon icon() {

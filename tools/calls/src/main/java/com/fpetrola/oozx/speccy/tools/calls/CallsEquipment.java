@@ -18,10 +18,13 @@
 
 package com.fpetrola.oozx.speccy.tools.calls;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 /** Offered the way a board is: the desk finds it, and nothing in the emulator names it. */
+@Offers("Open: Calls")
 public class CallsEquipment implements Equipment {
   public String name() {
     return "Calls";

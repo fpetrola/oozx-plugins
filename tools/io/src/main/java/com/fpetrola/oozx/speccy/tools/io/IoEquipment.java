@@ -18,9 +18,12 @@
 
 package com.fpetrola.oozx.speccy.tools.io;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
+@Offers("Open: Ports")
 public class IoEquipment implements Equipment {
   public String name() {
     return "Ports";

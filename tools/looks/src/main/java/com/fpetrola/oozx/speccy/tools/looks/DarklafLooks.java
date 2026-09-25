@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.looks;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.github.weisj.darklaf.LafManager;
 import com.github.weisj.darklaf.theme.DarculaTheme;
 import com.github.weisj.darklaf.theme.HighContrastDarkTheme;
@@ -30,6 +32,7 @@ import com.github.weisj.darklaf.theme.Theme;
 import java.util.Arrays;
 import java.util.List;
 
+@Offers("Change the look: Darklaf themes")
 public class DarklafLooks extends FromThisPlugin {
 
   private static final Theme[] THEMES = {new DarculaTheme(), new OneDarkTheme(), new SolarizedLightTheme(),

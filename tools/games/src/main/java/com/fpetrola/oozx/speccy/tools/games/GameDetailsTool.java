@@ -17,12 +17,15 @@
 
 package com.fpetrola.oozx.speccy.tools.games;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
 /** Lo que el catalogo sabe del juego que esta corriendo. */
+@Offers("See the details of the game")
 public class GameDetailsTool implements MachineTool {
 
   public javax.swing.Icon icon() {

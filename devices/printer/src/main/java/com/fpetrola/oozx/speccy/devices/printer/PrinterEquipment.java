@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.devices.printer;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: ZX Printer")
 public class PrinterEquipment implements Equipment {
   public String name() {
     return "ZX Printer";

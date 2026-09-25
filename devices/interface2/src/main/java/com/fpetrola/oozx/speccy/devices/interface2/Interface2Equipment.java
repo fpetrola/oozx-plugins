@@ -16,9 +16,12 @@
  */
 package com.fpetrola.oozx.speccy.devices.interface2;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: ZX Interface 2")
 public class Interface2Equipment implements Equipment {
   public String name() {
     return "ZX Interface 2";

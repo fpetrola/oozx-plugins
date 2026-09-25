@@ -17,11 +17,14 @@
 
 package com.fpetrola.oozx.speccy.tools.controls;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
 /** Apagar y prender la maquina. */
+@Offers("Reset the machine")
 public class ResetTool implements MachineTool {
 
   public javax.swing.Icon icon() {

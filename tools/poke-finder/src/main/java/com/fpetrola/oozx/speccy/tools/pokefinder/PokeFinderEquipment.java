@@ -18,9 +18,12 @@
 
 package com.fpetrola.oozx.speccy.tools.pokefinder;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
+@Offers("Open: Poke finder")
 public class PokeFinderEquipment implements Equipment {
   public String name() {
     return "Poke finder";

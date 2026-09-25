@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.pokes;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.Desk;
@@ -41,6 +43,7 @@ import java.util.WeakHashMap;
  * Antes vivia en la ventana de maquina, que para ofrecer pokes tenia que saber leer listados
  * .pok. Ahora es una herramienta: sacar este plugin saca el boton.
  */
+@Offers("Put pokes in the game")
 public class PokesTool implements MachineTool {
 
   private final PokesManager pokes = new PokesManager();

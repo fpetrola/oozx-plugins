@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.controls;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.EmulatorControl;
 import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
@@ -33,6 +35,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 /** El sonido: silencio con el boton, volumen con la regla del clic derecho. */
+@Offers("Change the volume")
 public class SoundTool implements MachineTool {
 
   /** El boton de cada ventana, para que al reabrirla muestre si quedo en silencio. */

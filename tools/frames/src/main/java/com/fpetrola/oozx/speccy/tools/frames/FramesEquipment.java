@@ -18,9 +18,12 @@
 
 package com.fpetrola.oozx.speccy.tools.frames;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
+@Offers("Open: Frames")
 public class FramesEquipment implements Equipment {
   public String name() {
     return "Frames";

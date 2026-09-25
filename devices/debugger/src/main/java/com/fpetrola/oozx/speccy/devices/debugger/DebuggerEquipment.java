@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.devices.debugger;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
+@Offers("Plug in: Debugger")
 public class DebuggerEquipment implements Equipment {
   public String name() {
     return "Debugger";

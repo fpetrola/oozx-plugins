@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.controls;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
@@ -27,6 +29,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
 
 /** Como se ve la pantalla: escalado, television y color. */
+@Offers("Adjust the screen: scaling, TV and colour")
 public class ScreenSettingsTool implements MachineTool {
 
   public javax.swing.Icon icon() {

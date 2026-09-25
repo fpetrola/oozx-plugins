@@ -17,8 +17,11 @@
 
 package com.fpetrola.oozx.speccy.tools.looks;
 
+import dev.crystal.plugins.api.Offers;
+
 import java.util.List;
 
+@Offers("Change the look: FlatLaf IntelliJ themes")
 public class FlatLafThemeLooks extends FromThisPlugin {
 
   public String family() {

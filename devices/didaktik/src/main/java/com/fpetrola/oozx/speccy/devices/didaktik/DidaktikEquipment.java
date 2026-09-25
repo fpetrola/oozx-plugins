@@ -16,11 +16,14 @@
  */
 package com.fpetrola.oozx.speccy.devices.didaktik;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.DriveBayFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
+@Offers("Plug in: Didaktik 40/80")
 public class DidaktikEquipment implements Equipment {
   static final DiskInterface SHAPE = DiskInterface.shape(2, "SNAP",
       "The SNAP button: an NMI that the Didaktik's ROM takes over, to save what is running", "d80", "d40");

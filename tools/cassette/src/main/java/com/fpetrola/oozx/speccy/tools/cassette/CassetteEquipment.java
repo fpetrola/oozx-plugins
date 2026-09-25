@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.cassette;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
@@ -24,6 +26,7 @@ import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import java.io.File;
 
 /** The cassette deck, offered like any other equipment: found, not named by the application. */
+@Offers("Open: Cassette")
 public class CassetteEquipment implements Equipment {
   public String name() {
     return "Cassette";

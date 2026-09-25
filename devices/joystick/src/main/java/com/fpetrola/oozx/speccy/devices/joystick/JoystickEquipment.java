@@ -34,10 +34,13 @@
 
 package com.fpetrola.oozx.speccy.devices.joystick;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 /** The joystick window, offered like any other equipment: found, not named by the application. */
+@Offers("Plug in: Joystick")
 public class JoystickEquipment implements Equipment {
   public String name() {
     return "Joystick";

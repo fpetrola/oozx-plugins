@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.devices.divmmc;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
+@Offers("Plug in: DivMMC")
 public class DivMmcEquipment implements Equipment {
   public String name() {
     return "DivMMC";

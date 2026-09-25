@@ -17,10 +17,13 @@
 
 package com.fpetrola.oozx.speccy.tools.keyboard;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 /** The keyboard, offered the same way a board is: the desk finds it and does not know it is not one. */
+@Offers("Open: Keyboard")
 public class KeyboardEquipment implements Equipment {
   public String name() {
     return "Keyboard";

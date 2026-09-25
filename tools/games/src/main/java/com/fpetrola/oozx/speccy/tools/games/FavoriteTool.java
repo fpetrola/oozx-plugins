@@ -17,12 +17,15 @@
 
 package com.fpetrola.oozx.speccy.tools.games;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
 /** Guardar este juego entre los favoritos. */
+@Offers("Keep this game as a favourite")
 public class FavoriteTool implements MachineTool {
 
   public javax.swing.Icon icon() {

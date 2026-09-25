@@ -16,6 +16,8 @@
  */
 package com.fpetrola.oozx.speccy.devices.beta128;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.DriveBayFrame;
@@ -23,6 +25,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
+@Offers("Plug in: Beta 128")
 public class Beta128Equipment implements Equipment {
   static final DiskInterface SHAPE = DiskInterface.shape(4, "Boot",
       "Reset the machine into TR-DOS, with the 48 BASIC underneath, and boot from drive A", "trd", "scl");

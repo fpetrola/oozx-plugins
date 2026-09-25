@@ -17,11 +17,14 @@
 
 package com.fpetrola.oozx.speccy.devices.plusd;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.DriveBayFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
+@Offers("Plug in: +D")
 public class PlusDEquipment implements Equipment {
   /** Two drives, MGT images, an NMI button: what a +D is before a machine has one. */
   static final DiskInterface SHAPE = DiskInterface.shape(2, "NMI",

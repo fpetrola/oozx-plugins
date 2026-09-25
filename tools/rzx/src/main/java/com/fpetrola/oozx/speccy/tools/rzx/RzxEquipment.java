@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.rzx;
 
+import dev.crystal.plugins.api.Offers;
+
 import dev.crystal.plugins.api.Answers;
 
 import com.fpetrola.oozx.speccy.devices.Equipment;
@@ -31,6 +33,7 @@ import java.io.File;
  */
 @dev.crystal.plugins.api.Needs({"device-snapshots"})
 @Answers("rzx")
+@Offers("Open: RZX Player")
 public class RzxEquipment implements Equipment {
   public String name() {
     return "RZX Player";

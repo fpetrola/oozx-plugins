@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.controls;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.EmulatorControl;
 import com.fpetrola.oozx.EmulatorListener;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
@@ -32,6 +34,7 @@ import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 
 /** Parar y seguir: un boton que muestra lo que va a hacer, y en la barra de estado lo que esta haciendo. */
+@Offers("Pause the machine")
 public class PauseTool implements MachineTool {
 
   public javax.swing.Icon icon() {

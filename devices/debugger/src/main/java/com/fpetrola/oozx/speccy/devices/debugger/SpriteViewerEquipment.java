@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.devices.debugger;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
+@Offers("Plug in: Sprites")
 public class SpriteViewerEquipment implements Equipment {
   public String name() {
     return "Sprites";

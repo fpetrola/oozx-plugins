@@ -17,10 +17,13 @@
 
 package com.fpetrola.oozx.speccy.tools.audioin;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 /** The cassette player made of air, offered like any other equipment: found, not named by the app. */
+@Offers("Open: Real Cassette (audio in)")
 public class AudioInEquipment implements Equipment {
   public String name() {
     return "Real Cassette (audio in)";

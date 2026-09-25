@@ -17,12 +17,15 @@
 
 package com.fpetrola.oozx.speccy.tools.controls;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
 /** Los ajustes de esta maquina, pegados a su ventana. */
+@Offers("Change the settings of this machine")
 public class MachineSettingsTool implements MachineTool {
 
   public javax.swing.Icon icon() {

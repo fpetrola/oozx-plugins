@@ -17,6 +17,8 @@
 
 package com.fpetrola.oozx.speccy.tools.view;
 
+import dev.crystal.plugins.api.Offers;
+
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
@@ -32,6 +34,7 @@ import javax.swing.JToggleButton;
  * El borde de la pantalla. Un boton que queda apretado mientras se ve, como el borde, que esta o
  * no esta. Lo que se elige queda para las maquinas que se abran despues.
  */
+@Offers("Show or hide the border")
 public class BorderTool implements MachineTool {
 
   public javax.swing.Icon icon() {

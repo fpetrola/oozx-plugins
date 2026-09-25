@@ -17,9 +17,12 @@
 
 package com.fpetrola.oozx.speccy.tools.looks;
 
+import dev.crystal.plugins.api.Offers;
+
 import javax.swing.UIManager;
 import java.util.List;
 
+@Offers("Change the look: Material")
 public class MaterialLooks extends FromThisPlugin {
 
   public String family() {
