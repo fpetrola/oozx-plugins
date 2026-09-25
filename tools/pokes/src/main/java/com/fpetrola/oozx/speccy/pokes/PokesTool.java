@@ -156,4 +156,9 @@ public class PokesTool implements MachineTool {
       here.add(mod);
     }
   }
+
+  @Override
+  public void closed(EmulatorWindow window) {
+    applied.remove(window);
+  }
 }

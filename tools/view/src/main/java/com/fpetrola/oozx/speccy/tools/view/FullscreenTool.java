@@ -89,4 +89,9 @@ public class FullscreenTool implements MachineTool {
     whole.addActionListener(e -> use(window));
     return whole;
   }
+
+  @Override
+  public void closed(EmulatorWindow window) {
+    away.remove(window);
+  }
 }

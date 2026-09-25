@@ -103,4 +103,9 @@ public class SoundTool implements MachineTool {
     button.setIcon(Widgets.loadIcon(muted ? "1F509.svg" : "1F507.svg"));
     button.setToolTipText(muted ? "Unmute Sound" : "Mute Sound");
   }
+
+  @Override
+  public void closed(EmulatorWindow window) {
+    buttons.remove(window);
+  }
 }
