@@ -26,6 +26,7 @@ import javax.swing.JButton;
 import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTree;
 import javax.swing.Timer;
 import javax.swing.event.InternalFrameAdapter;
@@ -51,6 +52,7 @@ public class CallsFrame extends MachineFrame {
   private final JTree tree = new JTree(model);
   private final DefaultListModel<String> steps = new DefaultListModel<>();
   private final JList<String> stack = new JList<>(steps);
+  private final CallGraph graph = new CallGraph();
   private CallTree watching;
   private long drawn = -1;
 
@@ -74,7 +76,14 @@ public class CallsFrame extends MachineFrame {
     });
     controls.add(forget);
 
-    JScrollPane whatItCalled = new JScrollPane(tree);
+    JScrollPane asATree = new JScrollPane(tree);
+    JTabbedPane whatItCalled = new JTabbedPane();
+    whatItCalled.addTab("Tree", asATree);
+    whatItCalled.addTab("Graph", graph);
+    whatItCalled.addChangeListener(e -> {
+      drawn = -1;
+      draw();
+    });
     whatItCalled.setBorder(BorderFactory.createTitledBorder("What called what"));
     JScrollPane whereItIs = new JScrollPane(stack);
     whereItIs.setBorder(BorderFactory.createTitledBorder("Where it is now"));
@@ -135,6 +144,7 @@ public class CallsFrame extends MachineFrame {
       watching.program().forEach(call -> program.add(nodeOf(call)));
     }
     model.reload();
+    if (graph.isShowing()) graph.show(watching == null ? List.of() : watching.program());
     tree.expandRow(0);
     for (int row = 0; row < tree.getRowCount(); row++) {
       if (open.contains(pathOf(tree.getPathForRow(row)))) {
