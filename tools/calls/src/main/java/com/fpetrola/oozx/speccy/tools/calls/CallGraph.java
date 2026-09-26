@@ -24,6 +24,7 @@ import com.mxgraph.util.mxPoint;
 import com.mxgraph.view.mxGraph;
 import com.mxgraph.view.mxGraphView;
 
+import javax.swing.JCheckBox;
 import javax.swing.JPanel;
 import java.awt.BorderLayout;
 import java.awt.event.MouseAdapter;
@@ -43,6 +44,8 @@ final class CallGraph extends JPanel {
 
   private final mxGraph graph = new mxGraph();
   private final mxGraphComponent component = new mxGraphComponent(graph);
+  private final JCheckBox decimal = new JCheckBox("Decimal");
+  private List<CallTree.Call> shown = List.of();
 
   CallGraph() {
     super(new BorderLayout());
@@ -55,19 +58,25 @@ final class CallGraph extends JPanel {
     draggingMovesTheView();
     wheelZooms();
     add(component, BorderLayout.CENTER);
+    decimal.addActionListener(e -> show(shown));
+    add(decimal, BorderLayout.NORTH);
   }
 
-  /** Dibujado de nuevo entero: cada rutina una vez aunque la llamen de varios lados. */
+  /**
+   * Dibujado de nuevo entero: cada rutina una vez aunque la llamen de varios lados, con lo que
+   * ocupa de punta a punta y cuantas veces se la llamo.
+   */
   void show(List<CallTree.Call> program) {
-    Map<Integer, Integer> times = new LinkedHashMap<>();
+    shown = program;
+    Map<Integer, int[]> routines = new LinkedHashMap<>();
     Set<List<Integer>> calls = new LinkedHashSet<>();
-    program.forEach(call -> walk(call, times, calls));
+    program.forEach(call -> walk(call, routines, calls));
     graph.getModel().beginUpdate();
     try {
       graph.removeCells(graph.getChildCells(graph.getDefaultParent()));
       Map<Integer, Object> nodes = new LinkedHashMap<>();
-      times.forEach((address, count) -> nodes.put(address, graph.insertVertex(graph.getDefaultParent(), null,
-          "%04X ×%d".formatted(address, count), 0, 0, 90, 30)));
+      routines.forEach((address, seen) -> nodes.put(address, graph.insertVertex(graph.getDefaultParent(), null,
+          said(seen[1]) + "–" + said(seen[2]) + "\n×" + seen[0], 0, 0, 100, 36)));
       calls.forEach(call -> graph.insertEdge(graph.getDefaultParent(), null, "",
           nodes.get(call.get(0)), nodes.get(call.get(1))));
       mxHierarchicalLayout layout = new mxHierarchicalLayout(graph);
@@ -79,11 +88,17 @@ final class CallGraph extends JPanel {
     }
   }
 
-  private static void walk(CallTree.Call call, Map<Integer, Integer> times, Set<List<Integer>> calls) {
-    times.merge(call.address(), call.times(), Integer::sum);
+  private String said(int address) {
+    return (decimal.isSelected() ? "%d" : "%04X").formatted(address);
+  }
+
+  /** Veces, desde y hasta de cada rutina, juntando todos los lugares desde donde la llamaron. */
+  private static void walk(CallTree.Call call, Map<Integer, int[]> routines, Set<List<Integer>> calls) {
+    routines.merge(call.address(), new int[]{call.times(), call.from(), call.to()}, (was, more) ->
+        new int[]{was[0] + more[0], Math.min(was[1], more[1]), Math.max(was[2], more[2])});
     for (CallTree.Call made : call.made()) {
       calls.add(List.of(call.address(), made.address()));
-      walk(made, times, calls);
+      walk(made, routines, calls);
     }
   }
 

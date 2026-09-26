@@ -43,11 +43,14 @@ public class CallTree {
   public static final class Call {
     private final int address;
     private int times;
+    private int from;
+    private int to;
     private final Map<Integer, Integer> back = new LinkedHashMap<>();
     private final Map<Integer, Call> made = new LinkedHashMap<>();
 
     Call(int address) {
       this.address = address;
+      from = to = address;
     }
 
     public int address() {
@@ -59,6 +62,15 @@ public class CallTree {
     }
 
     /** Where the calls that went here came back to, and how many took each way out. */
+    /** From the lowest to the highest address run while it was the one running. */
+    public int from() {
+      return from;
+    }
+
+    public int to() {
+      return to;
+    }
+
     public Map<Integer, Integer> back() {
       return Map.copyOf(back);
     }
@@ -69,15 +81,38 @@ public class CallTree {
 
     private Call copy() {
       Call copy = new Call(address);
-      copy.times = times;
-      copy.back.putAll(back);
-      made.forEach((at, call) -> copy.made.put(at, call.copy()));
+      copy.absorb(this);
       return copy;
+    }
+
+    private void reach(int pc) {
+      from = Math.min(from, pc);
+      to = Math.max(to, pc);
+    }
+
+    private boolean holds(int pc) {
+      return pc >= from && pc <= to;
+    }
+
+    private void absorb(Call other) {
+      times += other.times;
+      other.back.forEach((at, many) -> back.merge(at, many, Integer::sum));
+      reach(other.from);
+      reach(other.to);
+      other.made.values().forEach(this::adopt);
+    }
+
+    private void adopt(Call child) {
+      made.computeIfAbsent(child.address, Call::new).absorb(child);
     }
   }
 
-  /** A routine being run, and the stack as it was on the way in, which is how it is left. */
-  private record Frame(Call routine, int sp, int back) {
+  /**
+   * A routine being run, and the stack as it was on the way in, which is how it is left. One
+   * entered by a jump with something pushed is only maybe a call, kept apart from its caller
+   * until it is known whether it comes back to what was pushed.
+   */
+  private record Frame(Call routine, int sp, int back, Call maybeCalledBy) {
   }
 
   /** One rung of the stack as it stands: what is running, and where it will come back to. */
@@ -90,6 +125,8 @@ public class CallTree {
   private Call program = new Call(-1);
   private int wentTo = -1;
   private int comesBackTo;
+  private int jumpedFrom;
+  private int fallsTo = -1;
   private long counted;
 
   public CallTree(Speccy machine) {
@@ -105,27 +142,62 @@ public class CallTree {
    */
   private synchronized void sawFetch(int pc) {
     int sp = machine.cpu.getOoz80().getState().getRegister(RegisterName.SP).read();
+    boolean unwound = false;
     while (!frames.isEmpty() && sp > frames.peek().sp()) {
-      frames.pop();
+      left(frames.pop(), pc);
+      unwound = true;
     }
-    if (wentTo >= 0) {
-      if (pc == wentTo) {
-        Call routine = (frames.isEmpty() ? program : frames.peek().routine()).made
-            .computeIfAbsent(wentTo, Call::new);
-        routine.times++;
-        routine.back.merge(comesBackTo, 1, Integer::sum);
-        frames.push(new Frame(routine, sp, comesBackTo));
-        counted++;
-      }
-      wentTo = -1;
+    Call current = frames.isEmpty() ? program : frames.peek().routine();
+    if (wentTo >= 0 && pc == wentTo) {
+      current = entered(current.made.computeIfAbsent(wentTo, Call::new), sp, comesBackTo, null);
+      counted++;
+    } else if (fallsTo >= 0 && (pc < jumpedFrom || pc > fallsTo) && !unwound && !frames.isEmpty()
+        && sp < frames.peek().sp() && !current.holds(pc)) {
+      current = entered(new Call(pc), sp, byteAt(sp) | byteAt(sp + 1) << 8, current);
     }
+    wentTo = fallsTo = -1;
+    current.reach(pc);
     int opcode = byteAt(pc);
+    int next = byteAt(pc + 1);
+    jumpedFrom = pc;
+    if (opcode == 0xc3 || (opcode & 0xc7) == 0xc2 || opcode == 0xe9 || opcode == 0xc9
+        || (opcode & 0xc7) == 0xc0) {
+      fallsTo = pc + ((opcode & 0xc7) == 0xc2 ? 3 : 1) & 0xffff;
+    } else if ((opcode == 0xdd || opcode == 0xfd) && next == 0xe9 || opcode == 0xed && (next == 0x45 || next == 0x4d)) {
+      fallsTo = pc + 2 & 0xffff;
+    }
     if (opcode == 0xcd || (opcode & 0xc7) == 0xc4) {
       wentTo = byteAt(pc + 1) | byteAt(pc + 2) << 8;
       comesBackTo = pc + 3 & 0xffff;
     } else if ((opcode & 0xc7) == 0xc7) {
       wentTo = opcode & 0x38;
       comesBackTo = pc + 1 & 0xffff;
+    }
+  }
+
+  private Call entered(Call routine, int sp, int back, Call maybeCalledBy) {
+    routine.times++;
+    routine.back.merge(back, 1, Integer::sum);
+    frames.push(new Frame(routine, sp, back, maybeCalledBy));
+    return routine;
+  }
+
+  /**
+   * A routine entered by a jump was a call if it came back to what had been pushed before it; if
+   * the stack went past it some other way, it was the caller's own code, pushed registers and all.
+   */
+  private void left(Frame frame, int pc) {
+    Call caller = frame.maybeCalledBy();
+    if (caller == null) {
+      return;
+    }
+    if (pc == frame.back()) {
+      caller.adopt(frame.routine());
+      counted++;
+    } else {
+      caller.reach(frame.routine().from);
+      caller.reach(frame.routine().to);
+      frame.routine().made.values().forEach(caller::adopt);
     }
   }
 
@@ -157,7 +229,7 @@ public class CallTree {
   public synchronized void forget() {
     program = new Call(-1);
     frames.clear();
-    wentTo = -1;
+    wentTo = fallsTo = -1;
     counted++;
   }
 

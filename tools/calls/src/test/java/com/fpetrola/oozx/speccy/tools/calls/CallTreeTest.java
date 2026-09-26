@@ -119,6 +119,37 @@ class CallTreeTest extends MachineTest {
   }
 
   @Test
+  void aJumpWithTheWayBackPushedIsACall() {
+    // 8000: CALL 8010 / JP 8003    8010: LD HL,8017 / PUSH HL / JP 8020 / RET    8020: RET
+    Speccy speccy = running(new int[]{0xcd, 0x10, 0x80, 0xc3, 0x03, 0x80},
+        new int[]{0x21, 0x17, 0x80, 0xe5, 0xc3, 0x20, 0x80, 0xc9}, new int[]{0xc9});
+    CallTree tree = new CallTree(speccy);
+
+    steps(speccy, 7);
+
+    CallTree.Call outer = tree.program().get(0);
+    assertEquals(1, outer.made().size(), "the jump came back to what was pushed");
+    assertEquals(START + 0x20, outer.made().get(0).address());
+    assertEquals(Map.of(START + 0x17, 1), outer.made().get(0).back());
+    assertEquals(START + 0x17, outer.to(), "the routine runs up to its own RET");
+  }
+
+  @Test
+  void aJumpOverPushedRegistersIsTheRoutineGoingOn() {
+    // 8000: CALL 8010 / JP 8003    8010: PUSH HL / JP 8014 / POP HL / RET
+    Speccy speccy = running(new int[]{0xcd, 0x10, 0x80, 0xc3, 0x03, 0x80},
+        new int[]{0xe5, 0xc3, 0x14, 0x80, 0xe1, 0xc9});
+    CallTree tree = new CallTree(speccy);
+
+    steps(speccy, 6);
+
+    CallTree.Call outer = tree.program().get(0);
+    assertTrue(outer.made().isEmpty(), "the pushed value was popped, not returned to");
+    assertEquals(START + 0x10, outer.from());
+    assertEquals(START + 0x15, outer.to());
+  }
+
+  @Test
   void lettingGoLeavesTheMachineAsItWas() {
     Speccy speccy = running(new int[]{0xcd, 0x10, 0x80, 0xc3, 0x03, 0x80}, new int[]{0xc9});
     CallTree tree = new CallTree(speccy);
