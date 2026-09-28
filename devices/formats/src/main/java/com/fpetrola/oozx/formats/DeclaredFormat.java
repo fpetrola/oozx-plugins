@@ -66,7 +66,7 @@ public abstract class DeclaredFormat implements SnapshotFormat {
   @Override
   public final void read(byte[] bytes, Speccy speccy, Consumer<String> notes) throws SnapshotException {
     SnapshotFile file = understood(bytes);
-    become(speccy, file.shape().machine());
+    become(speccy, file);
     plug(file, speccy);
     speccy.accept(part -> bindings().apply(part, Direction.reading(file)));
     file.notes().forEach(notes);
@@ -107,11 +107,24 @@ public abstract class DeclaredFormat implements SnapshotFormat {
   protected void plug(SnapshotFile file, Speccy speccy) {
   }
 
-  /** Chooses the machine the file is of, which starts it from a known state. */
-  private void become(Speccy speccy, MachineTypes wanted) throws SnapshotException {
-    Spectrum model = speccy.machine.forSnapshotModel(wanted)
-        .orElseThrow(() -> new SnapshotException("this build has no " + wanted.getLongModelName()));
-    speccy.machine.select(model);
+  /**
+   * Becomes the machine the file is of, if it is not already it: choosing a model resets it, and
+   * one that already is that model has nothing to gain from it. A machine this build does not have
+   * is said to the person, and the file goes into the one that was running, as the loader before
+   * this did: a recording taken on a +2A still opens where there is no +2A.
+   */
+  private void become(Speccy speccy, SnapshotFile file) {
+    MachineTypes wanted = file.shape().machine();
+    java.util.Optional<Spectrum> model = speccy.machine.forSnapshotModel(wanted);
+    if (model.isEmpty()) {
+      String running = speccy.machine.current == null ? "machine" : speccy.machine.current.getName();
+      file.note("this build has no " + wanted.getLongModelName() + ": loaded into the " + running + " that was running");
+      com.fpetrola.oozx.TellsThePerson.thisBuildCannot(("This snapshot was taken on a %s, and this build carries no machine that runs its code. "
+          + "It was loaded into the %s that was already running, where it will most likely show nothing at all.")
+          .formatted(wanted.getLongModelName(), running), wanted.name());
+    } else if (speccy.machine.current != model.get()) {
+      speccy.machine.select(model.get());
+    }
   }
 
   private static String extensionOf(File file) {

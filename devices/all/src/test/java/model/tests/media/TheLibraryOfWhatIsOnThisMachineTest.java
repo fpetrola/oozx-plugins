@@ -48,7 +48,7 @@ class TheLibraryOfWhatIsOnThisMachineTest {
       }
 
       public byte[] payload(Path file) throws IOException {
-        return SnapshotFactory.payloadOf(file.toFile());
+        return com.fpetrola.oozx.speccy.media.SnapshotPayload.of(file.toFile());
       }
     });
   }

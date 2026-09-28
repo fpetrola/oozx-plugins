@@ -59,7 +59,7 @@ public class LocalGames {
         }
 
         public byte[] payload(Path file) throws IOException {
-          return SnapshotFactory.payloadOf(file.toFile());
+          return SnapshotPayload.of(file.toFile());
         }
       });
       try {

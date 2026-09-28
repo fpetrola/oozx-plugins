@@ -28,6 +28,12 @@
     </properties>
 
     <dependencies>
+        <!-- The formats that read a snapshot without a machine, for the RAM a game is recognised by. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-formats</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!--
           Lo del emulador lo trae la aplicacion, asi que no viaja adentro de este jar. Dicho aca
           porque el padre lo declara sin scope para todos los plugins, y este es el unico que

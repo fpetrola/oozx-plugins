@@ -71,7 +71,7 @@ public class CatalogueBuilder {
           continue;
         }
         index.add(new GameFingerprint.Known(game, screenshotOf(entry), hasMap(entry),
-            GameFingerprint.of(SnapshotFactory.payloadOf(image.toFile()))));
+            GameFingerprint.of(SnapshotPayload.of(image.toFile()))));
         index.save(catalogue);
         done++;
         System.out.println(done + "/" + wanted.size() + "  " + game + "  <- " + image.getFileName());
