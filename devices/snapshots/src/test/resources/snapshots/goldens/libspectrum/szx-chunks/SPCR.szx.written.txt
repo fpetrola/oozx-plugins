@@ -1,0 +1,6 @@
+# sna
+refused = SNA_DONT_SUPPORT_PLUS3
+# szx
+refused = crashed: NullPointerException
+# z80
+refused = crashed: NullPointerException

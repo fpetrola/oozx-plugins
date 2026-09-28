@@ -17,7 +17,6 @@
 
 package model.tests.formats;
 
-import com.fpetrola.emulation.helpers.snapshots.SpectrumState;
 import com.fpetrola.oozx.speccy.modules.tape.TapeBlock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -28,12 +27,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Where the Java readers stand against the reference, over the files libspectrum keeps for its
+ * Where the Java tape readers stand against the reference, over the files libspectrum keeps for its
  * own regressions - the invalid ones, the loops, the zero-pilot turbo, the block with no data.
  * <p>
  * It prints a table rather than asserting: this is the first look, and what it is for is to say
  * which formats are read at all and which files are read differently, so the work has an order.
- * The assertions come one at a time, as each format gets its own tests.
+ * The assertions come one at a time, as each format gets its own tests; the snapshots already
+ * have theirs, in the snapshots plugin.
  */
 class WhatJavaMakesOfTheCorpusTest {
   @BeforeAll
@@ -58,24 +58,6 @@ class WhatJavaMakesOfTheCorpusTest {
         System.out.printf("%-34s %-28s %s%n    libspectrum %s%n    java        %s%n", file.getFileName(), verdict, "",
             reference == null ? "-" : reference.stream().map(id -> String.format("%02X", id)).toList(),
             java.stream().map(block -> String.format("%02X:%s", block.id(), block.type())).toList());
-      }
-    }
-  }
-
-  @Test
-  void snapshotsJavaCanRead() throws Exception {
-    System.out.printf("%-40s %s%n", "file", "java");
-    for (String extension : new String[]{"z80", "szx", "sna", "sp"}) {
-      for (Path file : ReferenceOracle.corpus(extension)) {
-        String verdict;
-        try {
-          SpectrumState state = new com.fpetrola.emulation.helpers.snapshots.SnapshotFactory()
-              .getSnapshot(file.toFile()).load(file.toFile());
-          verdict = state == null ? "READS NOTHING" : "pc=" + state.getZ80State().getRegPC();
-        } catch (Throwable refused) {
-          verdict = "REFUSED: " + refused.getClass().getSimpleName();
-        }
-        System.out.printf("%-40s %s%n", file.getFileName(), verdict);
       }
     }
   }

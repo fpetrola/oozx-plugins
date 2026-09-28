@@ -1,0 +1,2 @@
+# Archivos cortados que hacen reventar a un lector de hoy con una excepción que no es SnapshotException,
+# una línea por archivo y excepción. Hoy ninguno: cualquier línea que aparezca acá es nueva.

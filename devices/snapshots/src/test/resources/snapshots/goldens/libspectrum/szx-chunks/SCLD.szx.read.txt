@@ -1,0 +1,1 @@
+refused = UNSUPPORTED_SNAPSHOT

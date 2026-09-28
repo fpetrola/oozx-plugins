@@ -1,0 +1,35 @@
+# Donde lo que escriben los formatos de hoy, leído por libspectrum, no es lo que había, en los campos
+# que el formato guarda. Cada grupo tiene su porqué; una línea que deja de pasar se borra en el
+# commit que lo cambia.
+
+# SNA escrito desde un 128K: libspectrum lo lee como un Pentagon, igual que al leer.
+banks-5-on-top.sna -> sna: machine: SPECTRUM128K, PENTAGON
+banks-5-on-top.szx -> sna: machine: SPECTRUM128K, PENTAGON
+banks-5-on-top.z80 -> sna: machine: SPECTRUM128K, PENTAGON
+banks.sna -> sna: machine: SPECTRUM128K, PENTAGON
+banks.szx -> sna: machine: SPECTRUM128K, PENTAGON
+banks.z80 -> sna: machine: SPECTRUM128K, PENTAGON
+
+# SNA escrito desde un 48K: el formato guarda el PC en la pila, así que los dos bytes de RAM debajo
+# del SP quedan pisados por él. La página que tiene la pila no vuelve igual: es lo que el SNA es.
+libspectrum/random.szx -> sna: page.0: sha256:4db99bb57ec63b18 (16384), sha256:811178fcc7dcce78 (16384)
+lone-ed-at-the-end.sna -> sna: page.0: sha256:5e3d60c8e398d6ad (16384), sha256:b39d620fb2b5807a (16384)
+manicminer-v1-packed.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
+manicminer-v1.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
+manicminer-v2.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
+manicminer.sna -> sna: page.2: sha256:67f4d9565c382268 (16384), sha256:0769e59f03021ec9 (16384)
+manicminer.sp -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
+manicminer.szx -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
+manicminer.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
+
+# SNA escrito desde un 16K: se guarda como un 48K, y la pila cae en la página 0, que el 16K no tenía.
+sixteen.z80 -> sna: machine: SPECTRUM16K, SPECTRUM48K
+sixteen.z80 -> sna: page.0: sha256:4fe7b59af6de3b66 (16384), sha256:f12de9773c7477bd (16384)
+
+# Z80 escrito sin joystick: el formato no tiene cómo decir "ninguno" y se escribe 0, que es Cursor.
+banks-5-on-top.sna -> z80: joystick: NONE, CURSOR
+banks.sna -> z80: joystick: NONE, CURSOR
+libspectrum/random.szx -> z80: joystick: NONE, CURSOR
+manicminer.sna -> z80: joystick: NONE, CURSOR
+manicminer.sp -> z80: joystick: NONE, CURSOR
+sixteen.sp -> z80: joystick: NONE, CURSOR

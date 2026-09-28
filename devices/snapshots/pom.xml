@@ -29,5 +29,13 @@
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
+        <!-- libspectrum, which the readers here are held to, reached from the tests only: it is the
+             oracle, not something a snapshot needs to be read. -->
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.14.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
