@@ -1,90 +1,203 @@
-# Los formatos de snapshot, sobre conceptos y colocaciones, con libspectrum de oráculo
+# Los formatos de snapshot, sobre la máquina recorrida
 
 Plan para reemplazar los cuatro lectores de snapshot —Z80, SNA, SP y SZX, heredados de JSpeccy—
-por formatos escritos sobre el diseño de `diseno-desde-cero.md`: los conceptos del Spectrum
-modelados una vez con sus propiedades, y cada formato reducido a una tabla de colocaciones. Con
+por formatos que leen y escriben **recorriendo la máquina de verdad** con visitors. Con
 libspectrum (`analisis-libspectrum.md`) como oráculo de cada paso y como fuente del conocimiento
-que a los conceptos les falte.
+byte por byte de cada formato.
 
-Medido el 24 de septiembre de 2026, con `devices/all` en 305 tests verdes (30 salteados).
+**Estado:** el paso 0 está hecho (27 de septiembre de 2026): 117 tests en `devices/snapshots`,
+verdes con el código de hoy. Lo demás no empezó.
 
-**Estado: el paso 0 está hecho** (27 de septiembre de 2026): 117 tests en `devices/snapshots`,
-verdes con el código de hoy. Lo que encontró está al final del paso 0.
-
-Es la tercera versión del plan. La primera refactorizaba los lectores que hay; la segunda los
-reescribía en un módulo nuevo de oozx; esta los reescribe **acá, en oozx-plugins**, y deja en
-oozx sólo el contrato que el emulador necesita para entregar y recibir una máquina.
+Es la cuarta versión del plan. La tercera ponía en oozx un modelo propio de la máquina hecho de
+valores —un `Snapshot` con una clase por pieza (`Processor`, `AySound`, `Multiface`,
+`InterfaceOne`…) y un catálogo de propiedades— y los formatos escribían sobre ese modelo. Se
+llegó a escribir y se descartó el mismo 27: duplicaba lo que los dispositivos ya modelan, sacaba
+el conocimiento de cada dispositivo de su plugin y metía comportamiento de formatos en oozx. De
+`diseno-desde-cero.md`, `diseno-formatos.md`, `ejemplos-mapeo.md` y `formatos-sna-z80-tap.md`
+sigue valiendo lo que dicen de cada formato (offsets, la tabla de hardware del `.z80`, la
+compresión, el contador de frames, las reglas del SNA); no vale el modelo de piezas ni el
+documento `Snapshot`.
 
 ## El principio
 
-**No es un refactor: es una reescritura guiada por tests.** Los lectores de hoy no se tocan. Se
-construye la base (conceptos, colocaciones, motor), después cada formato se escribe test-first
-sobre ella, y cuando pasa **la misma suite** que el viejo —los goldens y el oráculo del paso 0—
-lo reemplaza en un commit y el viejo se borra. Nunca hay dos formatos a medias, y nunca se
-mejora código que va a desaparecer.
+**La máquina es el modelo.** No hay un segundo modelo de la máquina para los archivos. Leer un
+snapshot es **armar la máquina** que el archivo dice y **recorrerla**: cada parte que el recorrido
+encuentra toma del archivo lo suyo. Escribir es recorrer la máquina y volcar lo que cada parte
+tiene.
 
-**Los conceptos van antes que cualquier formato.** `Processor`, `MemoryMap`, `Paging`, `Ula`,
-`AySound` y los demás se escriben primero, con su catálogo de propiedades y sus reglas, y con
-libspectrum de lista de control (los 240 campos de su `snap`, por familia). Recién entonces un
-formato es una tabla: SP en treinta líneas, SNA en cuarenta, cada bloque de SZX en diez.
+**Cada parte se presenta en el recorrido, y no sabe de formatos.** La CPU, la memoria, el
+paginado, el borde, el AY, la Multiface, la Interface 1: cada una acepta el recorrido y se
+presenta, con sus subpartes si las tiene. Ninguna tiene una línea sobre SNA, Z80 o SZX. Un formato
+nuevo nunca obliga a tocar un dispositivo.
 
-**El rojo es del pedazo nuevo; los goldens nunca se ponen rojos.** Cada concepto, cada tabla,
-cada codificación nace de un test que falla porque la clase no existe. Cuando un formato nuevo
-reemplaza al viejo, los goldens del paso 0 tienen que seguir verdes tal cual, salvo en los casos
-decididos y anotados abajo. Si un golden cambia sin decisión, el commit no entra.
+**El mapeo es del formato, y es una declaración.** Un formato declara sus tramos, sus formas, una
+tabla por cada tipo de parte que lleva (cada campo de la parte, a un lugar de un tramo) y los
+bindeos de tipo de parte a tabla. Leer y escribir son la misma tabla usada en los dos sentidos, y
+los hace el motor, igual para todos. Lo que ningún bindeo toma va a las notas ("el SNA no guarda
+el AY"). Un dispositivo nuevo que un formato quiera guardar se agrega en el módulo del formato, no
+en el del dispositivo.
+
+**En oozx, sólo la capa chica que conecta.** El recorrido, el rol de formato y lo mínimo que las
+partes del núcleo tienen que dejar ver de sí. Ni formatos, ni motor, ni nada de un dispositivo en
+particular.
+
+**No es un refactor: es una reescritura guiada por tests.** Los lectores de hoy no se tocan. Cada
+formato nuevo se escribe test-first y, cuando pasa la misma red que el viejo, lo reemplaza en un
+commit y el viejo se borra. Un golden cambia sólo en un commit que dice por qué.
+
+## Cómo se ve
+
+El recorrido es interno: ningún formato escribe un visitor. Cada parte se presenta, y el motor
+busca el bindeo del tipo de esa parte y lo aplica en el sentido que toque. Así la identificación
+es por tipo, y el tipo sale de la declaración: `on` pide una clase y una tabla del mismo tipo, y el
+compilador lo verifica.
+
+```java
+// oozx: el recorrido, y nada más
+public interface Visitable { void accept(PartVisitor visitor); }   // se presenta, y presenta sus subpartes
+public interface PartVisitor { void visit(Visitable part); }
+```
+
+El SNA entero, con las APIs reales de las partes (los registros por `RegistersBase`, los bancos
+por `SpectrumMemory.ram(n)`, el 7ffd por `Paging`, el borde por `Border.becomes`):
+
+```java
+/** SNA: el header de 27 bytes y la RAM de 48K; un 128K agrega el PC, el 7ffd y los bancos que faltan. */
+@Answers("sna")
+public final class SnaFormat extends DeclaredFormat {
+
+  // Los tramos del archivo
+  static final Fixed HEADER  = Fixed.of(27);
+  static final Fixed TAIL    = Fixed.of(4);                // 128K: PC, 7ffd, y un byte de TR-DOS que se escribe 0
+  static final Fixed STACKED = Fixed.virtual(2);           // 48K: el PC que la regla saca de la pila, o mete
+  static final Pages TOP     = Pages.bankAtTop(TAIL, 2);   // cuál es lo dice el TAIL, que viene después; si es 2 o 5, es una copia
+
+  // Las dos formas
+  static final Shape FORTY_EIGHT = Shape.of(SPECTRUM48K, HEADER, Pages.of(5, 2, 0)).with(new PcOnTheStack());
+  static final Shape ONE_TWENTY_EIGHT = Shape.of(SPECTRUM128K, HEADER, Pages.of(5, 2), TOP, TAIL, Pages.remaining());
+
+  // Cada campo de cada parte, a un lugar de un tramo
+  static final Layout<Cpu> CPU = Layout.<Cpu>of()
+      .u8(HEADER, 0, I)
+      .u16(HEADER, 1, HL_).u16(HEADER, 3, DE_).u16(HEADER, 5, BC_).u16(HEADER, 7, AF_)
+      .u16(HEADER, 9, HL).u16(HEADER, 11, DE).u16(HEADER, 13, BC).u16(HEADER, 15, IY).u16(HEADER, 17, IX)
+      .bit(HEADER, 19, 2, IFF2).alsoSets(IFF1)             // guarda una sola bandera
+      .u8(HEADER, 20, R).u16(HEADER, 21, AF).u16(HEADER, 23, SP)
+      .code(HEADER, 25, 0x03, IM, Codes.IM)
+      .u16(TAIL, 0, PC).u16(STACKED, 0, PC);                // según la forma, está uno u otro
+  static final Layout<Border> BORDER = Layout.<Border>of().bits(HEADER, 26, 0x07, COLOUR);
+  static final Layout<Paging> PAGING = Layout.<Paging>of().u8(TAIL, 2, PORT_7FFD);
+  static final Layout<SpectrumMemory> RAM = Layout.<SpectrumMemory>of().pages(PAGE);   // cada página del archivo, a su banco
+
+  static final Bindings BINDINGS = Bindings.of()
+      .on(Cpu.class, CPU).on(Border.class, BORDER).on(Paging.class, PAGING).on(SpectrumMemory.class, RAM);
+
+  public Identity identity() { return Identity.named("SNA snapshot").extension("sna").sized(49179, 131103, 147487); }
+  protected Bindings bindings() { return BINDINGS; }
+  protected Shape shapeOf(Peek file) { return file.length() == 49179 ? FORTY_EIGHT : ONE_TWENTY_EIGHT; }
+  protected Shape shapeFor(Spectrum machine) { return machine.pagesThrough7ffd() ? ONE_TWENTY_EIGHT : FORTY_EIGHT; }
+}
+
+/** Un SNA de 48K no tiene dónde guardar el PC: va en la pila, como si una interrupción lo hubiera empujado. */
+final class PcOnTheStack implements Rule {
+  public void afterParsing(SnapshotFile file) {          // leyendo, antes de tocar la máquina
+    int sp = file.u16(HEADER, 23);
+    if (sp < 0x4000 || sp == 0xffff) throw new SnapshotException("SP inválido (0x%04x): no hay de dónde sacar el PC".formatted(sp));
+    file.u16(STACKED, 0, file.ram().word(sp));
+    file.u16(HEADER, 23, sp + 2);
+  }
+  public void beforeAssembling(SnapshotFile file) {      // escribiendo, sobre la copia que va al archivo
+    int sp = file.u16(HEADER, 23);
+    if (sp < 0x4002) throw new SnapshotException("SP demasiado bajo (0x%04x) para apilar el PC".formatted(sp));
+    file.ram().word(sp - 2, file.u16(STACKED, 0));
+    file.u16(HEADER, 23, sp - 2);
+  }
+}
+```
+
+Una vez en el motor, para todos los formatos:
+
+```java
+// Cómo se llega a cada dato de las partes del núcleo, con su propia API
+static final Field<Cpu, Integer> I = Field.of(cpu -> regs(cpu).getRegI(), (cpu, v) -> regs(cpu).setRegI(v));   // uno por registro
+static final Field<Border, Integer> COLOUR = Field.of(Border::colour, Border::becomes);                   // colour() es el getter que falta
+static final Field<Paging, Integer> PORT_7FFD = Field.of(p -> p.port7ffd() & 0xff, (p, v) -> p.write7ffd((byte) (int) v));
+static final PageField<SpectrumMemory> PAGE = PageField.of((m, n) -> m.ram(n).bytes, (m, n, bytes) -> m.ram(n).fill(bytes));
+
+// Leer y escribir, iguales para todos
+public final Notes read(byte[] bytes, Speccy speccy) {
+  Shape shape = shapeOf(Peek.of(bytes));
+  SnapshotFile file = shape.parse(bytes);                  // tramos llenos y validados, reglas corridas
+  speccy.machine().become(shape.machine());                // hasta acá la máquina no se tocó
+  speccy.accept(part -> bindings().apply(part, Direction.reading(file)));
+  return file.notes();
+}
+public final Written write(Speccy speccy) {
+  SnapshotFile file = shapeFor(speccy.machine().current).empty();
+  speccy.accept(part -> bindings().apply(part, Direction.writing(file)));
+  return file.assemble();                                  // reglas, tramos en su orden, y notas de lo no llevado
+}
+```
+
+Lo que sale de la declaración sin escribirlo: leer y escribir desde la misma tabla; un archivo
+rechazado no toca la máquina, porque se entiende entero antes de elegirla; las notas de lo que no
+se llevó, por parte (ningún bindeo la tomó) y por campo (ninguna tabla lo cubre); el 16K guardado
+por la forma de 48K y el +3 por la de 128K. Un bindeo para una clase base o una interfaz toma a
+sus subclases; una parte con dos facetas presenta cada una. Los campos de la CPU, el borde, el
+paginado y la memoria los reusan tal cual el Z80, el SZX y el SP.
 
 ## Dónde vive cada cosa
 
-La regla es la de todo el proyecto: el emulador no depende de ningún plugin. Así que en oozx va
-lo que el emulador usa o expone, y todo lo demás va en un plugin.
+**En oozx, la capa chica:**
+- `Visitable`, `PartVisitor`, y el recorrido: `Speccy.accept(visitor)` presenta las partes del
+  núcleo y los periféricos activos. `PeripheralRegistry` hoy no deja recorrer lo que tiene
+  registrado: gana eso y nada más.
+- Las partes del núcleo que un formato lleva se presentan: la máquina elegida, la CPU, la memoria,
+  el paginado, el borde, el reloj.
+- Lo que una parte del núcleo no deja ver hoy y un formato necesita, dicho en sus palabras: el
+  color del borde tiene setter y no getter.
+- El rol `SnapshotFormat` (`@RoleInterface`): qué archivos lee, leer un archivo sobre una máquina,
+  escribir una máquina a un archivo. Devuelve notas de lo que no se llevó; rechaza con
+  `SnapshotException`, que ya existe.
+- `Snapshots` prueba primero un `SnapshotFormat` y cae al `SnapshotFile` de hoy si ninguno lee el
+  archivo, hasta que el último formato viejo se borre.
 
-**En oozx, el contrato:**
-- los roles: `SnapshotFormat`, `TapeFormat`, `Arrival`, `Captures`, `Restores` y `PluggedBy`;
-- el documento `Snapshot` y los conceptos que tocan al menos dos formatos, cada uno con su
-  catálogo de propiedades: `Processor`, `Memory`, `Paging`, `Ula`, `AySound`, `Joysticks`,
-  `UlaPlus`, `Multiface`, `InterfaceOne`, `InterfaceTwo` y `Unread`;
-- `MachineModel`, `Capability`, `Timings` y `MemoryMap`;
-- lo que un formato devuelve y lanza: `Format`, `Image`, `Read`, `Identity`, `Notes` y los `Refusal`;
-- la `Library`, que dice qué formato lee cada archivo;
-- las partes del núcleo que entregan y reciben su pieza (paso 6), y `Snapshots`;
-- el formato propio con que el emulador guarda sus sesiones (paso 6).
+**En cada plugin de dispositivo:** que se presente en el recorrido, y su estado a la vista en sus
+palabras. Nada de formatos.
 
-Va en `machine/spectrum`, donde hoy están `SnapshotFile` y `SpectrumState`, en un paquete propio:
-todo depende de ese módulo y no hay que tocar ningún pom. Son records, interfaces y tablas.
+**En oozx-plugins, `devices/formats` (`device-formats`), el motor:** bytes (`Cursor`, `Sink`),
+tramos y formas (`Fixed`, `Pages`, `Shape`), números con significado (`Codes`), compresiones
+(`Codec`), campos sobre las partes del núcleo (`Field`, `PageField`), tablas (`Layout<P>`),
+bindeos (`Bindings`), reglas (`Rule`), el sentido (`Direction`) y `DeclaredFormat`, que lee y
+escribe. Más el contrato de tests que heredan los formatos. Depende de oozx; no de ningún
+dispositivo.
 
-**En oozx-plugins, todo lo demás:**
-- `device-formats`, módulo nuevo: el motor (`Cursor`, `Sink`, `Codec`, `Layout`, `Codes`,
-  `Encoding`, `Pages`, `Tagged`, `Framing`, `Context`) y los contratos de tests que heredan los
-  formatos. Es un plugin sin ventanas del que dependen los demás, como hoy `device-snapshots`
-  depende de `device-spectrum128`.
-- `device-snapshots`: los cuatro formatos, **Z80 incluido**.
-- `device-tape`: la cinta entera (el documento, `Signal`, los formatos y el deck). El núcleo hoy
-  no usa la cinta para nada, y `Tape.java` ya vive ahí.
-- Los conceptos de un solo periférico (`DivIde`, `Beta128`, `PlusD`…), con su bloque de SZX y su
-  parte, en el plugin de ese periférico.
+**En oozx-plugins, `devices/snapshots` (`device-snapshots`), los cuatro formatos, Z80 incluido.**
+Los campos y las tablas de los dispositivos (el AY, la Multiface, ULAplus…) viven acá, compartidos
+por los formatos que los llevan, y este módulo depende de los plugins de esos dispositivos: una
+dependencia de Maven común, como hoy depende de `device-spectrum128`.
 
-Un concepto de periférico que tocan varios formatos (el AY lo tocan Z80 y SZX) va en el
-contrato aunque la parte que lo emula sea un plugin: el contrato es de datos, y un plugin puede
-depender de él.
+## Lo que hay hoy
 
-## Lo que hay hoy, en dos líneas
-
-Cuatro lectores, 2832 líneas, con el conocimiento del Spectrum repetido en cada uno: el bucle de
-"leer N bytes" dieciséis veces, la tabla de registros ocho veces (leer y escribir por formato),
-el orden 5, 2, 0 en ocho lugares, la tabla de hardware del `.z80` dos veces, el AY tres. Los
-números están en `analisis-libspectrum.md`.
-
-Y quién usa el `.z80` desde oozx, que es lo que decide qué hay que resolver al sacarlo de ahí:
-- **las sesiones del escritorio**, que se guardan como un `.z80` empaquetado en la configuración
-  (`ZXSpectrumDesktopApp`, líneas 1150 y 2157);
-- **`Snapshots.save` y `load`**, para los que el único formato del núcleo es el Z80;
-- **el traductor** (`translation/translator`), que lee juegos `.z80` con
-  `SnapshotLoader.setupStateWithSnapshot` en `EmulatedMiniZX`, en `RemoteZ80Translator` y en
-  `JSWBytecodeCreationTests`. **oozx-lift depende del artefacto `translator`.** Los dos
-  cargadores propios de `MiniZXWithEmulationBase` están muertos: uno tiene una sola llamada,
-  comentada, y el otro ninguna;
-- **cinco tests** que guardan o leen `.z80`: `SavingBringsTheMachineBackTest`, `TestGameExecution`,
-  `LoadingASnapshotTest`, `AFormatThatArrivedTest` y `Z80SnapshotTstatesAsTheReferenceTest`.
+- **Nada recorre la máquina.** No hay visitor ni `accept` en el núcleo ni en los plugins.
+- **Cargar** pasa por `SpectrumState`: `Snapshots.load` elige la máquina, copia la RAM (en un 48K,
+  aplanada a 64K), escribe los puertos de paginado y aplica los registros con
+  `SnapshotLoader.setZ80State`. La única parte que se restaura sola es el AY
+  (`RestoredFromASnapshot`), y sólo fuera del 48K.
+- **Varios campos de `SpectrumState` no se aplican en ningún lado:** el borde, el EAR, issue 2, el
+  joystick, la Multiface, la Interface 1, la LEC, el grupo de paleta de ULAplus.
+- **Guardar escribe siempre un 48K**: `SnapshotSaver` lee de 0x4000 a 0xFFFF por el bus y pierde
+  los bancos, el paginado, el borde, el AY y los dispositivos.
+- **El estado de algunas partes no se puede leer desde afuera:** los registros del AY son
+  privados, y el borde no tiene getter.
+- **Una máquina sin ventanas se arma en los tests** (`Speccy.create(...)` con sonido mudo, en
+  `devices/all`), así que leer un archivo en un test es armar una.
+- Cuatro lectores, 2832 líneas, con el conocimiento del Spectrum repetido en cada uno (los
+  números están en `analisis-libspectrum.md`). `SnapshotZ80` vive en oozx; SNA, SZX y SP acá.
+- Usan `SnapshotFile` o `SpectrumState`, además de `Snapshots`: las sesiones del escritorio
+  (`.z80` empaquetado), el RZX (escribe el snapshot embebido a un archivo temporal), el core de
+  libretro, el lanzador, el catálogo (`payloadOf`) y el traductor (`EmulatedMiniZX`,
+  `RemoteZ80Translator`), del que depende oozx-lift.
 
 ## Paso 0: la red de seguridad — hecho
 
@@ -93,9 +206,8 @@ En `devices/snapshots/src/test`, paquete `model.tests.formats`, sin tocar códig
   y 19 hechas por `MakeFixtures`: Manic Miner en Z80 v1 crudo, v1 comprimido, v2 y v3, más SNA, SZX y SP;
   `banks` y `banks-5-on-top` (128K con un patrón por banco); `plus3-1ffd`; `sixteen` (16K); y
   `lone-ed-at-the-end.sna`.
-- **Goldens:** en `snapshots/goldens/`, escritos por `WriteTheGoldens`. Usan los nombres del catálogo
-  que viene (`a`, `bc`, `iff1`, `border`, `port7ffd`, `page.5`), así que siguen sirviendo cuando se
-  reemplacen los lectores.
+- **Goldens:** en `snapshots/goldens/`, escritos por `WriteTheGoldens`. Usan nombres cortos (`a`,
+  `bc`, `iff1`, `border`, `port7ffd`, `page.5`), los mismos que va a usar la red del paso 3.
 - **Tests:** `EveryFixtureReadsAsItDidTest`, `WhatIsWrittenIsWhatItWasTest`,
   `EveryFixtureReadsAsTheReferenceReadsItTest`, `WhatIsWrittenIsWhatTheReferenceReadsTest`,
   `ACutFileIsRefusedTest` y `AFormatAnswersForWhatItReadsTest`.
@@ -120,259 +232,183 @@ Lo que encontró en el código de hoy:
 - **Un `.z80` escrito sin joystick** vuelve como Cursor: el formato no tiene "ninguno".
 - **Ningún archivo cortado hace reventar a un lector:** todos se rechazan con `SnapshotException`.
 
-## Paso 1: el contrato, en oozx
 
-Un commit aditivo en `machine/spectrum`: clases nuevas en un paquete nuevo, sin tocar nada de lo
-que hay. Entra cuando la reescritura de historia de oozx esté empujada y esa sesión esté quieta;
-mientras tanto se escribe en un worktree y se rebasea.
+Estos goldens son de `SpectrumState`, que desaparece al final. Sirven mientras los formatos
+viejos vivan; la red que queda es la del paso 3.
 
-**Los conceptos, con su catálogo.** Cada uno nace de sus tests, y la lista de control es el `snap`
-de libspectrum:
-- `Processor`, `Registers`, `Interrupts`, `Reg` (23 registros, y los pares como propiedades
-  derivadas) y las seis propiedades más. `ProcessorTest`: el catálogo cubre el record; `of` e
-  `into` son inversas para cada propiedad; el valor de fábrica de cada una.
-- `Memory` y `MemoryMap`. `MemoryMapTest`: las páginas de las dieciocho máquinas (16K: la 5;
-  48K: 5, 2, 0; 128K: ocho; Pentagon 1024: sesenta y cuatro); `asMapped48k()`; `screen()` con y
-  sin el bit 3 de `7ffd`.
-- `Paging`. `PagingTest`: `bankAtTop()`, `locked()`, `romSelected()`, el `1ffd` de un +3.
-- `Ula`, `AySound` (de placa, Fuller o Melodik), `Joysticks`, `UlaPlus`, `Multiface`,
-  `InterfaceOne`, `InterfaceTwo` y `Unread`.
-- `MachineModel` con `Capability` y `Timings`: dieciocho filas. `Machine.forSnapshotModel`, que
-  ya existe, pasa a recibir un `MachineModel`.
-- `Snapshot`, su builder, `Provenance`, `Notes`, y `Snapshot.describe()`: el volcado canónico desde
-  el catálogo, en las mismas líneas que los goldens del paso 0.
+## Paso 1: la máquina recorrible, en oozx
 
-**Lo que un formato devuelve y lanza:** `Format`, `SnapshotFormat`, `Image`, `Read`, `Identity`, y
-los `Refusal` (`NotThisFormat`, `Corrupt`, `Unsupported`, `Invalid`).
+Aditivo: no cambia lo que la máquina hace.
+- `Visitable`, `PartVisitor` y `Speccy.accept`. El orden es fijo: la máquina elegida, la CPU, la
+  memoria, el paginado, el borde, el reloj, y después los periféricos activos en el orden en que
+  se registraron.
+- Las partes del núcleo se presentan, y el borde deja ver su color.
+- `PeripheralRegistry` deja recorrer los periféricos activos.
+- El rol `SnapshotFormat`, y `Snapshots` que lo prueba antes que al `SnapshotFile`.
+- Tests: el recorrido presenta cada parte de cada modelo, una vez y en orden; un periférico activo
+  aparece y uno inactivo no; `Snapshots` carga con un `SnapshotFormat` de prueba y cae al viejo si
+  ninguno lee.
 
-**La `Library`:** qué formato lee un archivo, por magia, tamaño o extensión, entre los que haya.
-Todavía no la usa nadie: el paso 6 la conecta.
+Entra en `main` de oozx coordinado con vos: toca `Speccy`, `PeripheralRegistry` y `Snapshots`.
 
-Sale un contrato sin ningún formato, con unos 100 tests, y nada del emulador cambia.
+## Paso 2: los dispositivos visitables, en oozx-plugins
 
-## Paso 2: el motor, en oozx-plugins
+Primero los que el SZX de hoy ya lleva, que son los que la red puede comprobar: el AY, la
+Multiface, ULAplus, la Interface 1, la Interface 2, el joystick y la LEC. Cada uno, en su plugin:
+- que se presente en el recorrido;
+- su estado a la vista en sus palabras, donde hoy no se ve (los registros del AY, el registro
+  seleccionado);
+- un test: el recorrido lo presenta cuando está activo, y lo que se le pone por su API se lee
+  igual.
 
-Un módulo nuevo, `devices/formats`, con artifactId `device-formats`.
-- **El motor:** `Cursor` (el único que lanza `Truncated`), `Sink`, `Codec` (`Raw`, `Zlib`),
-  `Layout`, `Codes`, `Encoding`, `Pages`, `Tagged`, `Framing` y `Context`. Cada uno con su test.
-- **Los contratos que heredan los formatos, en su test-jar:** `LayoutContract` (toda tabla hace ida
-  y vuelta y cubre cada propiedad a lo sumo una vez), `CodecContract`, `EncodingContract`,
-  `BlockContract` y `FormatContract` (identidad, fixtures, ida y vuelta, cortado en cualquier
-  byte, lo que no se coloca queda de fábrica y se anota).
-- **El puente, temporal:** `AsSnapshotFile`, que presenta un `SnapshotFormat` nuevo como el
-  `SnapshotFile` de hoy (el `Snapshot` convertido a `SpectrumState`, con test de ida y vuelta).
-  Con él, cada formato nuevo reemplaza al viejo dentro de `device-snapshots` sin que el emulador
-  note nada, hasta que el paso 6 lo conecte de verdad.
-- **La red del paso 0 pasa a leer por la `Library`:** los goldens no cambian, porque ya están en
-  los nombres del catálogo.
+Los que el SZX de hoy saltea (DivIDE, DivMMC, +D, Beta 128, Covox, SpecDrum, el mouse…) se
+presentan cuando un formato los lleve, cada uno en su commit.
 
-Es el paso que más vale después de los conceptos: lo que se escribe acá lo usan los cuatro
-formatos, y después las cintas.
+## Paso 3: la red sobre la máquina
 
-## Paso 3: SP — la prueba del molde
+La red del paso 0 compara `SpectrumState`. La que queda compara **la máquina**, que es lo que
+importa:
+- **Una descripción de la máquina**, en `devices/snapshots/src/test`: bindeos que, en vez de a un
+  archivo, dicen cada campo de cada parte en una línea, con los nombres de los goldens de hoy
+  (`a`, `bc`, `border`, `port7ffd`, `page.5`…). Usa los mismos campos que los formatos, y dice qué
+  partes no sabe describir.
+- **Goldens de máquina:** cada fixture cargada con el camino de hoy en una máquina sin ventanas, y
+  descrita. Lo que el camino de hoy no aplica (el borde, issue 2…) queda en el golden tal como
+  queda en la máquina, con la lista escrita en `known/`.
+- **El oráculo, sobre la máquina:** libspectrum lee el archivo, y cada campo de su `snap` se compara
+  con la línea de la máquina del mismo nombre.
 
-El más chico y sólo lee. Sirve para ver si el molde cierra antes de gastarlo en los grandes.
-- `SpFormatTest extends SnapshotFormatContract`: identidad (`SP` en 0), las fixtures
-  (`manicminer.sp` y `sixteen.sp`), y cortado en cada byte. Sin oráculo, por el bug de libspectrum.
-- `SpSize`: 16384 es un 16K, 49152 un 48K, y cualquier otro es `Invalid`; un inicio que no sea
-  `0x4000` también es `Invalid`.
-- La tabla: 24 colocaciones, `SP_IM` (bit 3 es IM0, si no bit 1 es IM2, si no IM1) y `Pages.asMapped48k()`.
-- Lo que no coloca (AY, T-states, joystick) queda de fábrica y se anota: lo prueba el contrato.
+Con esto, cada formato nuevo se mide contra lo que la máquina termina teniendo, no contra una
+estructura intermedia.
 
-Cuando pasa los goldens del paso 0, reemplaza a `SnapshotSP` y `SnapshotSP` se borra.
+## Paso 4: el motor, en oozx-plugins
 
-## Paso 4: SNA — dos formas, y la memoria dicha por los conceptos
+`devices/formats`, `device-formats`. Cada pieza con su test:
+- `Cursor` (el único que encuentra un archivo corto, y lo rechaza) y `Sink`.
+- `Codes`: número y valor, con máscaras y un "si no". `Codec`: crudo y zlib; la compresión del
+  `.z80` viene con el paso 7.
+- `Fixed`, `Pages` y `Shape`: los tramos del archivo y sus formas, con `parse`, que lo entiende
+  entero, y `assemble`, que lo arma en orden.
+- `Field` y `PageField` sobre las partes del núcleo; `Layout<P>`, la tabla que los pone en lugares
+  de los tramos; `Bindings`, de tipo de parte a tabla; `Rule`, sobre los bytes; `Direction`.
+- `DeclaredFormat`: leer y escribir, con las notas de lo que no se llevó.
+- **El contrato de un formato**, en el test-jar, para cada fixture: se reconoce; cargada y descrita
+  da su golden de máquina; lo que se escribe desde esa máquina, cargado en otra, la describe igual;
+  cortada en cualquier byte se rechaza sin reventar **y sin tocar la máquina**; y lo que el formato
+  no lleva termina en las notas. Además, ninguna tabla pone un campo dos veces.
 
-- `SnaShape.ofLength`: 49179, 131103 y 147487; cualquier otro es `Invalid`. `SnaShape.of(model)`
-  elige la forma de 48K o la de 128K según si la máquina pagina.
-- La tabla del header: 21 colocaciones, más IFF2 que vale también para IFF1, y el borde.
-- `OnTheStack`: al leer, el PC se desapila y el SP sube dos (decisión 3); un SP menor que `0x4000`
-  o igual a `0xffff` es `Corrupt` (los dos `.sna` del corpus); al escribir, el PC se apila, y un
-  SP menor que `0x4002` es `Invalid`. Con `EncodingContract`.
-- 128K: `Pages.contiguous(5, 2).then(Pages.bankAtTop()).then(Pages.remaining())`, y el byte de
-  TR-DOS en 1 es `NotSnapshot`. La variante de 147487 bytes sale sola de `bankAtTop()`.
-- El oráculo sobre `manicminer.sna`, `banks.sna` y `banks-5-on-top.sna`; y lo que escribimos,
-  leído por libspectrum.
+## Paso 5: SP — la prueba del molde
 
-Reemplaza a `SnapshotSNA`.
+El más chico, y sólo lee: un header fijo, la CPU y el borde, y la RAM desde donde el header dice.
+Sirve para ver si el molde cierra antes de gastarlo en los grandes. Reemplaza a `SnapshotSP`.
 
-## Paso 5: Z80 — tres versiones, una cabecera
+## Paso 6: SNA — dos formas y el paginado
 
-Va después de SNA y antes de SZX porque introduce, con un solo tipo de bloque, lo que SZX usa con
-quince: las páginas son bloques con etiqueta (`Tagged`) y viajan codificadas (`Codec`).
-- `Z80Rle` como `Codec`: la corrida que se pasa del fin de página (Lazy Jones) se corta; el ED
-  suelto en el último byte va literal (el bug del paso 0); la página que no achica va cruda, y la
-  que comprime a exactamente `0x4000` también. Y la variante de la versión 1, con la marca
-  `00 ED ED 00` al final.
-- `SplitR` y `FrameCounter`: los cuartos de frame, y `WITHOUT_COUNTER = 69664`. El test de T-states
-  contra libspectrum se muda acá desde `bridge`.
-- `Z80Hardware`: una tabla, con el número de la 2 y el de la 3 (el 128K es 3 y 4 en la 2, y 4 y 5
-  en la 3); lo que dice el "hardware modificado"; lo que trae enchufado.
-- `PageIds.of(model)`, y `Z80Version` con `V1`, `V2` y `V3`. Se escribe la 3.
-- Los ids que hoy se rechazan (SamRam, MGT, Scorpion, Timex) pasan a leerse como libspectrum los
-  lee (decisión 4). Cambia goldens: se regeneran en ese commit, con la decisión escrita.
-- La extensión SLT queda en `Unread`: libspectrum la lee, y acá nadie la usa todavía.
+La de 48K (el PC en la pila) y la de 128K (la página de arriba antes del puerto que dice cuál
+es; si es la 2 o la 5 es una copia y tiene que ser igual). Escribir un 16K, un +2A o un +3 va por
+la forma más parecida y las notas dicen qué no se llevó. Reemplaza a `SnapshotSNA`.
 
-Reemplaza a `SnapshotZ80` en todo lo que lee por la `Library`. El `SnapshotZ80` de oozx sigue
-vivo sólo para el traductor, hasta el paso 8.
+## Paso 7: Z80 — tres versiones, una cabecera
 
-## Paso 6: SZX — bloques, y cada bloque una tabla
+La cabecera de 30 bytes, el header extendido cortado por versión, la tabla de hardware como la
+lee libspectrum, la compresión (con el ED suelto al final de una página escrito como literal), el
+contador de frames, el AY (el de placa, la Melodik o la Fuller). El mapeo de la Interface 1 que
+dice el hardware vive acá. Reemplaza a `SnapshotZ80` para todo lo que pase por `Snapshots`; el de
+oozx queda, sólo para quienes todavía no pasan por la máquina, hasta el paso 9.
 
-- `SzxBlock` como rol; `Tagged<Snapshot>` con `Framing.SZX`; `Unread` con `Unknown.KEEP`; los
-  nueve ids que libspectrum saltea a sabiendas, en `skipping`.
-- Un bloque por commit, cada uno con su `szx-chunks/<ID>.szx` del corpus y `BlockContract`:
-  - `CRTR`, que deja el `Creator` en el contexto;
-  - `Z80R`, con `SwappedAF` y las colocaciones que existen desde la 1.4 y la 1.5. El fixture con
-    `libspectrum: 0.4.0` se sintetiza, y libspectrum confirma la regla;
-  - `SPCR`, `KEYB` y `AY`;
-  - `RAMP`, con `Codec.ZLIB` o crudo según la bandera; más de 16K es `Corrupt`;
-  - `MFCE`, `PLTT` (66 bytes o más, decisión 6), `IF1`, `IF2R`, `JOY`, `LEC` y `LCRP`.
-- Qué páginas escribe `RamPageBlock` lo dice `MemoryMap`; qué bloques se escriben, si su pieza está.
-- Un SZX sin procesador o sin memoria se completa con valores de fábrica y se anota (decisión 8).
-- El oráculo bloque por bloque sobre `banks.szx` y `manicminer.szx`.
+## Paso 8: SZX — bloques, y un mapeo por parte
 
-Reemplaza a `SnapshotSZX`. Los bloques de periféricos (`DIDE`, `B128`, `PLSD`, `OPUS`, `ZXAT`,
-`ZXCF`, `COVX`, `DRUM`, `AMXM`, `ZXPR`, `SCLD`, `DOCK`, `SNET`…) no entran acá: cada plugin trae el
-suyo cuando tenga su concepto. `TAPE` es del plugin de la cinta. Mientras tanto viajan en
-`Unread`, y un archivo que los tiene ya no se rechaza (decisión 7).
+Los bloques con etiqueta y largo, comprimidos o no. El escritor recorre la máquina y cada parte
+que conoce da un bloque; el lector entiende todos los bloques antes de tocar la máquina, activa los
+periféricos que los bloques nombran, y después recorre. Un bloque de algo que no está en este
+build se saltea y se anota. Reemplaza a `SnapshotSZX`.
 
-## Paso 7: la máquina como modelo recorrible, en oozx
+## Paso 9: sacar lo viejo de oozx
 
-La costura deja de ser código a mano y pasa a ser un recorrido: cada parte de la máquina entrega
-y recibe su pieza, y `Snapshots` sólo recorre. En este orden:
-1. **La máquina habla el catálogo.** `Cpu.get(Reg)` y `Cpu.set(Reg, int)` son un adaptador sobre
-   `RegistersBase`, con una tabla `Reg → getter/setter` escrita una vez (hoy son dos tablas de
-   treinta líneas, en `SnapshotLoader` y `SnapshotSaver`). Además, `SpectrumMemory.page(PageNumber)`,
-   y `machine.model()` devuelve un `MachineModel`: la máquina usa el mismo `MemoryMap` que el
-   snapshot para saber qué bancos tiene. Tests: cada `Reg` va y vuelve por el adaptador, y cada
-   banco por `PageNumber`.
-2. **Los tres roles:** `PluggedBy<P>`, `Restores<P>` y `Captures<P>`. `Snapshots.load` y `save`
-   quedan en diez líneas que no nombran a nadie, y abren y guardan por la `Library`.
-3. **Las partes del núcleo, cada una con `MachinePartContract`** (capturar, restaurar en una
-   máquina limpia, capturar de nuevo: igual, propiedad por propiedad): `ProcessorPart` (un bucle
-   sobre `Reg`), `MemoryPart` (banco por banco; al capturar, los que `MemoryMap` diga),
-   `PagingPart` (por el puerto, para que pase lo que pasa cuando un juego escribe), `UlaPart` y
-   `JoysticksPart`.
-4. **El formato propio de las sesiones.** Es genérico sobre el catálogo: cada pieza por su nombre,
-   cada propiedad por su nombre, las páginas como datos, sin motor. Guarda todas las piezas,
-   también las de los plugins, que un `.z80` no puede. Las sesiones viejas, que son `.z80`, las lee
-   el plugin Z80 (decisión 10).
-5. **El AY del plugin** pasa de `RestoredFromASnapshot(SpectrumState)` a `Restores<AySound>`,
-   `Captures<AySound>` y `PluggedBy<AySound>`, con el mismo contrato.
-6. **`ASnapshotStartsAMachine`** pasa a `Arrival<Snapshot>`.
-7. **Se borran** `SnapshotSaver`, el puente `AsSnapshotFile` y `RestoredFromASnapshot`. Queda lo
-   que usa el traductor: `SnapshotFile`, `SnapshotFactory`, `SnapshotZ80`, `SnapshotLoader` y
-   `SpectrumState` con sus partes.
+Cuando los cuatro formatos estén acá, se mueven a `SnapshotFormat` los que todavía usan
+`SnapshotFile` o `SpectrumState`: las sesiones, el RZX, libretro, el lanzador y el catálogo. Todos
+tienen una máquina a mano o pueden armar una. Después se borran `SnapshotFile`, `SnapshotFactory`,
+`SpectrumState`, `SnapshotLoader`, `SnapshotSaver`, `SnapshotZ80` y `RestoredFromASnapshot`, y los
+goldens del paso 0.
 
-Lo cubren, además de los contratos, `SavingBringsTheMachineBackTest` (que pasa a probar que un 128K
-guarda sus ocho bancos, en el formato propio), `LoadingASnapshotTest`, `TestGameExecution`,
-`AyFromSnapshotTest` y `PagingTest`.
+El traductor es el caso aparte: arma su propia máquina chica, no un `Speccy`. O arma un `Speccy`
+sin ventanas para leer y copia de ahí, o su máquina se vuelve visitable con las mismas interfaces
+del núcleo. Se decide con quien trabaje en oozx-lift, que depende del artefacto `translator`.
 
-Desde acá, un periférico que quiera viajar en el snapshot trae su concepto, su bloque SZX y su
-parte con el contrato: el DivIDE, el Beta128, el Multiface… uno por vez, cada uno en su plugin.
-Y nunca un formato escribe desde la máquina viva: siempre por la foto, que es lo que se compara,
-se inspecciona y viaja.
+## Después, en otro plan
 
-## Paso 8: el traductor, en oozx y oozx-lift
-
-Es lo último que lee `.z80` desde oozx, y oozx no puede depender de un plugin (decisión 11).
-Recomendado:
-- **El traductor recibe un `Snapshot` ya leído.** `SnapshotLoader.setupStateWithSnapshot(registers,
-  archivo, state)` pasa a ser `setupStateWith(registers, snapshot, state)`, y quien tiene el
-  archivo lo lee por la `Library`, con los formatos que haya.
-- **`EmulatedMiniZX` y `RemoteZ80Translator`** leen por la `Library`. Corren con los plugins de
-  formato en el classpath, como la aplicación.
-- **`JSWBytecodeCreationTests`** baja juegos `.z80` sólo para sacarles la memoria: pasa a leer un
-  volcado de memoria, que es lo que usa.
-- **oozx-lift**, que depende del artefacto `translator`: antes de cambiar la firma, ver qué usa
-  de él. Si lee archivos, suma `device-snapshots` y `device-formats` a sus dependencias.
-- **Se borran** `SnapshotFile`, `SnapshotFactory`, `SnapshotZ80`, `SnapshotLoader`, `SpectrumState`,
-  `Z80State`, `MemoryState`, `AY8912State` y los dos cargadores muertos de `MiniZXWithEmulationBase`.
-
-## Paso 9, en otro plan
-
-Las cintas, en `device-tape`: `Signal` como concepto cerrado, con `SignalVisitor` para
-reproducir, medir y dibujar; TAP, TZX, CSW, PZX y WAV; el deck, que sólo conoce `Ear`. Después, el
-RZX (grabar, no sólo reproducir) y los discos (`DiskImage` separado de la controladora). El molde
-es el mismo y la base ya está.
+Las cintas. Una cinta no es una foto de la máquina: tiene tiempo adentro. Sus formatos (TAP, TZX,
+CSW, PZX) leen al modelo de bloques del dispositivo de cinta, que ya existe en `device-tape`. De
+esto sólo le toca el recorrido: la cinta, como parte de la máquina, es visitable, y el bloque TAPE
+del SZX la encuentra así.
 
 ## El orden, y por qué
 
-Red → contrato → motor → SP → SNA → Z80 → SZX → costura → traductor.
-- **La red primero**, porque antes no había: ningún test miraba un byte de SNA, SP ni SZX.
-- **El contrato y el motor antes que cualquier formato**, porque es lo que hace cortos a los
-  formatos: sin `Processor` con su catálogo y sin `MemoryMap`, un formato vuelve a saber lo que no
-  debe. El contrato va primero porque el motor y los formatos dependen de él.
-- **De menor a mayor**: SP prueba el molde con lo mínimo en juego; SNA agrega las formas y el
-  paginado; Z80, los bloques y la compresión con un solo tipo de bloque; SZX, quince tipos.
-- **La costura después de los formatos**, porque hasta ahí el puente `AsSnapshotFile` deja que
-  todo lo nuevo alimente a la máquina vieja sin tocarla.
-- **El traductor al final**, porque es el único que todavía necesita lo viejo, y porque toca un
-  artefacto del que depende otro proyecto.
+Red → máquina recorrible → dispositivos visitables → red sobre la máquina → motor → SP → SNA →
+Z80 → SZX → sacar lo viejo.
+- **El recorrido antes que cualquier formato**, porque es por donde todos leen y escriben.
+- **La red sobre la máquina antes que el motor**, porque es la que mide a los formatos nuevos, y
+  porque el visitor que describe prueba el recorrido con todas las partes antes de que un formato
+  dependa de él.
+- **De menor a mayor**: SP prueba el molde; SNA agrega las formas y el paginado; Z80, versiones,
+  compresión y hardware; SZX, bloques y dispositivos.
+
+## Lo que cuesta
+
+- **Leer un archivo es armar una máquina.** En los tests, el catálogo y las conversiones hay que
+  tener un `Speccy` sin ventanas a mano. Se reusa uno: elegir la máquina ya la deja limpia.
+- **`device-snapshots` depende de los plugins de los dispositivos que mapea.** Si falta uno de
+  esos plugins, falta el formato. Si eso llega a molestar, el mapeo de un dispositivo puede irse a
+  un módulo chico propio (el SZX de la Multiface), encontrado como rol; hoy no hace falta.
 
 ## Los gates
 
-Después de cada commit acá: `mvn -pl devices/formats test` (el motor, segundos), `mvn -pl
-devices/snapshots test` (los formatos) y `mvn -pl devices/all test` (la máquina alrededor: 302
-hoy). Con libspectrum presente, los de oráculo corren solos; sin ella, los goldens hacen el mismo
-trabajo. En los pasos que tocan oozx (1, 7 y 8): sus tests de `spectrum`, `bridge`,
-`media/snapshot`, `app` y `translation`; y el CI de este repo, que compila los plugins contra el
-oozx de `main`.
+Después de cada commit: `mvn -pl devices/formats test` (el motor), `mvn -pl devices/snapshots
+test` (los formatos y las redes) y `mvn -pl devices/all test` (la máquina alrededor). En los pasos
+que tocan oozx (1 y 9): sus tests de `core`, `spectrum`, `media/snapshot`, `bridge`, `app` y
+`translation`, y el CI de este repo.
 
-## Decisiones tomadas por el diseño, y las que faltan
+## Decisiones
 
-Ya decididas: `Snapshot` nuevo con conceptos y propiedades (no crecer `SpectrumState`);
-`MachineModel` con dieciocho máquinas; el contrato en oozx y el motor y los formatos en
-oozx-plugins; los layouts fijos en `Layout` propio (Kaitai, si se quiere, como IDE y spec, no como
-generador).
+Tomadas: la máquina es el modelo, sin documento intermedio; el recorrido es interno y cada parte
+se presenta sin saber de formatos; el mapeo es una declaración en el módulo del formato (tramos,
+tablas y bindeos por tipo de parte), y el motor lee y escribe desde ella; en oozx sólo el
+recorrido, el rol y lo que las partes del núcleo tienen que dejar ver.
 
-Faltan, y cambian goldens cuando llegue cada paso:
+Faltan, y cada una cambia goldens cuando llega su paso:
 1. **El creador que escribe SZX**: hoy `JSpeccy v0.93` con la versión mal codificada.
    Recomendado: `OOZX` y la versión real.
-2. **Un 16K, o un +2A o un +3, guardado como SNA**: hoy el 16K revienta con `NullPointerException`
-   y el +2A y el +3 se rechazan. Recomendado: guardarlos como libspectrum, el 16K como 48K y los
-   otros como 128K, y que las notas digan qué se pierde.
-3. **El SNA de 48K al leer**: desapilar el PC (como libspectrum) o dejar `0x72` y el RETN de la
-   ROM (como hoy). Recomendado: desapilar; es lo que el formato significa.
-4. **Los hardware ids del `.z80`** que hoy se rechazan: leerlos como libspectrum. Recomendado: sí.
-5. **Los `System.out.println`** de SZX: recomendado sacarlos; lo salteado va a `Notes`.
-6. **El bloque PLTT de SZX:** aceptar 66 bytes o más, como libspectrum. Recomendado: sí.
-7. **Un bloque de SZX que nadie conoce:** hoy corta la lectura entera. Recomendado: guardarlo en
-   `Unread` y seguir, como hace libspectrum.
-8. **Un SZX sin procesador o sin memoria:** hoy deja esas partes vacías. Recomendado: completarlas
-   con los valores de fábrica, como libspectrum, y anotarlo.
-9. **El `.z80` que se escribe desde una página que termina en un ED suelto:** hoy revienta.
-   Recomendado: escribir ese ED como literal (no hay nada que decidir, es un bug).
-10. **Las sesiones del escritorio:** hoy se guardan como `.z80`. Recomendado: guardarlas en el
-    formato propio, que guarda todas las piezas, y leer las viejas con el plugin Z80. Sin el
-    plugin, una sesión vieja se pierde una vez.
-11. **El traductor:** hoy lee `.z80` desde oozx. Recomendado: que reciba un `Snapshot` ya leído
-    (paso 8). La alternativa es dejar un lector Z80 en oozx sólo para él, pero eso trae de vuelta
-    el motor a oozx o deja vivo el lector viejo.
+2. **Un 16K, un +2A o un +3 guardado como SNA**: hoy el 16K revienta y los otros se rechazan.
+   Recomendado: como libspectrum, el 16K como 48K y los otros como 128K, con notas.
+3. **El SNA de 48K al leer**: desapilar el PC, como libspectrum, o dejar el RETN de la ROM, como
+   hoy. Recomendado: desapilar.
+4. **Los hardware ids del `.z80` que hoy se rechazan**: leerlos como libspectrum. Recomendado: sí.
+5. **Los `System.out.println` del SZX**: sacarlos; lo salteado va a las notas.
+6. **El bloque PLTT**: aceptar 66 bytes o más, como libspectrum.
+7. **Un bloque de SZX que nadie conoce**: hoy corta la lectura. Recomendado: saltearlo y anotarlo.
+   Sin un documento intermedio no hay dónde guardarlo para reescribirlo.
+8. **Un SZX sin procesador o sin memoria**: con la máquina como modelo sale solo: esas partes
+   quedan como las dejó elegir la máquina, y se anota.
+9. **El ED suelto al final de una página del `.z80`**: se escribe como literal. Es un bug.
+10. **Las sesiones del escritorio**, hoy un `.z80` empaquetado que pierde casi todo. Recomendado:
+    guardarlas en SZX, que lleva todas las partes que se sepan mapear.
+11. **El traductor**: ver el paso 9.
 
 ## Coordinación
 
-- **oozx está en obras**: otra sesión reescribe su historia. Los pasos 0 y del 2 al 6 no tocan
-  oozx. El 1 es aditivo, y entra cuando esa reescritura esté empujada y la sesión esté quieta; el 7
-  y el 8 también se coordinan.
-- **`~/.m2` es compartido**: antes de cada `install` de oozx, avisar a las otras sesiones y esperar.
-- **El CI de este repo** construye oozx de `main` antes que los plugins, así que `device-formats` ve
-  el contrato en cuanto el paso 1 entra en oozx.
-- **`device-formats` es un plugin del que dependen otros**: se publica como cualquier `device-*`, y
-  el framework trae lo que un plugin necesita de otro, como ya hace con `device-spectrum128`.
-- **oozx-lift** depende del artefacto `translator`: el paso 8 se habla antes con quien trabaje ahí.
+- **oozx**: los pasos 1 y 9 lo tocan y entran coordinados con vos. Nada de oozx se instala en
+  `~/.m2` ni se empuja sin avisar.
+- **El CI de este repo** construye oozx de `main` antes que los plugins: los pasos 2 en adelante
+  necesitan el 1 en `main`.
+- **oozx-lift**: el paso 9 se habla antes con quien trabaje ahí.
 
 ## Lo que no hay que hacer
 
+- **No hacer un modelo paralelo de la máquina.** Si un formato necesita algo, se lo pide a la
+  parte que lo tiene, y si la parte no lo deja ver, la parte lo deja ver en sus palabras.
+- **No poner nada de formatos en un dispositivo**, ni en su plugin.
+- **No poner en oozx un formato, el motor ni nada de un dispositivo en particular.**
+- **No tocar la máquina antes de entender el archivo entero.** Un archivo rechazado la deja como
+  estaba.
 - **No refactorizar los lectores viejos.** Se reemplazan y se borran.
-- **No empezar un formato sin su concepto.** Si al escribir SNA aparece algo que `Paging` no sabe,
-  se agrega a `Paging` con su test, no al formato.
-- **No poner significado en un formato.** Un formato coloca; si hace un `if` sobre la máquina, es
-  una pregunta que le falta a `MachineModel` o a `MemoryMap`.
-- **No poner en oozx nada que no use o exponga el emulador.** Un formato, el motor o un concepto
-  de un solo periférico van en un plugin.
-- **No tocar `Snapshots`** antes del paso 7.
 - **No regenerar un golden para que pase.** Un golden cambia sólo en un commit que dice por qué.
-- **No traer bloques de periféricos** a `device-snapshots`: son de cada plugin, con su concepto.
-- **No escribir un formato desde la máquina viva.** Siempre por la foto; y ninguna parte del
-  núcleo o de un plugin entra sin su `MachinePartContract`.
