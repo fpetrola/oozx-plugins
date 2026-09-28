@@ -5,8 +5,11 @@ por formatos que leen y escriben **recorriendo la máquina de verdad** con visit
 libspectrum (`analisis-libspectrum.md`) como oráculo de cada paso y como fuente del conocimiento
 byte por byte de cada formato.
 
-**Estado:** el paso 0 está hecho (27 de septiembre de 2026): 117 tests en `devices/snapshots`,
-verdes con el código de hoy. Lo demás no empezó.
+**Estado (28 de septiembre de 2026):** hechos los pasos 0 a 8. Los cuatro formatos leen y
+escriben recorriendo la máquina, y los lectores viejos de SNA, SZX y SP se borraron. Del paso 9
+está hecho lo que no depende de decisiones; lo demás espera, y abajo dice por qué. Todo está en
+ramas locales, sin empujar: `snapshot-walk` en oozx (worktree `oozx-walk`) y `snapshot-formats`
+acá. Los módulos tocados están instalados en `~/.m2`.
 
 Es la cuarta versión del plan. La tercera ponía en oozx un modelo propio de la máquina hecho de
 valores —un `Snapshot` con una clase por pieza (`Processor`, `AySound`, `Multiface`,
@@ -352,6 +355,52 @@ Z80 → SZX → sacar lo viejo.
   dependa de él.
 - **De menor a mayor**: SP prueba el molde; SNA agrega las formas y el paginado; Z80, versiones,
   compresión y hardware; SZX, bloques y dispositivos.
+
+## Cómo quedó, y lo que cambió en el camino
+
+- **Orden:** el motor (paso 4) se hizo antes que la red sobre la máquina (paso 3), porque la
+  descripción de la máquina usa sus campos.
+- **El recorrido presenta el modelo elegido y no el `Paging` suelto:** escribir el 7ffd en
+  `Paging` no remapea la memoria; lo hace el modelo, por su puerto (`Paging128`, `PagingPlus3`).
+- **`Peripheral` y `SpectrumMachine` se presentan solos** con un `accept` por defecto: ningún
+  plugin tuvo que cambiar para aparecer en el recorrido. El paso 2 quedó en dejar ver estado: el
+  AY (registro elegido y registros) y la ULAplus (cada color como el byte escrito).
+- **El motor creció con lo que los formatos pidieron**, cada cosa con su test: lo que un formato
+  supone cuando no lo lleva (MEMPTR en 0), un tramo que cada versión corta a su largo (el header
+  extendido del `.z80`), codificaciones con regla propia (el contador de frames), secciones que
+  preparan sus tramos, bloques que van sólo si una parte escribió en ellos, y el enchufe de lo
+  que el archivo nombra antes de recorrer (la ULAplus del SZX).
+- **Dos contratos para todo formato**, en `devices/snapshots`: un archivo cortado nunca revienta, y
+  si se rechaza la máquina queda como estaba (un `.z80` cortado entre páginas es uno con menos);
+  y lo escrito, cargado y vuelto a escribir da los mismos bytes.
+- **Como el cargador viejo:** la máquina se elige sólo si cambia; un modelo que el build no tiene
+  se avisa y el archivo va a la que estaba andando (una grabación de +2A se sigue abriendo); la
+  ULAplus se enchufa o no según el SZX traiga su bloque.
+- **Distinto del cargador viejo, a propósito:** SNA, Z80 y SP ya no desenchufan la ULAplus al
+  cargar (el viejo lo hacía con cualquier formato). El archivo no dice nada de ella.
+- **Goldens de máquina que cambiaron, cada uno en su commit:** el borde y issue 2 ahora se aplican
+  (el camino viejo no los ponía nunca); el SNA de 48K desapila el PC (decisión 3); los SZX de un
+  bloque del corpus se cargan con valores de arranque (decisión 8).
+- **El catálogo** saca la RAM de un snapshot con un formato declarado, que entiende el archivo sin
+  armar una máquina.
+
+## Lo que espera, del paso 9
+
+Hecho: el RZX ya carga su snapshot embebido por los formatos nuevos sin cambios, y el catálogo
+también. Espera, porque necesita decisiones o coordinación:
+- **Las sesiones del escritorio** (decisión 10): hoy `Snapshots.packed()` sigue escribiendo el
+  `.z80` viejo. Hay que elegir el formato (recomendado SZX) antes de moverlas.
+- **El traductor** (decisión 11): usa `SnapshotLoader` desde oozx, y oozx-lift depende de él.
+- **Los tests de oozx** que leen `.z80` sin plugins (`SavingBringsTheMachineBackTest`,
+  `LoadingASnapshotTest`, `TestGameExecution`, `AFormatThatArrivedTest`,
+  `Z80SnapshotTstatesAsTheReferenceTest`): sacar `SnapshotZ80` de oozx los deja sin lector.
+- Recién después se borran `SnapshotFile`, `SnapshotFactory`, `SpectrumState`, `SnapshotLoader`,
+  `SnapshotSaver`, `SnapshotZ80`, `RestoredFromASnapshot` y `AyFromASnapshot`, y la red del paso 0,
+  que hoy sólo mira el Z80 de oozx.
+- **El oráculo sobre la máquina** (libspectrum contra la máquina cargada) no se hizo: sigue el del
+  paso 0.
+- **El pom raíz de oozx** nombra `prototypes/tdd`, que no existe: hoy no carga. Para construir se
+  usó un agregador temporal fuera de git.
 
 ## Lo que cuesta
 
