@@ -63,7 +63,7 @@ public class Tape extends AbstractPeripheral {
     private static final int EAR_OFF = 0xbf;
     private static final int EAR_ON = 0xff;
     private static final int EAR_MASK = 0x40;
-    /** What {@link com.fpetrola.oozx.speccy.modules.sound.AudioIn} records at. */
+    /** What {@link com.fpetrola.oozx.speccy.modules.sound.AudioSource} records at. */
     private static final int SAMPLE_RATE = 44100;
 
     private final SpectrumZ80Clock clock;
