@@ -69,11 +69,16 @@ public record TapeBlock(int index, int id, String type, String details, int star
       return List.of();
     }
 
-    String name = file.getName().toLowerCase();
-    if (name.endsWith(".tap")) {
+    return read(file.getName(), image);
+  }
+
+  /** The same, from the bytes of a file of that name. */
+  public static List<TapeBlock> read(String name, byte[] image) {
+    String lower = name.toLowerCase();
+    if (lower.endsWith(".tap")) {
       return readTap(image);
     }
-    if (name.endsWith(".tzx")) {
+    if (lower.endsWith(".tzx")) {
       return readTzx(image);
     }
     return List.of();

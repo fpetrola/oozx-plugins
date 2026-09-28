@@ -1,2 +1,0 @@
-inserted = true
-crashed = ArrayIndexOutOfBoundsException when it started

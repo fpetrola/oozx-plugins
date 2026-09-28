@@ -41,7 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
  */
 class EveryTapeIsWrittenAsItWasReadTest {
 
-  static final Path TAPES = Path.of("../tape/src/test/resources/tapes");
+  static final Path TAPES = Path.of("src/test/resources/tapes");
   static final List<TapeFormat> FORMATS = List.of(new TapFormat(), new TzxFormat(), new CswFormat());
 
   static Stream<Path> tapes() throws IOException {

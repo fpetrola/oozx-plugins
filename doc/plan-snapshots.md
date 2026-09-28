@@ -338,12 +338,23 @@ El traductor es el caso aparte: arma su propia máquina chica, no un `Speccy`. O
 sin ventanas para leer y copia de ahí, o su máquina se vuelve visitable con las mismas interfaces
 del núcleo. Se decide con quien trabaje en oozx-lift, que depende del artefacto `translator`.
 
-## Después, en otro plan
+## Las cintas — hecho
 
-Las cintas. Una cinta no es una foto de la máquina: tiene tiempo adentro. Sus formatos (TAP, TZX,
-CSW, PZX) leen al modelo de bloques del dispositivo de cinta, que ya existe en `device-tape`. De
-esto sólo le toca el recorrido: la cinta, como parte de la máquina, es visitable, y el bloque TAPE
-del SZX la encuentra así.
+Una cinta no es una foto de la máquina: tiene tiempo adentro. Así que el recorrido no le toca; lo
+que sí le toca es el motor de bytes y la idea de declarar cada bloque una vez.
+- **El cassette como bloques**, en `device-tape`: un record por clase de bloque, con un visitor
+  clásico porque el conjunto es cerrado. Es el vocabulario del dispositivo, no de un formato.
+- **El sonido de cada bloque** es una secuencia de pasos (qué le pasa al nivel, y cuánto esperar o
+  nada), y el deck maneja lo que dice qué se toca después: pausas, paradas, saltos, loops y llamadas.
+- **TAP, TZX y CSW** viven en `device-tapes` y la cinta los encuentra por el rol `TapeFormat`, que
+  define ella. Cada bloque del TZX es una `Sequence` declarada una vez, leída por su id y escrita
+  por lo que es.
+- **La red** reproduce cada cinta con el reloj llevado de flanco a flanco y guarda la señal. El
+  deck nuevo da la misma señal que el viejo en todas, salvo dos que el viejo hacía reventar (una
+  llamada a secuencia y una grabación directa vacía), que ahora suenan.
+- Todo lo que se lee se escribe byte por byte igual, y se rechaza lo mismo que antes.
+
+Queda: el bloque generalizado (0x19) sigue sin sonar, como antes; PZX no tiene formato.
 
 ## El orden, y por qué
 
