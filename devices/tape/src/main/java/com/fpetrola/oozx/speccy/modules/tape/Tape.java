@@ -531,8 +531,8 @@ public class Tape extends AbstractPeripheral {
         }
 
         public Boolean generalizedData(GeneralizedData b) {
-            log.info("Gen. Data Block not supported!. Skipping...");
-            return movesOn();
+            block++;
+            return sounds(Sounds.generalized(b, isLast()));
         }
 
         /**

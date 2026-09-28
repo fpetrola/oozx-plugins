@@ -144,6 +144,88 @@ public final class Sounds {
     return Steps.of(Step.now(first)).then(new Pulses(tape.data(), perSample));
   }
 
+  /**
+   * 0x19: symbols, each a few pulses, as libspectrum plays them. The first pulse of a symbol
+   * starts as the symbol says - an edge, none, low or high - the rest with an edge, and a length of
+   * 0 ends it. First the pilot, runs of a symbol so many times; then the data, symbols packed as
+   * bits; then the pause. A block that cannot be made sense of sounds as nothing, as before.
+   */
+  public static Sound generalized(GeneralizedData block, boolean last) {
+    try {
+      return Generalized.of(block.body(), last);
+    } catch (RuntimeException notASymbolTable) {
+      return new Steps();
+    }
+  }
+
+  static final class Generalized {
+    private Generalized() {
+    }
+
+    static Sound of(byte[] body, boolean last) {
+      java.nio.ByteBuffer in = java.nio.ByteBuffer.wrap(body).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+      int pauseMs = in.getShort() & 0xffff;
+      int totp = in.getInt();
+      int npp = in.get() & 0xff;
+      int asp = in.get() & 0xff;
+      int totd = in.getInt();
+      int npd = in.get() & 0xff;
+      int asd = in.get() & 0xff;
+      if (asp == 0) asp = 256;
+      if (asd == 0) asd = 256;
+      Steps steps = new Steps();
+      if (totp > 0) {
+        Table pilot = Table.read(in, asp, npp);
+        for (int run = 0; run < totp; run++) {
+          int symbol = in.get() & 0xff;
+          int repeats = in.getShort() & 0xffff;
+          for (int time = 0; time < repeats; time++) symbol(steps, pilot.lengths()[symbol], pilot.flags()[symbol]);
+        }
+      }
+      if (totd > 0) {
+        Table data = Table.read(in, asd, npd);
+        int bits = 32 - Integer.numberOfLeadingZeros(asd - 1);
+        if (bits == 0) bits = 1;
+        int bit = 0;
+        for (int at = 0; at < totd; at++) {
+          int symbol = 0;
+          for (int b = 0; b < bits; b++, bit++) {
+            int value = in.get(in.position() + bit / 8) >> (7 - bit % 8) & 1;
+            symbol = symbol << 1 | value;
+          }
+          symbol(steps, data.lengths()[symbol], data.flags()[symbol]);
+        }
+      }
+      return then(steps, end(pause(pauseMs, last)));
+    }
+
+    /** A symbol table: for each symbol how its first pulse starts, and the lengths of its pulses. */
+    record Table(int[] flags, int[][] lengths) {
+      static Table read(java.nio.ByteBuffer in, int count, int pulses) {
+        int[] flags = new int[count];
+        int[][] lengths = new int[count][pulses];
+        for (int symbol = 0; symbol < count; symbol++) {
+          flags[symbol] = in.get() & 0x03;
+          for (int pulse = 0; pulse < pulses; pulse++) lengths[symbol][pulse] = in.getShort() & 0xffff;
+        }
+        return new Table(flags, lengths);
+      }
+    }
+
+    private static void symbol(Steps steps, int[] lengths, int flags) {
+      Level first = switch (flags) {
+        case 1 -> KEEP;
+        case 2 -> LOW;
+        case 3 -> HIGH;
+        default -> TOGGLE;
+      };
+      for (int pulse = 0; pulse < lengths.length; pulse++) {
+        steps.add(Step.of(pulse == 0 ? first : TOGGLE, lengths[pulse]));
+        if (pulse + 1 < lengths.length && lengths[pulse + 1] == 0) break;
+      }
+    }
+  }
+
   /** A silence, at the level a silent line rests at. */
   public static Sound silence(int tstates) {
     return Steps.of(Step.of(REST, tstates));
