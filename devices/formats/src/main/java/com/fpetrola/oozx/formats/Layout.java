@@ -37,20 +37,28 @@ public final class Layout<P> {
     List<Object> fields();
   }
 
-  /** A line whose bytes are in one fixed stretch. */
+  /** A line whose bytes are in one fixed stretch, there only if the file has the stretch and it reaches them. */
   abstract static class InStretch<P> implements Place<P> {
     final Fixed region;
+    final int offset;
+    final int count;
 
-    InStretch(Fixed region) {
+    InStretch(Fixed region, int offset, int count) {
       this.region = region;
+      this.offset = offset;
+      this.count = count;
+    }
+
+    boolean isIn(SnapshotFile file) {
+      return file.has(region, offset, count);
     }
 
     public final void read(SnapshotFile file, P part) {
-      if (file.has(region)) read(file.bytes(region), part);
+      if (isIn(file)) read(file.bytes(region), part);
     }
 
     public final void write(P part, SnapshotFile file) {
-      if (file.has(region)) write(part, file.bytes(region));
+      if (isIn(file)) write(part, file.bytes(region));
     }
 
     abstract void read(Bytes bytes, P part);
@@ -70,7 +78,7 @@ public final class Layout<P> {
 
   /** A byte. */
   public Layout<P> u8(Fixed region, int offset, Field<P, Integer> field) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, 1) {
       void read(Bytes bytes, P part) { field.set(part, bytes.u8(offset)); }
       void write(P part, Bytes bytes) { bytes.u8(offset, field.get(part)); }
       public List<Object> fields() { return List.of(field); }
@@ -79,7 +87,7 @@ public final class Layout<P> {
 
   /** Two bytes, little-endian. */
   public Layout<P> u16(Fixed region, int offset, Field<P, Integer> field) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, 2) {
       void read(Bytes bytes, P part) { field.set(part, bytes.u16(offset)); }
       void write(P part, Bytes bytes) { bytes.u16(offset, field.get(part)); }
       public List<Object> fields() { return List.of(field); }
@@ -88,7 +96,7 @@ public final class Layout<P> {
 
   /** Four bytes, little-endian. */
   public Layout<P> u32(Fixed region, int offset, Field<P, Integer> field) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, 4) {
       void read(Bytes bytes, P part) { field.set(part, bytes.u32(offset)); }
       void write(P part, Bytes bytes) { bytes.u32(offset, field.get(part)); }
       public List<Object> fields() { return List.of(field); }
@@ -97,7 +105,7 @@ public final class Layout<P> {
 
   /** One bit of a byte, the rest being somebody else's. */
   public Layout<P> bit(Fixed region, int offset, int bit, Field<P, Boolean> field) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, 1) {
       void read(Bytes bytes, P part) { field.set(part, (bytes.u8(offset) >> bit & 1) != 0); }
       void write(P part, Bytes bytes) { bytes.u8(offset, bytes.u8(offset) & ~(1 << bit) | (field.get(part) ? 1 << bit : 0)); }
       public List<Object> fields() { return List.of(field); }
@@ -106,7 +114,7 @@ public final class Layout<P> {
 
   /** Some bits of a byte, from that shift. */
   public Layout<P> bits(Fixed region, int offset, int shift, int mask, Field<P, Integer> field) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, 1) {
       void read(Bytes bytes, P part) { field.set(part, bytes.u8(offset) >> shift & mask); }
       void write(P part, Bytes bytes) { bytes.u8(offset, bytes.u8(offset) & ~(mask << shift) | (field.get(part) & mask) << shift); }
       public List<Object> fields() { return List.of(field); }
@@ -115,7 +123,7 @@ public final class Layout<P> {
 
   /** A byte that is true when it is anything but 0, and written as 1. */
   public Layout<P> flag(Fixed region, int offset, Field<P, Boolean> field) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, 1) {
       void read(Bytes bytes, P part) { field.set(part, bytes.u8(offset) != 0); }
       void write(P part, Bytes bytes) { bytes.u8(offset, field.get(part) ? 1 : 0); }
       public List<Object> fields() { return List.of(field); }
@@ -124,7 +132,7 @@ public final class Layout<P> {
 
   /** Some bits of a byte that are a number for a value. */
   public <E> Layout<P> code(Fixed region, int offset, int shift, int mask, Field<P, E> field, Codes<E> codes) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, 1) {
       void read(Bytes bytes, P part) { field.set(part, codes.decode(bytes.u8(offset) >> shift & mask)); }
       void write(P part, Bytes bytes) { bytes.u8(offset, bytes.u8(offset) & ~(mask << shift) | (codes.encode(field.get(part)) & mask) << shift); }
       public List<Object> fields() { return List.of(field); }
@@ -133,7 +141,7 @@ public final class Layout<P> {
 
   /** So many bytes as they are. */
   public Layout<P> bytes(Fixed region, int offset, int count, Field<P, byte[]> field) {
-    return with(new InStretch<P>(region) {
+    return with(new InStretch<P>(region, offset, count) {
       void read(Bytes bytes, P part) { field.set(part, bytes.slice(offset, count)); }
       void write(P part, Bytes bytes) { bytes.put(offset, field.get(part)); }
       public List<Object> fields() { return List.of(field); }
@@ -152,6 +160,23 @@ public final class Layout<P> {
     });
   }
 
+  /** Bytes with a rule of their own, when the file reaches them: a frame counter, R split in two. */
+  public Layout<P> encoded(Fixed region, int offset, int count, Encoding<P> encoding) {
+    return with(new Place<P>() {
+      public void read(SnapshotFile file, P part) {
+        if (file.has(region, offset, count)) encoding.read(file.bytes(region), part, file);
+      }
+
+      public void write(P part, SnapshotFile file) {
+        if (file.has(region, offset, count)) encoding.write(part, file.bytes(region), file);
+      }
+
+      public List<Object> fields() {
+        return encoding.fields();
+      }
+    });
+  }
+
   /** The line before this also sets another field, with what it read: an SNA keeps one IFF for both. */
   public Layout<P> alsoSets(Field<P, Boolean> other) {
     Place<P> last = places.get(places.size() - 1);
@@ -161,7 +186,7 @@ public final class Layout<P> {
     changed.set(changed.size() - 1, new Place<P>() {
       public void read(SnapshotFile file, P part) {
         last.read(file, part);
-        if (file.has(regionOf(last))) other.set(part, read.get(part));
+        if (last instanceof InStretch<P> stretch && stretch.isIn(file)) other.set(part, read.get(part));
       }
 
       public void write(P part, SnapshotFile file) {
@@ -203,10 +228,6 @@ public final class Layout<P> {
   /** The fields it places, in order: for the tests that hold a table to what it says. */
   public List<Object> fields() {
     return places.stream().flatMap(place -> place.fields().stream()).toList();
-  }
-
-  private static Fixed regionOf(Place<?> place) {
-    return place instanceof InStretch<?> stretch ? stretch.region : null;
   }
 
   private Layout<P> with(Place<P> place) {

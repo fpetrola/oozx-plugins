@@ -55,6 +55,12 @@ public final class SnapshotFile {
     return fixed.containsKey(region);
   }
 
+  /** Whether the file has that stretch, and as far as those bytes: a version may cut it shorter. */
+  public boolean has(Fixed region, int offset, int count) {
+    Bytes bytes = fixed.get(region);
+    return bytes != null && offset >= bytes.start() && offset + count <= bytes.start() + bytes.length();
+  }
+
   public Bytes bytes(Fixed region) {
     Bytes bytes = fixed.get(region);
     if (bytes == null) {

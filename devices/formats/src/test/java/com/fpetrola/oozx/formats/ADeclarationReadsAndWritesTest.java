@@ -177,4 +177,38 @@ class ADeclarationReadsAndWritesTest {
     walk(new ArrayList<>(List.of(new Chip(), new Gadget())), out, false);
     assertEquals(List.of("not carried: Gadget"), out.notes());
   }
+
+  @Test
+  void aStretchCutByAVersionHasOnlyThePlacesItReaches() {
+    Fixed extended = Fixed.span("extended", 30, 36);
+    Layout<Chip> table = Layout.<Chip>of().u8(extended, 32, A).u16(extended, 34, BC);
+    Shape shorter = Shape.of(MachineTypes.SPECTRUM48K, extended.upTo(34));
+    Chip chip = new Chip();
+    chip.bc = 7;
+    table.read(shorter.parse(new byte[]{0, 0, 0x42, 0}), chip);
+    assertEquals(0x42, chip.a);
+    assertEquals(7, chip.bc);
+
+    SnapshotFile out = shorter.empty();
+    chip.a = 0x11;
+    table.write(chip, out);
+    assertArrayEquals(new byte[]{0, 0, 0x11, 0}, shorter.assemble(out));
+  }
+
+  @Test
+  void anEncodingReadsAndWritesItsBytesWithTheWholeFileAtHand() {
+    Encoding<Chip> split = new Encoding<>() {
+      public void read(Bytes bytes, Chip chip, SnapshotFile file) { chip.a = bytes.u8(0) & 0x7f | (bytes.u8(1) & 1) << 7; }
+      public void write(Chip chip, Bytes bytes, SnapshotFile file) { bytes.u8(0, chip.a & 0x7f).or(1, chip.a >> 7); }
+      public List<Object> fields() { return List.of(A); }
+    };
+    Layout<Chip> table = Layout.<Chip>of().encoded(HEADER, 0, 2, split);
+    Shape shape = Shape.of(MachineTypes.SPECTRUM48K, HEADER);
+    Chip chip = new Chip();
+    table.read(shape.parse(new byte[]{0x7f, 1, 0, 0}), chip);
+    assertEquals(0xff, chip.a);
+    SnapshotFile out = shape.empty();
+    table.write(chip, out);
+    assertArrayEquals(new byte[]{0x7f, 1, 0, 0}, shape.assemble(out));
+  }
 }

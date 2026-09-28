@@ -1,5 +1,5 @@
 machine = SPECTRUM128K
-issue2 = false
+issue2 = true
 port7ffd = 0x05
 a = 0x11
 f = 0x22
@@ -31,7 +31,7 @@ page.4 = sha256:e0f84164ceb6e935 (16384)
 page.5 = sha256:283ee6c717ea999c (16384)
 page.6 = sha256:bed1131b80a595ed (16384)
 page.7 = sha256:7f8d4ef0593d9a64 (16384)
-border = 0
+border = 2
 tstates = 12345
 ay.selected = 0x07
 ay.registers = 10 01 12 03 14 05 16 17 18 19 1a 1b 1c 0d 1e 1f

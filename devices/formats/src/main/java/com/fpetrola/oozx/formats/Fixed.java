@@ -55,6 +55,27 @@ public final class Fixed implements Region {
     return length;
   }
 
+  /** The same stretch, ending at that offset of the file: what a version of a format that says less has of it. */
+  public Fixed upTo(int end) {
+    return new Fixed(name, start, end - start, virtual);
+  }
+
+  /** Whether it reaches that far: a place past where a version cuts it is not in that version. */
+  boolean reaches(int offset, int count) {
+    return offset >= start && offset + count <= start + length;
+  }
+
+  /** The same stretch whatever version cut it: by name and where it starts. */
+  @Override
+  public boolean equals(Object other) {
+    return other instanceof Fixed fixed && fixed.name.equals(name) && fixed.start == start;
+  }
+
+  @Override
+  public int hashCode() {
+    return name.hashCode() * 31 + start;
+  }
+
   Bytes empty() {
     return Bytes.zeros(start, length);
   }
