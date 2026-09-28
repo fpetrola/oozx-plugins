@@ -64,4 +64,35 @@ class BytesTest {
     assertArrayEquals(page, Codec.ZLIB.decode(Codec.ZLIB.encode(page), 0x4000));
     assertThrows(Refused.class, () -> Codec.ZLIB.decode(new byte[]{1, 2, 3}, 3));
   }
+
+  record Turbo(int pilot, int bits, byte[] data) {
+  }
+
+  record Csw(int pause, int rate, byte[] data) {
+  }
+
+  @org.junit.jupiter.api.Test
+  void aSequenceReadsItsColumnsInOrderAndWritesThemBackTheSame() {
+    Sequence<Turbo> turbo = Sequence.<Turbo>of().u16(Turbo::pilot).u8(Turbo::bits).data(3, Turbo::data)
+        .make(read -> new Turbo(read.i(0), read.i(1), read.bytes(2)));
+    byte[] bytes = {0x78, 0x08, 5, 2, 0, 0, (byte) 0xaa, (byte) 0xbb};
+    Turbo read = turbo.read(Cursor.over(bytes));
+    assertEquals(2168, read.pilot());
+    assertEquals(5, read.bits());
+    assertArrayEquals(new byte[]{(byte) 0xaa, (byte) 0xbb}, read.data());
+    assertArrayEquals(bytes, turbo.bytesOf(read));
+  }
+
+  @org.junit.jupiter.api.Test
+  void aSequenceInsideALengthCountsItsColumnsAsTheOuterOnes() {
+    Sequence<Csw> csw = Sequence.<Csw>of()
+        .within(4, Sequence.<Csw>of().u16(Csw::pause).u24(Csw::rate).rest(Csw::data))
+        .make(read -> new Csw(read.i(0), read.i(1), read.bytes(2)));
+    byte[] bytes = {7, 0, 0, 0, (byte) 0xe8, 0x03, 0x44, (byte) 0xac, 0x00, 1, 2};
+    Csw read = csw.read(Cursor.over(bytes));
+    assertEquals(1000, read.pause());
+    assertEquals(44100, read.rate());
+    assertArrayEquals(new byte[]{1, 2}, read.data());
+    assertArrayEquals(bytes, csw.bytesOf(read));
+  }
 }
