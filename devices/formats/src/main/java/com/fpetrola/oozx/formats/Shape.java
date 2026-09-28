@@ -66,7 +66,7 @@ public record Shape(MachineTypes machine, List<Region> regions, List<Rule> rules
   /** A file of this shape with nothing in it yet, for the parts to fill. */
   public SnapshotFile empty() {
     SnapshotFile file = new SnapshotFile(this);
-    regions.stream().filter(Fixed.class::isInstance).map(Fixed.class::cast).forEach(region -> file.put(region, region.empty()));
+    regions.forEach(region -> region.prepare(file));
     return file;
   }
 

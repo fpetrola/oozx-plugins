@@ -67,6 +67,7 @@ public abstract class DeclaredFormat implements SnapshotFormat {
   public final void read(byte[] bytes, Speccy speccy, Consumer<String> notes) throws SnapshotException {
     SnapshotFile file = understood(bytes);
     become(speccy, file.shape().machine());
+    plug(file, speccy);
     speccy.accept(part -> bindings().apply(part, Direction.reading(file)));
     file.notes().forEach(notes);
   }
@@ -100,6 +101,10 @@ public abstract class DeclaredFormat implements SnapshotFormat {
     } catch (Refused refused) {
       throw new SnapshotException(label() + ": " + refused.getMessage(), refused);
     }
+  }
+
+  /** What the file says is plugged in, plugged in before the machine is walked, so the walk meets it. */
+  protected void plug(SnapshotFile file, Speccy speccy) {
   }
 
   /** Chooses the machine the file is of, which starts it from a known state. */

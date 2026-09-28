@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * What a format writes from a machine, loaded into another machine, leaves it the same, and is
  * written again the same, byte for byte: for every fixture any format reads, written by every
  * format that writes. The first write may lose what the format cannot carry; after it, nothing more.
+ * A machine a format cannot write - a 48K SNA with nowhere to push the PC - is refused, and that is all.
  */
 class WhatAFormatWritesLoadsTheSameTest {
 
@@ -67,7 +68,12 @@ class WhatAFormatWritesLoadsTheSameTest {
       } catch (com.fpetrola.emulation.helpers.snapshots.SnapshotException refused) {
         return;
       }
-      byte[] once = writer.write(first, note -> { });
+      byte[] once;
+      try {
+        once = writer.write(first, note -> { });
+      } catch (com.fpetrola.emulation.helpers.snapshots.SnapshotException cannotBeWrittenThere) {
+        return;
+      }
       writer.read(once, second, note -> { });
       byte[] twice = writer.write(second, note -> { });
       writer.read(twice, third, note -> { });

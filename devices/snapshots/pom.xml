@@ -10,11 +10,16 @@
     <artifactId>device-snapshots</artifactId>
     <packaging>jar</packaging>
 
-    <name>The snapshot formats the build does not carry: SNA, SZX and SP</name>
+    <name>The snapshot formats, read and written by walking the machine: Z80, SNA, SZX and SP</name>
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>device-spectrum128</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-ulaplus</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

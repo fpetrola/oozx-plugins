@@ -19,7 +19,6 @@ package model.tests.formats;
 
 import com.fpetrola.emulation.helpers.snapshots.SnapshotException;
 import com.fpetrola.emulation.helpers.snapshots.SnapshotFile;
-import com.fpetrola.emulation.helpers.snapshots.SnapshotSZX;
 import com.fpetrola.emulation.helpers.snapshots.SnapshotZ80;
 import com.fpetrola.emulation.helpers.snapshots.SpectrumState;
 
@@ -38,10 +37,10 @@ import java.util.function.Supplier;
 final class TodaysFormats {
 
   private static final Map<String, Supplier<SnapshotFile>> BY_EXTENSION = Map.of(
-      "z80", SnapshotZ80::new, "szx", SnapshotSZX::new);
+      "z80", SnapshotZ80::new);
 
   /** The old readers this plugin still has: one goes when the format that walks the machine replaces it. */
-  static final List<String> OF_THIS_PLUGIN = List.of("szx");
+  static final List<String> OF_THIS_PLUGIN = List.of();
 
   /** Whether an old reader still reads files with that extension. */
   static boolean has(String extension) {
@@ -49,7 +48,7 @@ final class TodaysFormats {
   }
 
   /** The ones that write: SP never did. */
-  static final List<String> WRITERS = List.of("szx", "z80");
+  static final List<String> WRITERS = List.of("z80");
 
   private TodaysFormats() {
   }

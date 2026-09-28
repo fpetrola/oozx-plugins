@@ -86,6 +86,11 @@ public final class Fixed implements Region {
   }
 
   @Override
+  public void prepare(SnapshotFile file) {
+    file.put(this, empty());
+  }
+
+  @Override
   public void assemble(SnapshotFile from, Sink out) {
     if (!virtual) {
       out.bytes(from.bytes(this).toBytes());

@@ -58,7 +58,10 @@ public final class Layout<P> {
     }
 
     public final void write(P part, SnapshotFile file) {
-      if (isIn(file)) write(part, file.bytes(region));
+      if (isIn(file)) {
+        write(part, file.bytes(region));
+        file.wrote(region);
+      }
     }
 
     abstract void read(Bytes bytes, P part);
@@ -168,7 +171,10 @@ public final class Layout<P> {
       }
 
       public void write(P part, SnapshotFile file) {
-        if (file.has(region, offset, count)) encoding.write(part, file.bytes(region), file);
+        if (file.has(region, offset, count)) {
+          encoding.write(part, file.bytes(region), file);
+          file.wrote(region);
+        }
       }
 
       public List<Object> fields() {

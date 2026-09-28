@@ -1,5 +1,3 @@
-# szx
-refused = crashed: NullPointerException
 # z80
 bytes = sha256:cb74a8da6db8798c (878)
 machine = SPECTRUMPLUS3

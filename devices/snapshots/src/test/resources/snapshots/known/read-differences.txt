@@ -10,48 +10,12 @@
 
 # SZX con bloques que el lector de hoy no conoce: cortan la lectura entera. Son periféricos que
 # este repositorio emula (DivIDE, DivMMC, SimpleIDE, Spectranet, ZXMMC) y no viajan en un snapshot.
-libspectrum/szx-chunks/DIDE.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
-libspectrum/szx-chunks/DIRP.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
-libspectrum/szx-chunks/DMMC.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
-libspectrum/szx-chunks/DMRP.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
-libspectrum/szx-chunks/SIDE.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
-libspectrum/szx-chunks/SNEF.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
-libspectrum/szx-chunks/SNER.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
-libspectrum/szx-chunks/ZMMC.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
 
 # PLTT: libspectrum escribe la paleta de ULAplus en 67 bytes (el último es el registro 0xff) y lee
 # 66 o más; el lector de hoy exige 66 exactos, así que un SZX con ULAplus guardado por Fuse no abre.
-libspectrum/szx-chunks/PLTT.szx: java refuses it (FILE_READ_ERROR), libspectrum reads it
 
 # SCLD: el archivo es de un TC2048, una máquina que hoy no se lee de un SZX.
-libspectrum/szx-chunks/SCLD.szx: java refuses it (UNSUPPORTED_SNAPSHOT), libspectrum reads it
 
 # El corpus de libspectrum prueba cada bloque de SZX en un archivo aparte. El lector de hoy los lee,
 # pero deja el estado sin procesador o sin memoria, que libspectrum completa con sus valores de
 # fábrica: un snapshot así haría fallar a la máquina al cargarlo.
-libspectrum/szx-chunks/AMXM.szx: java reads no processor and no memory
-libspectrum/szx-chunks/ATRP-uncompressed.szx: java reads no processor and no memory
-libspectrum/szx-chunks/ATRP.szx: java reads no processor and no memory
-libspectrum/szx-chunks/AY.szx: java reads no processor and no memory
-libspectrum/szx-chunks/B128.szx: java reads no processor and no memory
-libspectrum/szx-chunks/CFRP-uncompressed.szx: java reads no processor and no memory
-libspectrum/szx-chunks/CFRP.szx: java reads no processor and no memory
-libspectrum/szx-chunks/COVX.szx: java reads no processor and no memory
-libspectrum/szx-chunks/DOCK.szx: java reads no processor and no memory
-libspectrum/szx-chunks/DRUM.szx: java reads no processor and no memory
-libspectrum/szx-chunks/IF1.szx: java reads no processor
-libspectrum/szx-chunks/IF2R.szx: java reads no processor
-libspectrum/szx-chunks/JOY.szx: java reads no processor and no memory
-libspectrum/szx-chunks/KEYB.szx: java reads no processor and no memory
-libspectrum/szx-chunks/MFCE.szx: java reads no processor
-libspectrum/szx-chunks/OPUS.szx: java reads no processor and no memory
-libspectrum/szx-chunks/PLSD.szx: java reads no processor and no memory
-libspectrum/szx-chunks/RAMP-uncompressed.szx: java reads no processor
-libspectrum/szx-chunks/RAMP.szx: java reads no processor
-libspectrum/szx-chunks/SNET.szx: java reads no processor and no memory
-libspectrum/szx-chunks/SPCR.szx: java reads no processor and no memory
-libspectrum/szx-chunks/USPE.szx: java reads no processor and no memory
-libspectrum/szx-chunks/Z80R.szx: java reads no memory
-libspectrum/szx-chunks/ZXAT.szx: java reads no processor and no memory
-libspectrum/szx-chunks/ZXCF.szx: java reads no processor and no memory
-libspectrum/szx-chunks/ZXPR.szx: java reads no processor and no memory

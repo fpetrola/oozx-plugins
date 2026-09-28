@@ -128,6 +128,11 @@ public class UlaPlusPeripheral extends AbstractPeripheral
     return rgb(colours[index & (COLOURS - 1)]);
   }
 
+  /** One of the sixty-four as the byte it was written as. */
+  public int register(int index) {
+    return colours[index & (COLOURS - 1)] & 0xff;
+  }
+
   /** Which register was named last, which is where the next byte written would go. */
   public int named() {
     return named;

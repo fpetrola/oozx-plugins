@@ -36,6 +36,7 @@ public final class SnapshotFile {
 
   private final Shape shape;
   private final Map<Fixed, Bytes> fixed = new HashMap<>();
+  private final Set<Fixed> written = new java.util.HashSet<>();
   private final Map<Integer, byte[]> pages = new TreeMap<>();
   private final Set<Integer> placedOrWritten = new LinkedHashSet<>();
   private final List<String> notes = new ArrayList<>();
@@ -87,6 +88,20 @@ public final class SnapshotFile {
 
   void put(Fixed region, Bytes bytes) {
     fixed.put(region, bytes);
+  }
+
+  /** A stretch a section read or offers, of the length it has: a block says its own. */
+  public void stretch(Fixed region, byte[] bytes) {
+    fixed.put(region, Bytes.of(0, bytes));
+  }
+
+  /** Whether some part wrote into that stretch: a block nothing wrote is not written. */
+  public boolean isWritten(Fixed region) {
+    return written.contains(region);
+  }
+
+  void wrote(Fixed region) {
+    written.add(region);
   }
 
   /** The banks the file has. */

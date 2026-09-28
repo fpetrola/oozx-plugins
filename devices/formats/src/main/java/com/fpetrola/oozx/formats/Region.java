@@ -23,4 +23,8 @@ public interface Region {
   void parse(Cursor in, SnapshotFile into);
 
   void assemble(SnapshotFile from, Sink out);
+
+  /** Before the parts write into a file: the stretches this section offers them. */
+  default void prepare(SnapshotFile file) {
+  }
 }
