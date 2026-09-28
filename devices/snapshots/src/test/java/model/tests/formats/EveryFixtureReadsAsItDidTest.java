@@ -34,7 +34,7 @@ class EveryFixtureReadsAsItDidTest {
 
   @TestFactory
   Stream<DynamicTest> everyFixture() {
-    return Fixtures.all().stream().map(fixture -> dynamicTest(Fixtures.nameOf(fixture), () ->
+    return Fixtures.ofTodaysFormats().stream().map(fixture -> dynamicTest(Fixtures.nameOf(fixture), () ->
         assertEquals(Fixtures.text(Fixtures.golden(fixture, "read")), Goldens.read(fixture))));
   }
 }

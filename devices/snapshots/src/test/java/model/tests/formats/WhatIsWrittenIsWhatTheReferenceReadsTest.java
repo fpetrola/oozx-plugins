@@ -43,7 +43,7 @@ class WhatIsWrittenIsWhatTheReferenceReadsTest {
   @Test
   void whatGoesOutIsWhatWasThereWhereItIsNotWrittenDown() {
     List<String> found = new ArrayList<>();
-    for (Path fixture : Fixtures.all()) {
+    for (Path fixture : Fixtures.ofTodaysFormats()) {
       Fields read = TodaysFormats.read(fixture);
       if (read.isRefused() || !read.absentParts().isEmpty()) {
         continue;

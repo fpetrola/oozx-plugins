@@ -42,7 +42,7 @@ class EveryFixtureReadsAsTheReferenceReadsItTest {
   @Test
   void theyPartCompanyOnlyWhereItIsWrittenDown() {
     List<String> found = new ArrayList<>();
-    for (Path fixture : Fixtures.all()) {
+    for (Path fixture : Fixtures.ofTodaysFormats()) {
       String format = TodaysFormats.extensionOf(fixture);
       if (!Reference.asks(format)) {
         continue;

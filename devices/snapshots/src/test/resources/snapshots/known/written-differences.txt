@@ -18,7 +18,6 @@ manicminer-v1-packed.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256
 manicminer-v1.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
 manicminer-v2.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
 manicminer.sna -> sna: page.2: sha256:67f4d9565c382268 (16384), sha256:0769e59f03021ec9 (16384)
-manicminer.sp -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
 manicminer.szx -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
 manicminer.z80 -> sna: page.2: sha256:2fe2fd9105c1e234 (16384), sha256:67f4d9565c382268 (16384)
 
@@ -31,5 +30,3 @@ banks-5-on-top.sna -> z80: joystick: NONE, CURSOR
 banks.sna -> z80: joystick: NONE, CURSOR
 libspectrum/random.szx -> z80: joystick: NONE, CURSOR
 manicminer.sna -> z80: joystick: NONE, CURSOR
-manicminer.sp -> z80: joystick: NONE, CURSOR
-sixteen.sp -> z80: joystick: NONE, CURSOR

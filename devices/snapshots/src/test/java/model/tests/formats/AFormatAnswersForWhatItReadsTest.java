@@ -43,7 +43,7 @@ class AFormatAnswersForWhatItReadsTest {
 
   @TestFactory
   Stream<DynamicTest> everyFormatOfThisPlugin() {
-    return Stream.of("sna", "sp", "szx").map(TodaysFormats::format).map(format -> dynamicTest(format.label(), () -> {
+    return TodaysFormats.OF_THIS_PLUGIN.stream().map(TodaysFormats::format).map(format -> dynamicTest(format.label(), () -> {
       Set<String> answers = Arrays.stream(format.getClass().getAnnotationsByType(Answers.class))
           .flatMap(answer -> Arrays.stream(answer.value())).collect(Collectors.toSet());
       for (String extension : EXTENSIONS) {
@@ -51,6 +51,19 @@ class AFormatAnswersForWhatItReadsTest {
         assertEquals(answers.contains(extension), reads(format, "GAME." + extension.toUpperCase()), extension.toUpperCase());
       }
     }));
+  }
+
+  @TestFactory
+  Stream<DynamicTest> everyFormatThatWalksTheMachine() {
+    return com.fpetrola.oozx.plugins.Plugins.found(com.fpetrola.oozx.formats.SnapshotFormat.class).stream()
+        .map(format -> dynamicTest(format.label(), () -> {
+          Set<String> answers = Arrays.stream(format.getClass().getAnnotationsByType(Answers.class))
+              .flatMap(answer -> Arrays.stream(answer.value())).collect(Collectors.toSet());
+          for (String extension : EXTENSIONS) {
+            assertEquals(answers.contains(extension), format.reads(new File("game." + extension)), extension);
+            assertEquals(answers.contains(extension), format.reads(new File("GAME." + extension.toUpperCase())), extension.toUpperCase());
+          }
+        }));
   }
 
   private static boolean reads(SnapshotFile format, String name) {

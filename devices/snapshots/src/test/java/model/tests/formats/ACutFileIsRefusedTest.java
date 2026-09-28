@@ -42,7 +42,7 @@ class ACutFileIsRefusedTest {
   @Test
   void aCutSnapshotCrashesNothingThatIsNotWrittenDown(@TempDir Path temp) throws IOException {
     List<String> found = new ArrayList<>();
-    for (Path fixture : Fixtures.all()) {
+    for (Path fixture : Fixtures.ofTodaysFormats()) {
       if (TodaysFormats.read(fixture).isRefused()) {
         continue;
       }

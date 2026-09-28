@@ -34,7 +34,7 @@ class WhatIsWrittenIsWhatItWasTest {
 
   @TestFactory
   Stream<DynamicTest> everyFixtureThatReads() {
-    return Fixtures.all().stream()
+    return Fixtures.ofTodaysFormats().stream()
         .filter(fixture -> !TodaysFormats.read(fixture).isRefused())
         .map(fixture -> dynamicTest(Fixtures.nameOf(fixture), () ->
             assertEquals(Fixtures.text(Fixtures.golden(fixture, "written")), Goldens.written(fixture))));

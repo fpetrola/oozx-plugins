@@ -140,6 +140,18 @@ public final class Layout<P> {
     });
   }
 
+  /**
+   * What a field is taken to be when reading, because this format does not carry it: MEMPTR is 0
+   * after a file that does not say it, as libspectrum and Fuse leave it. Nothing is written.
+   */
+  public <V> Layout<P> assuming(Field<P, V> field, V value) {
+    return with(new Place<P>() {
+      public void read(SnapshotFile file, P part) { field.set(part, value); }
+      public void write(P part, SnapshotFile file) { }
+      public List<Object> fields() { return List.of(); }
+    });
+  }
+
   /** The line before this also sets another field, with what it read: an SNA keeps one IFF for both. */
   public Layout<P> alsoSets(Field<P, Boolean> other) {
     Place<P> last = places.get(places.size() - 1);

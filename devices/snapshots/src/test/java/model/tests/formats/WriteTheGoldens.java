@@ -34,7 +34,7 @@ class WriteTheGoldens {
 
   @Test
   void write() {
-    for (Path fixture : Fixtures.all()) {
+    for (Path fixture : Fixtures.ofTodaysFormats()) {
       Fixtures.write(Fixtures.golden(fixture, "read"), Goldens.read(fixture));
       String written = Goldens.written(fixture);
       if (!written.isEmpty()) {

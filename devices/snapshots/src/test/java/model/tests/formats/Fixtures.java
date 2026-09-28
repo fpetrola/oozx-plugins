@@ -52,6 +52,11 @@ final class Fixtures {
     }
   }
 
+  /** The fixtures an old reader still reads: the net of step 0 holds only those; the machine net holds them all. */
+  static List<Path> ofTodaysFormats() {
+    return all().stream().filter(fixture -> TodaysFormats.has(TodaysFormats.extensionOf(fixture))).toList();
+  }
+
   static String nameOf(Path fixture) {
     return HERE.relativize(fixture).toString();
   }
