@@ -1,5 +1,3 @@
-# sna
-refused = crashed: NullPointerException
 # szx
 machine = SPECTRUM16K
 a = 0x11

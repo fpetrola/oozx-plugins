@@ -1,5 +1,3 @@
-# sna
-refused = SNA_DONT_SUPPORT_PLUS3
 # szx
 machine = SPECTRUMPLUS3
 a = 0x11

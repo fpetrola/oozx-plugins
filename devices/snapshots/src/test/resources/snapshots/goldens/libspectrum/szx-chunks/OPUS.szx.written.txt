@@ -1,5 +1,3 @@
-# sna
-refused = crashed: NullPointerException
 # szx
 refused = crashed: NullPointerException
 # z80

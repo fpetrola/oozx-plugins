@@ -1,5 +1,3 @@
-# sna
-refused = SNA_REGSP_ERROR
 # szx
 machine = SPECTRUM48K
 a = 0x12

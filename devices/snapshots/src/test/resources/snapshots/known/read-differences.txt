@@ -5,14 +5,8 @@
 
 # SNA de 48K: libspectrum desapila el PC y sube el SP en 2. El lector de hoy deja el PC en 0x0072,
 # el RETN de la ROM, que lo desapila al arrancar.
-lone-ed-at-the-end.sna: sp: 0xff00, 0xff02
-lone-ed-at-the-end.sna: pc: 0x0072, 0x8000
-manicminer.sna: sp: 0x9cfc, 0x9cfe
-manicminer.sna: pc: 0x0072, 0x87ab
 
 # SNA de 128K: libspectrum lo lee como un Pentagon; el lector de hoy, como un 128K.
-banks-5-on-top.sna: machine: SPECTRUM128K, PENTAGON
-banks.sna: machine: SPECTRUM128K, PENTAGON
 
 # SZX con bloques que el lector de hoy no conoce: cortan la lectura entera. Son periféricos que
 # este repositorio emula (DivIDE, DivMMC, SimpleIDE, Spectranet, ZXMMC) y no viajan en un snapshot.

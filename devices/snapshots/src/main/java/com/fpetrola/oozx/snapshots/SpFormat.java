@@ -64,7 +64,8 @@ public final class SpFormat extends DeclaredFormat implements SnapshotFormat {
   static final Layout<SpectrumMemory> RAM = Layout.<SpectrumMemory>of().pages(PAGE);
 
   static final Bindings BINDINGS = Bindings.of()
-      .on(Cpu.class, CPU).on(Border.class, BORDER_TABLE).on(SpectrumMemory.class, RAM);
+      .on(Cpu.class, CPU).on(Border.class, BORDER_TABLE).on(SpectrumMemory.class, RAM)
+      .quiet(Quiet.PARTS);
 
   /** "SP", the length of the RAM, and where it starts: always 0x4000. */
   static final Rule SIGNED = new Rule() {
