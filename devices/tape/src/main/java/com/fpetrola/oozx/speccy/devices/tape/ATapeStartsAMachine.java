@@ -31,7 +31,7 @@ import java.io.File;
  * The emulator used to do this itself, which meant it had to know what a tape is to start at
  * all. It is the deck's, and the deck is a jar.
  */
-@Answers({"tap", "tzx", "csw"})
+@Answers({"tap", "tzx", "csw", "pzx"})
 public class ATapeStartsAMachine implements StartsAMachineOn {
 
   @Override

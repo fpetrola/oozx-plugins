@@ -14,64 +14,50 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-/*
- * A Turbo Speed Data block's polarity matters to a few loaders - MASK and Basil the Great Mouse
- * Detective need it one way, and The Edge's own protection (Starbike, Brian Bloodaxe, That's the
- * Spirit) needs it the other; there is no setting here that satisfies both.
- */
+
 package com.fpetrola.oozx.speccy.modules.tape;
 
 import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fpetrola.oozx.Speccy;
-import com.fpetrola.oozx.plugins.Plugins;
 import com.fpetrola.oozx.speccy.machine.SpectrumMachine;
 import com.fpetrola.oozx.speccy.modules.scheduler.Scheduler;
 import com.fpetrola.oozx.speccy.modules.scheduler.Task;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.Cassette;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.CassetteBlock;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.CassetteBlock.*;
+import com.fpetrola.oozx.speccy.modules.tape.cassette.Cassettes;
+import com.fpetrola.oozx.speccy.modules.tape.cassette.Described;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.Sound;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.Sounds;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.Step;
-import com.fpetrola.oozx.speccy.modules.tape.cassette.TapeFormat;
-import com.fpetrola.oozx.speccy.modules.tape.cassette.TapeRefused;
 import com.fpetrola.oozx.speccy.modules.timer.Timer;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
 import com.fpetrola.oozx.speccy.peripherals.AbstractPeripheral;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.zip.DeflaterOutputStream;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * The cassette deck: a cassette in it, read by whichever tape format answers for the file, played
- * block by block onto the EAR line on the machine's clock, and recorded from the MIC line. What
- * each block sounds like is the block's ({@link Sounds}); what is played after what - pauses,
- * stops, jumps, loops, calls - is the deck's.
+ * The cassette deck: a cassette in it, played block by block onto the EAR line on the machine's
+ * clock. What each block sounds like is the block's ({@link Sounds}); what is played after what -
+ * pauses, stops, jumps, loops, calls - is the deck's. Which file is which cassette is the tape
+ * formats', which arrive as a way in.
  */
 @Singleton
 public class Tape extends AbstractPeripheral {
 
-    public enum TapeState {
-        EJECT, INSERT, STOP, PLAY, RECORD
-    }
-
-    /**
-     * Something other than a file driving the ear line: a real cassette player on the sound card,
-     * asked once per sound-card sample.
-     */
+    /** Something other than a cassette driving the ear line: a real player on the sound card. */
     public interface EarSource {
         boolean earHigh();
+    }
+
+    /** Who is told which block the deck has reached. */
+    public interface Listener {
+        void blockReached(int block);
     }
 
     private static final int EAR_OFF = 0xbf;
@@ -79,32 +65,27 @@ public class Tape extends AbstractPeripheral {
     private static final int EAR_MASK = 0x40;
     /** What {@link com.fpetrola.oozx.speccy.modules.sound.AudioIn} records at. */
     private static final int SAMPLE_RATE = 44100;
-    private static final String TZX_SIGNATURE = "ZXTape!\u001A";
-    private static final String TZX_CREATOR = "TZX created with JSpeccy v0.95";
 
     private final SpectrumZ80Clock clock;
     private final Scheduler scheduler;
     private final Task nextEdge;
-    private final TapeSettingsType settings;
-    private final List<TapeStateListener> stateListeners = new ArrayList<>();
-    private final List<TapeBlockListener> blockListeners = new ArrayList<>();
-    private final Log1 log = new Log1();
+    private final TapeSettings settings;
+    private final List<Listener> listeners = new CopyOnWriteArrayList<>();
 
-    private File filename;
+    private File file;
     private Cassette cassette;
-    /** Where each block sits in the file, for whoever shows how far a block has played. */
-    private List<TapeBlock> placed = List.of();
-    private MachineTypes spectrumModel = MachineTypes.SPECTRUM48K;
+    private MachineTypes model = MachineTypes.SPECTRUM48K;
     private int earBit = EAR_OFF;
-    private boolean tapePlaying;
-    private boolean tapeRecording;
-    private boolean manualMode;
+    private boolean playing;
+    /** By hand, every stop is obeyed; played by a loader, the first is run past. */
+    private boolean byHand;
     /** When the edge being played was due; the next one is measured from it, so nothing drifts. */
     private long edgeAt;
     private EarSource earSource;
 
     // What is being played, and the state of the blocks that say what is played after what.
     private int block;
+    private int sounding;
     private Sound sound;
     /** Whether the block sounding moves on when it is over, as a TAP's does, rather than when it starts. */
     private boolean movesOnWhenOver;
@@ -116,78 +97,92 @@ public class Tape extends AbstractPeripheral {
     private int callsMade;
     private int callFrom;
 
-    // Recording.
-    private ByteArrayOutputStream record;
-    private DeflaterOutputStream packed;
-    private long timeLastOut;
-    private boolean micBit;
-    private int freqSample;
-    private float cswStatesSample;
-    private int cswPulses;
-    private int bitsLastByte;
-    private byte byteTmp;
-
     @Inject
-    public Tape(TapeSettingsType tapeSettings, SpectrumZ80Clock aClock, Scheduler scheduler, Timer timer) {
-        super(java.util.List.of());
+    public Tape(TapeSettings settings, SpectrumZ80Clock clock, Scheduler scheduler, Timer timer) {
+        super(List.of());
         timer.loading(this::isTapePlaying);
-        clock = aClock;
+        this.clock = clock;
         this.scheduler = scheduler;
+        this.settings = settings;
         nextEdge = scheduler.register(new Edge());
-        settings = tapeSettings;
     }
 
-    public void addTapeChangedListener(final TapeStateListener listener) {
-        Objects.requireNonNull(listener, "Internal error: tape change listener can't be null");
-        if (!stateListeners.contains(listener)) {
-            stateListeners.add(listener);
+    /** The deck of that emulator, which a window reaches the way it reaches any device. */
+    public static Tape of(Speccy speccy) {
+        return (Tape) speccy.peripheralRegistry.find(Tape.class);
+    }
+
+    /** Whether some tape format reads this file. */
+    public static boolean isATape(String filename) {
+        return filename != null && Cassettes.isATape(filename);
+    }
+
+    /** A stop-if-48K block asks this. */
+    @Override
+    public void activate(SpectrumMachine machine) {
+        if (machine.snapshotModel() != null) {
+            model = machine.snapshotModel();
         }
     }
 
-    public void removeTapeChangedListener(final TapeStateListener listener) {
-        Objects.requireNonNull(listener, "Internal error: tape change listener can't be null");
-        if (!stateListeners.remove(listener)) {
-            throw new IllegalArgumentException("Internal error: Listener was not listening on object");
+    @Override
+    public boolean fitsOn(SpectrumMachine machine) {
+        return true;
+    }
+
+    public void addListener(Listener listener) {
+        listeners.add(listener);
+    }
+
+    public void removeListener(Listener listener) {
+        listeners.remove(listener);
+    }
+
+    private void reached(int block) {
+        listeners.forEach(listener -> listener.blockReached(block));
+    }
+
+    /** The file read into the deck, if a format reads it and nothing is in it already. */
+    public boolean insert(File file) {
+        if (cassette != null) {
+            return false;
         }
-    }
-
-    private void fireTapeStateChanged(final TapeState state) {
-        stateListeners.forEach(listener -> listener.stateChanged(state));
-    }
-
-    public void addTapeBlockListener(final TapeBlockListener listener) {
-        Objects.requireNonNull(listener, "Internal error: tape block listener can't be null");
-        if (!blockListeners.contains(listener)) {
-            blockListeners.add(listener);
+        Optional<Cassette> read = Cassettes.read(file);
+        if (read.isEmpty()) {
+            return false;
         }
+        this.file = file;
+        cassette = read.get();
+        block = 0;
+        sound = null;
+        stopsPassed = 0;
+        calls = null;
+        playing = false;
+        reached(block);
+        return true;
     }
 
-    public void removeTapeBlockListener(final TapeBlockListener listener) {
-        Objects.requireNonNull(listener, "Internal error: tape block listener can't be null");
-        if (!blockListeners.remove(listener)) {
-            throw new IllegalArgumentException("Internal error: tape block listener was not listening on object");
+    public boolean eject() {
+        if (cassette == null || playing) {
+            return false;
         }
+        cassette = null;
+        file = null;
+        block = 0;
+        sound = null;
+        return true;
     }
 
-    private void fireTapeBlockChanged(final int block) {
-        blockListeners.forEach(listener -> listener.blockChanged(block));
+    public Optional<Cassette> cassette() {
+        return Optional.ofNullable(cassette);
     }
 
-    public void setSpectrumModel(MachineTypes model) {
-        spectrumModel = model;
+    public File getTapeFilename() {
+        return file;
     }
 
-    /**
-     * Byte the player has reached in the tape image. A read-only view for a progress display;
-     * the caller knows where each block starts and ends and works the rest out from that.
-     */
-    public int getTapePosition() {
-        if (block >= placed.size()) {
-            return 0;
-        }
-        int at = movesOnWhenOver || sound == null ? block : Math.max(0, block - 1);
-        TapeBlock where = placed.get(Math.min(at, placed.size() - 1));
-        return sound == null ? where.start() : Math.min(where.end(), where.start() + sound.played());
+    public boolean isTapePlaying() {
+        return playing;
     }
 
     public int getSelectedBlock() {
@@ -195,68 +190,59 @@ public class Tape extends AbstractPeripheral {
     }
 
     public void setSelectedBlock(int block) {
-        if (cassette == null || isTapePlaying() || block > blocks().size()) {
+        if (cassette == null || playing || block > blocks().size()) {
             return;
         }
         this.block = block;
         sound = null;
-        fireTapeBlockChanged(block);
+        reached(block);
     }
 
-    public boolean insert(File fileName) {
-        if (cassette != null) {
+    public boolean rewind() {
+        if (cassette == null || playing) {
             return false;
         }
-        try {
-            return insert(fileName, fileName.getName(), Files.readAllBytes(fileName.toPath()), 0);
-        } catch (IOException cannotRead) {
-            log.error("IOexception: ", cannotRead);
-            return false;
-        }
-    }
-
-    public boolean insertEmbeddedTape(String fileName, String extension, byte[] tapeData, int selectedBlock) {
-        if (cassette != null) {
-            return false;
-        }
-        return insert(new File(fileName), "tape." + extension, tapeData, selectedBlock);
-    }
-
-    /** The file read by whichever format answers for its name, into the deck. */
-    private boolean insert(File file, String name, byte[] bytes, int selectedBlock) {
-        Optional<TapeFormat> format = Plugins.found(TapeFormat.class).stream().filter(one -> one.reads(new File(name))).findFirst();
-        if (format.isEmpty()) {
-            return false;
-        }
-        try {
-            cassette = format.get().read(bytes);
-        } catch (TapeRefused refused) {
-            log.info("Not a tape: " + refused.getMessage());
-            return false;
-        }
-        filename = file;
-        placed = TapeBlock.read(name, bytes);
-        block = Math.max(0, Math.min(selectedBlock, blocks().size()));
-        sound = null;
-        stopsPassed = 0;
-        calls = null;
-        tapePlaying = tapeRecording = false;
-        fireTapeStateChanged(TapeState.INSERT);
-        fireTapeBlockChanged(block);
-        return true;
-    }
-
-    public boolean eject() {
-        if (cassette == null || tapePlaying || tapeRecording) {
-            return false;
-        }
-        cassette = null;
-        placed = List.of();
-        filename = null;
         block = 0;
         sound = null;
-        fireTapeStateChanged(TapeState.EJECT);
+        reached(0);
         return true;
+    }
+
+    /** How far the block sounding has gone, 0 to 100. */
+    public int progress() {
+        if (sound == null || sounding >= blocks().size()) {
+            return 0;
+        }
+        int bytes = Described.of(blocks().get(sounding)).bytes();
+        return bytes <= 0 ? 100 : Math.min(100, sound.played() * 100 / bytes);
+    }
+
+    /** Plays from the block it is at. */
+    public boolean play(boolean byHand) {
+        if (cassette == null || playing || block >= blocks().size()) {
+            return false;
+        }
+        this.byHand = byHand;
+        playing = true;
+        sound = null;
+        earBit = rest();
+        startEdges();
+        edge();
+        return true;
+    }
+
+    public void stop() {
+        if (cassette == null || !playing) {
+            return;
+        }
+        playing = false;
+        // Back to a resting line, the microphone put down on stop: the port reads this level
+        // whether or not anything is playing, so a tape that stopped halfway through an edge
+        // would otherwise leave the line held high for good.
+        earBit = EAR_OFF;
+        sound = null;
+        reached(block);
+        scheduler.cancel(nextEdge);
     }
 
     /**
@@ -270,12 +256,33 @@ public class Tape extends AbstractPeripheral {
         earSource = source;
         if (source != null) {
             startEdges();
-            nextEdgeIn(tstatesPerSample());
+            nextEdgeIn(Math.max(1, model.clockFreq / SAMPLE_RATE));
         }
     }
 
     public boolean isTakingEarFromOutside() {
         return earSource != null;
+    }
+
+    public int getEarBit() {
+        return earBit;
+    }
+
+    /** True while the line is high, which is what makes a load audible. */
+    public boolean isEarHigh() {
+        return (earBit & EAR_MASK) != 0;
+    }
+
+    public void setEarBit(boolean high) {
+        earBit = high ? EAR_ON : EAR_OFF;
+    }
+
+    private List<CassetteBlock> blocks() {
+        return cassette == null ? List.of() : cassette.blocks();
+    }
+
+    private int rest() {
+        return settings.isInvertedEar() ? EAR_ON : EAR_OFF;
     }
 
     private void nextEdgeIn(int tstates) {
@@ -288,128 +295,14 @@ public class Tape extends AbstractPeripheral {
         edgeAt = clock.getTStates();
     }
 
-    private int tstatesPerSample() {
-        return Math.max(1, spectrumModel.clockFreq / SAMPLE_RATE);
-    }
-
-    public int getEarBit() {
-        return earBit;
-    }
-
-    /** True while the tape is feeding a high level, which is what makes a load audible. */
-    public boolean isEarHigh() {
-        return (earBit & EAR_MASK) != 0;
-    }
-
-    public void setEarBit(boolean earValue) {
-        earBit = earValue ? EAR_ON : EAR_OFF;
-    }
-
-    public boolean isTapePlaying() {
-        return tapePlaying;
-    }
-
-    public boolean fitsOn(SpectrumMachine machine) {
-        return true;
-    }
-
-    /** Whether this file is a cassette at all, which only the deck's own formats decide. */
-    public static boolean isATape(String filename) {
-        if (filename == null) {
-            return false;
-        }
-        String name = filename.toLowerCase();
-        return name.endsWith(".tap") || name.endsWith(".tzx") || name.endsWith(".csw") || name.endsWith(".pzx");
-    }
-
-    /** The deck of that emulator, which a window reaches the way it reaches any device. */
-    public static Tape of(Speccy speccy) {
-        return (Tape) speccy.peripheralRegistry.find(Tape.class);
-    }
-
-    public boolean isTapeRecording() {
-        return tapeRecording;
-    }
-
-    public boolean isTapeRunning() {
-        return tapePlaying || tapeRecording;
-    }
-
-    public boolean isTapeInserted() {
-        return cassette != null;
-    }
-
-    public boolean isTapeReady() {
-        return cassette != null && !tapePlaying && !tapeRecording;
-    }
-
-    public File getTapeFilename() {
-        return filename;
-    }
-
-    /** Plays from the block it is at; by hand, it stops at every stop, and never runs past one. */
-    public boolean play(boolean origin) {
-        if (cassette == null || tapePlaying || tapeRecording || block >= blocks().size()) {
-            return false;
-        }
-        manualMode = origin;
-        fireTapeStateChanged(TapeState.PLAY);
-        tapePlaying = true;
-        sound = null;
-        earBit = rest();
-        startEdges();
-        edge();
-        return true;
-    }
-
-    public void stop() {
-        if (cassette == null || !tapePlaying || tapeRecording) {
-            return;
-        }
-        tapePlaying = false;
-        // Back to a resting line, the microphone put down on stop: the port reads this level
-        // whether or not anything is playing, so a tape that stopped halfway through an edge
-        // would otherwise leave the line held high for good.
-        earBit = EAR_OFF;
-        if (sound != null && movesOnWhenOver) {
-            sound = null;
-        } else {
-            sound = null;
-        }
-        fireTapeBlockChanged(block);
-        fireTapeStateChanged(TapeState.STOP);
-        scheduler.cancel(nextEdge);
-    }
-
-    public boolean rewind() {
-        if (cassette == null || tapePlaying || tapeRecording) {
-            return false;
-        }
-        block = 0;
-        sound = null;
-        fireTapeBlockChanged(0);
-        return true;
-    }
-
-    private List<CassetteBlock> blocks() {
-        return cassette == null ? List.of() : cassette.blocks();
-    }
-
-    private int rest() {
-        return settings.isInvertedEar() ? EAR_ON : EAR_OFF;
-    }
-
-    /**
-     * Plays up to the next edge of the signal, and asks for the one after: the steps of the block
-     * sounding, and when it is over the next block, at the same moment.
-     */
+    /** Plays up to the next edge and asks for the one after: the block's steps, and when it is over the next block, at once. */
     private void edge() {
         if (earSource != null) {
             setEarBit(earSource.earHigh());
-            nextEdgeIn(tstatesPerSample());
+            nextEdgeIn(Math.max(1, model.clockFreq / SAMPLE_RATE));
             return;
         }
-        while (tapePlaying) {
+        while (playing) {
             if (sound == null && !nextSound()) {
                 return;
             }
@@ -441,10 +334,7 @@ public class Tape extends AbstractPeripheral {
         }
     }
 
-    /**
-     * The next block that sounds, past the ones that say what is played after what; false when
-     * the tape stopped, at its end or at a stop.
-     */
+    /** The next block that sounds, past the ones that say what is played after what; false when the tape stopped. */
     private boolean nextSound() {
         Deck deck = new Deck();
         while (sound == null) {
@@ -452,9 +342,9 @@ public class Tape extends AbstractPeripheral {
                 stop();
                 return false;
             }
-            fireTapeBlockChanged(block);
-            CassetteBlock next = blocks().get(block);
-            if (!next.accept(deck)) {
+            reached(block);
+            sounding = block;
+            if (!blocks().get(block).accept(deck)) {
                 stop();
                 return false;
             }
@@ -467,10 +357,6 @@ public class Tape extends AbstractPeripheral {
         return block >= blocks().size();
     }
 
-    /**
-     * What each block does to what is played: a block that sounds becomes the sound, one that
-     * says what comes next moves the deck there. False is a stop.
-     */
     private final class Deck implements CassetteBlock.Visitor<Boolean> {
 
         private boolean sounds(Sound next) {
@@ -546,7 +432,7 @@ public class Tape extends AbstractPeripheral {
         public Boolean pause(Pause b) {
             block++;
             if (b.milliseconds() == 0) {
-                boolean honourStop = manualMode || isLast() || stopsPassed++ > 0;
+                boolean honourStop = byHand || isLast() || stopsPassed++ > 0;
                 return !honourStop;
             }
             return sounds(Sounds.silence(b.milliseconds() * (Sounds.SECOND / 1000)));
@@ -574,7 +460,6 @@ public class Tape extends AbstractPeripheral {
 
         public Boolean callSequence(CallSequence b) {
             if (calls != null || b.offsets().length == 0) {
-                log.info("The CALL blocks can't be nested!. Skipping!!!");
                 return movesOn();
             }
             calls = b.offsets();
@@ -599,7 +484,7 @@ public class Tape extends AbstractPeripheral {
 
         public Boolean stopIf48K(StopIf48K b) {
             block++;
-            return spectrumModel.codeModel != MachineTypes.CodeModel.SPECTRUM48K;
+            return model.codeModel != MachineTypes.CodeModel.SPECTRUM48K;
         }
 
         public Boolean signalLevel(SignalLevel b) {
@@ -634,128 +519,6 @@ public class Tape extends AbstractPeripheral {
         public Boolean glue(Glue b) { return movesOn(); }
     }
 
-    public boolean startRecording() {
-        if (!isTapeReady() || !filename.getName().toLowerCase().endsWith(".tzx")) {
-            return false;
-        }
-        record = new ByteArrayOutputStream();
-        timeLastOut = 0;
-        tapeRecording = true;
-        if (settings.isHighSamplingFreq()) {
-            freqSample = 48000;
-            cswStatesSample = 3500000.0f / freqSample;
-            cswPulses = 0;
-            packed = new DeflaterOutputStream(record);
-        } else {
-            freqSample = 79; // 44.1 Khz
-        }
-        fireTapeStateChanged(TapeState.RECORD);
-        return true;
-    }
-
-    public boolean stopRecording() {
-        if (!tapeRecording) {
-            return false;
-        }
-        try (BufferedOutputStream fOut = new BufferedOutputStream(new FileOutputStream(filename, true))) {
-            if (blocks().isEmpty()) {
-                fOut.write(TZX_SIGNATURE.getBytes("US-ASCII"));
-                fOut.write(01);
-                fOut.write(20);
-                byte idTZX[] = TZX_CREATOR.getBytes("US-ASCII");
-                fOut.write(0x30);
-                fOut.write(idTZX.length);
-                fOut.write(idTZX);
-            }
-            if (settings.isHighSamplingFreq()) {
-                packed.close();
-                record.close();
-                fOut.write(0x18); // TZX ID: CSW Recording
-                fOut.write(record.size() + 10);
-                fOut.write((record.size() + 10) >>> 8);
-                fOut.write((record.size() + 10) >>> 16);
-                fOut.write((record.size() + 10) >>> 24);
-                fOut.write(0x00);
-                fOut.write(0x00); // 0 sec end block pause
-                fOut.write(freqSample);
-                fOut.write(freqSample >>> 8);
-                fOut.write(freqSample >>> 16);
-                fOut.write(0x02); // Z-RLE encoding
-                fOut.write(cswPulses);
-                fOut.write(cswPulses >>> 8);
-                fOut.write(cswPulses >>> 16);
-                fOut.write(cswPulses >>> 24);
-                record.writeTo(fOut);
-            } else {
-                if (bitsLastByte != 0) {
-                    byteTmp <<= (8 - bitsLastByte);
-                    record.write(byteTmp);
-                }
-                fOut.write(0x15); // TZX ID: Direct Recording Block
-                fOut.write(freqSample);
-                fOut.write(0x00); // T-states per sample
-                fOut.write(0x00);
-                fOut.write(0x00); // 0 sec end block pause
-                fOut.write(bitsLastByte);
-                fOut.write(record.size());
-                fOut.write(record.size() >>> 8);
-                fOut.write(record.size() >>> 16);
-                record.close();
-                record.writeTo(fOut);
-            }
-        } catch (final IOException ex) {
-            log.error("IOException: ", ex);
-        }
-        tapeRecording = false;
-        fireTapeStateChanged(TapeState.STOP);
-        File tmp = filename;
-        eject();
-        insert(tmp);
-        return true;
-    }
-
-    public void recordPulse(boolean micState) {
-        if (timeLastOut == 0) {
-            timeLastOut = clock.getAbsTstates();
-            micBit = micState;
-            return;
-        }
-        int len = (int) (clock.getAbsTstates() - timeLastOut);
-        if (settings.isHighSamplingFreq()) { // CSW
-            cswPulses++;
-            int pulses = (int) ((len / cswStatesSample) + 0.49f);
-            try {
-                if (pulses > 255) {
-                    packed.write(0);
-                    packed.write(pulses);
-                    packed.write(pulses >>> 8);
-                    packed.write(pulses >>> 16);
-                    packed.write(pulses >>> 24);
-                } else {
-                    packed.write(pulses);
-                }
-            } catch (final IOException ex) {
-                log.error("IOException: ", ex);
-            }
-        } else { // DRB
-            int pulses = len + (freqSample >>> 1);
-            pulses /= freqSample;
-            while (pulses-- > 0) {
-                if (bitsLastByte == 8) {
-                    record.write(byteTmp);
-                    bitsLastByte = 0;
-                    byteTmp = 0;
-                }
-                byteTmp <<= 1;
-                if (micBit) {
-                    byteTmp |= 0x01;
-                }
-                bitsLastByte++;
-            }
-        }
-        timeLastOut = clock.getAbsTstates();
-        micBit = micState;
-    }
 
     private final class Edge extends Task {
         public void run(long due) {

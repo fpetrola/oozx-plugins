@@ -17,7 +17,6 @@
 
 package com.fpetrola.oozx.speccy.tools.cassette;
 
-import com.fpetrola.oozx.speccy.modules.tape.TapeBlock;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
@@ -60,7 +59,7 @@ public class CassetteFrame extends MachineFrame implements Opens {
 
   /** The cassette this window holds, which needs no emulator to be looked at. */
   private File tapeFile;
-  private List<TapeBlock> blocks = List.of();
+  private List<com.fpetrola.oozx.speccy.modules.tape.cassette.Described> blocks = List.of();
 
   /**
    * The deck this cassette is plugged into: the one belonging to the machine it is clipped to.
@@ -75,7 +74,7 @@ public class CassetteFrame extends MachineFrame implements Opens {
   private volatile int currentBlock = -1;
 
   /** One listener, moved from deck to deck, so clipping this on twice does not count twice. */
-  private final com.fpetrola.oozx.speccy.modules.tape.TapeBlockListener watching = block -> currentBlock = block;
+  private final Tape.Listener watching = block -> currentBlock = block;
   private boolean paused;
 
   public CassetteFrame() {
@@ -143,13 +142,13 @@ public class CassetteFrame extends MachineFrame implements Opens {
     }
     if (deck != null) {
       deck.stop();
-      deck.removeTapeBlockListener(watching);
+      deck.removeListener(watching);
     }
     deck = plugged;
     // Clipped onto a machine that is already loading - a tape given on the command line, a game
     // from the browser - this is what makes the table follow it without anybody pressing play.
     if (deck != null) {
-      deck.addTapeBlockListener(watching);
+      deck.addListener(watching);
     }
     currentBlock = -1;
     paused = false;
@@ -245,7 +244,9 @@ public class CassetteFrame extends MachineFrame implements Opens {
   @Override
   public void open(File file) {
     tapeFile = file;
-    blocks = TapeBlock.read(file);
+    blocks = com.fpetrola.oozx.speccy.modules.tape.cassette.Cassettes.read(file)
+        .map(cassette -> cassette.blocks().stream().map(com.fpetrola.oozx.speccy.modules.tape.cassette.Described::of).toList())
+        .orElse(List.of());
     currentBlock = -1;
     paused = false;
     model.fireTableDataChanged();
@@ -308,13 +309,7 @@ public class CassetteFrame extends MachineFrame implements Opens {
       return 100;
     }
 
-    TapeBlock block = blocks.get(row);
-    int length = block.length();
-    if (length <= 0) {
-      return 100;
-    }
-    int played = deck.getTapePosition() - block.start();
-    return Math.max(0, Math.min(100, played * 100 / length));
+    return deck.progress();
   }
 
   private class BlockTableModel extends AbstractTableModel {
@@ -333,12 +328,12 @@ public class CassetteFrame extends MachineFrame implements Opens {
     }
 
     public Object getValueAt(int row, int column) {
-      TapeBlock block = blocks.get(row);
+      com.fpetrola.oozx.speccy.modules.tape.cassette.Described block = blocks.get(row);
       return switch (column) {
         case 0 -> row + 1;
         case 1 -> block.type();
         case 2 -> block.details();
-        case 3 -> block.length();
+        case 3 -> block.bytes();
         case 4 -> progressOf(row);
         default -> "";
       };

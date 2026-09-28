@@ -17,6 +17,19 @@
 
 package com.fpetrola.oozx.speccy.modules.tape;
 
-public interface TapeBlockListener {
-     public void blockChanged(final int block);
+import com.google.inject.Singleton;
+
+/** What of the deck a person can choose: whether the EAR line rests high instead of low. */
+@Singleton
+public class TapeSettings {
+
+  private boolean invertedEar;
+
+  public boolean isInvertedEar() {
+    return invertedEar;
+  }
+
+  public void setInvertedEar(boolean invertedEar) {
+    this.invertedEar = invertedEar;
+  }
 }

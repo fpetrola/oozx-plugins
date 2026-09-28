@@ -30,13 +30,9 @@ public class TapeDevices extends AbstractModule implements Extension {
     com.google.inject.multibindings.OptionalBinder
         .newOptionalBinder(binder(), com.fpetrola.oozx.speccy.modules.ula.EarLine.class)
         .setBinding().to(TapeInTheSocket.class);
-    // Only these two: the type this comes from was generated from a schema and offers seven, and
-    // the deck reads two of them. Declaring the other five would put five controls in front of
-    // somebody that change a field nothing ever looks at - the very thing the settings window was
-    // full of. Fast loading and loading a tape by itself are real, and are elsewhere: the speed
-    // the machine runs at, and the loader that types LOAD.
+    // The one thing of the deck a person chooses. Fast loading and loading a tape by itself are
+    // real, and are elsewhere: the speed the machine runs at, and the loader that types LOAD.
     com.fpetrola.oozx.config.Settings.mirror(binder(), "tape",
-        com.fpetrola.oozx.speccy.modules.tape.TapeSettingsType.class,
-        "highSamplingFreq", "invertedEar");
+        com.fpetrola.oozx.speccy.modules.tape.TapeSettings.class, "invertedEar");
   }
 }

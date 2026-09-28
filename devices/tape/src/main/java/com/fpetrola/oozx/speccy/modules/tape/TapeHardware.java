@@ -17,9 +17,10 @@
 
 package com.fpetrola.oozx.speccy.modules.tape;
 
+import com.fpetrola.oozx.speccy.modules.tape.cassette.CassetteBlock;
+import com.fpetrola.oozx.speccy.modules.tape.cassette.Cassettes;
+
 import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +39,6 @@ import java.util.Optional;
  * caller still has a fallback for those.
  */
 public class TapeHardware {
-
   private static final int COMPUTERS = 0x00;
   private static final int DOES_NOT_RUN = 0x03;
   private static final int USES_ITS_FEATURES = 0x01;
@@ -65,27 +65,19 @@ public class TapeHardware {
    * reading the list and missing what it says.
    */
   public static Optional<String> bestMachineFor(File file) {
-    byte[] image;
-    try {
-      image = Files.readAllBytes(file.toPath());
-    } catch (IOException e) {
-      return Optional.empty();
-    }
-
     String best = null;
     String bestThatUsesIt = null;
-    for (TapeBlock block : TapeBlock.read(file)) {
-      if (block.id() != 0x33) {
+    for (CassetteBlock block : Cassettes.read(file).map(cassette -> cassette.blocks()).orElse(List.of())) {
+      if (!(block instanceof CassetteBlock.HardwareInfo hardware)) {
         continue;
       }
-      int count = image[block.start() + 1] & 0xFF;
-      for (int entry = 0; entry < count; entry++) {
-        int at = block.start() + 2 + entry * 3;
-        if (at + 2 >= image.length || (image[at] & 0xFF) != COMPUTERS) {
+      byte[] entries = hardware.body();
+      for (int at = 0; at + 2 < entries.length; at += 3) {
+        if ((entries[at] & 0xFF) != COMPUTERS) {
           continue;
         }
-        String machine = MACHINES.get(image[at + 1] & 0xFF);
-        int support = image[at + 2] & 0xFF;
+        String machine = MACHINES.get(entries[at + 1] & 0xFF);
+        int support = entries[at + 2] & 0xFF;
         if (machine == null || support == DOES_NOT_RUN) {
           continue;
         }

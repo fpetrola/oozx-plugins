@@ -17,7 +17,6 @@
 
 package model.tests.formats;
 
-import com.fpetrola.oozx.speccy.modules.tape.TapeBlock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -48,12 +47,13 @@ class WhatJavaMakesOfTheCorpusTest {
       int type = extension.equals("tap") ? ReferenceOracle.TAP : ReferenceOracle.TZX;
       for (Path file : ReferenceOracle.corpus(extension)) {
         List<Integer> reference = ReferenceOracle.blocksOf(file, type);
-        List<TapeBlock> java = TapeBlock.read(file.toFile());
+        List<com.fpetrola.oozx.speccy.modules.tape.cassette.Described> java = com.fpetrola.oozx.speccy.modules.tape.cassette.Cassettes.read(file.toFile())
+            .map(cassette -> cassette.blocks().stream().map(com.fpetrola.oozx.speccy.modules.tape.cassette.Described::of).toList()).orElse(List.of());
         String verdict = reference == null
             ? (java.isEmpty() ? "both refuse it" : "LIBSPECTRUM REFUSES IT, JAVA TAKES IT")
             : java.isEmpty() && !reference.isEmpty() ? "JAVA READS NOTHING"
             : reference.size() != java.size() ? "DIFFERENT COUNT"
-            : reference.equals(java.stream().map(TapeBlock::id).toList()) ? "same blocks"
+            : reference.equals(java.stream().map(com.fpetrola.oozx.speccy.modules.tape.cassette.Described::id).toList()) ? "same blocks"
             : "SAME COUNT, DIFFERENT IDS";
         System.out.printf("%-34s %-28s %s%n    libspectrum %s%n    java        %s%n", file.getFileName(), verdict, "",
             reference == null ? "-" : reference.stream().map(id -> String.format("%02X", id)).toList(),

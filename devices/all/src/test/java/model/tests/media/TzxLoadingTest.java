@@ -241,7 +241,7 @@ public class TzxLoadingTest {
     Tape tape = Tape.of(speccy);
 
     int[] blocks = {0};
-    tape.addTapeBlockListener(block -> blocks[0] = Math.max(blocks[0], block));
+    tape.addListener(block -> blocks[0] = Math.max(blocks[0], block));
 
     // The launcher's own auto loader: type LOAD "" on the keyboard, insert, play, and wait for
     // the load to finish. It normally drops to real Spectrum speed at that point; here it stays

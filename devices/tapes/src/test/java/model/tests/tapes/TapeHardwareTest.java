@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-package model.tests.media;
+package model.tests.tapes;
 
 import com.fpetrola.oozx.speccy.modules.tape.TapeHardware;
 import org.junit.jupiter.api.Test;

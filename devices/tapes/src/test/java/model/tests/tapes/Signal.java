@@ -19,7 +19,6 @@ package model.tests.tapes;
 
 import com.fpetrola.oozx.speccy.modules.scheduler.Task;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
-import com.fpetrola.oozx.speccy.modules.tape.TapeSettingsType;
 import com.fpetrola.oozx.speccy.modules.timer.Speed;
 import com.fpetrola.oozx.speccy.modules.timer.Timer;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
@@ -46,7 +45,7 @@ final class Signal {
     SpectrumZ80Clock clock = new SpectrumZ80Clock();
     Remembering scheduler = new Remembering(clock);
     Timer timer = new Timer(scheduler, null, null, new Speed(), clock, () -> null);
-    Tape tape = new Tape(new TapeSettingsType(), clock, scheduler, timer);
+    Tape tape = new Tape(new com.fpetrola.oozx.speccy.modules.tape.TapeSettings(), clock, scheduler, timer);
     if (!tape.insert(file)) {
       return "inserted = false\n";
     }
