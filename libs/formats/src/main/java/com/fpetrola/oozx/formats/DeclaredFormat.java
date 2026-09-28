@@ -72,6 +72,19 @@ public abstract class DeclaredFormat implements SnapshotFormat {
     file.notes().forEach(notes);
   }
 
+  /** The RAM of the file, bank after bank, from the file understood without a machine. */
+  @Override
+  public java.util.Optional<byte[]> ram(byte[] bytes) {
+    try {
+      SnapshotFile file = understood(bytes);
+      java.io.ByteArrayOutputStream ram = new java.io.ByteArrayOutputStream();
+      file.pages().forEach(bank -> ram.writeBytes(file.pageOrZeros(bank)));
+      return java.util.Optional.of(ram.toByteArray());
+    } catch (SnapshotException unreadable) {
+      return java.util.Optional.empty();
+    }
+  }
+
   /** The file whole, or refused: until this answers, the machine has not been touched. */
   public final SnapshotFile understood(byte[] bytes) throws SnapshotException {
     try {

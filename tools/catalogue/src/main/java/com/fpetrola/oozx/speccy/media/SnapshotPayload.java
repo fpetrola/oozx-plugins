@@ -17,22 +17,17 @@
 
 package com.fpetrola.oozx.speccy.media;
 
-import com.fpetrola.emulation.helpers.snapshots.SnapshotException;
 import com.fpetrola.emulation.helpers.snapshots.SnapshotFactory;
-import com.fpetrola.oozx.formats.DeclaredFormat;
-import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.formats.SnapshotFormat;
 import com.fpetrola.oozx.plugins.Plugins;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
 /**
  * The game's own bytes inside a file: the RAM of a snapshot, bank after bank, and anything else as
- * it came. A format that is a declaration understands a file without a machine, so the RAM is
- * taken from that; a file only the old readers know goes to them.
+ * it came. A format says the RAM it reads without a machine; a file only the old readers know goes to them.
  */
 public final class SnapshotPayload {
 
@@ -41,18 +36,11 @@ public final class SnapshotPayload {
 
   public static byte[] of(File file) throws IOException {
     for (SnapshotFormat format : Plugins.found(SnapshotFormat.class)) {
-      if (format.reads(file) && format instanceof DeclaredFormat declared) {
+      if (format.reads(file)) {
         byte[] bytes = Files.readAllBytes(file.toPath());
-        try {
-          SnapshotFile understood = declared.understood(bytes);
-          ByteArrayOutputStream ram = new ByteArrayOutputStream();
-          understood.pages().forEach(bank -> ram.writeBytes(understood.pageOrZeros(bank)));
-          return ram.toByteArray();
-        } catch (SnapshotException unreadable) {
-          // A snapshot that cannot be opened is still a file somebody has, and its bytes are a
-          // worse fingerprint than its RAM but a better one than nothing.
-          return bytes;
-        }
+        // A snapshot that cannot be opened is still a file somebody has, and its bytes are a worse
+        // fingerprint than its RAM but a better one than nothing.
+        return format.ram(bytes).orElse(bytes);
       }
     }
     return SnapshotFactory.payloadOf(file);

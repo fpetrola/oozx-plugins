@@ -47,7 +47,6 @@
         <module>spectrum-se</module>
         <module>tape</module>
         <module>tapes</module>
-        <module>formats</module>
         <module>snapshots</module>
         <module>debugger</module>
         <module>printer</module>

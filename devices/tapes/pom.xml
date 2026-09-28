@@ -17,7 +17,7 @@
         </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>device-formats</artifactId>
+            <artifactId>formats</artifactId>
             <version>${project.version}</version>
         </dependency>
     </dependencies>

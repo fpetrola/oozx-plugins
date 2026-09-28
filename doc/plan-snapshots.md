@@ -168,7 +168,7 @@ paginado y la memoria los reusan tal cual el Z80, el SZX y el SP.
 **En cada plugin de dispositivo:** que se presente en el recorrido, y su estado a la vista en sus
 palabras. Nada de formatos.
 
-**En oozx-plugins, `devices/formats` (`device-formats`), el motor:** bytes (`Cursor`, `Sink`),
+**En oozx-plugins, `libs/formats` (`formats`, una librería que cada plugin que la usa lleva adentro), el motor:** bytes (`Cursor`, `Sink`),
 tramos y formas (`Fixed`, `Pages`, `Shape`), números con significado (`Codes`), compresiones
 (`Codec`), campos sobre las partes del núcleo (`Field`, `PageField`), tablas (`Layout<P>`),
 bindeos (`Bindings`), reglas (`Rule`), el sentido (`Direction`) y `DeclaredFormat`, que lee y
@@ -286,7 +286,7 @@ estructura intermedia.
 
 ## Paso 4: el motor, en oozx-plugins
 
-`devices/formats`, `device-formats`. Cada pieza con su test:
+`libs/formats`, `formats`. Cada pieza con su test:
 - `Cursor` (el único que encuentra un archivo corto, y lo rechaza) y `Sink`.
 - `Codes`: número y valor, con máscaras y un "si no". `Codec`: crudo y zlib; la compresión del
   `.z80` viene con el paso 7.

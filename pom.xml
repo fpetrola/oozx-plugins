@@ -42,7 +42,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <junit-jupiter-version>5.11.4</junit-jupiter-version>
         <!-- Of the emulator's groupId but not the emulator's to supply: a plugin that uses them carries them. -->
-        <crystal.carry>com.fpetrola:rzx,com.fpetrola:zx-rzx</crystal.carry>
+        <crystal.carry>com.fpetrola:rzx,com.fpetrola:zx-rzx,com.fpetrola:formats</crystal.carry>
     </properties>
 
     <dependencies>

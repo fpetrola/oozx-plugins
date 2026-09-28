@@ -34,6 +34,7 @@
     <modules>
         <module>zx-rzx</module>
         <module>rzx</module>
+        <module>formats</module>
     </modules>
 
     <properties>

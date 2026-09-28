@@ -3,19 +3,33 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.fpetrola</groupId>
-        <artifactId>devices</artifactId>
+        <artifactId>libs</artifactId>
         <version>0.0.2-alu-SNAPSHOT</version>
     </parent>
-    <artifactId>device-formats</artifactId>
+    <artifactId>formats</artifactId>
     <packaging>jar</packaging>
     <name>The engine a file format is declared on: sections, tables over the machine's parts, bindings</name>
 
     <!--
+      A library, not a plugin: each plugin that declares its formats on it carries it in its jar.
       No format lives here, and nothing of any device: a format declares its sections and a table
       for each kind of part it carries, and this reads and writes the machine by walking it. What
       it knows of a part is how to reach what that part already has, through its own API, and only
       for the parts of the emulator's core. The tests a format inherits go out in the test-jar.
     -->
+    <dependencies>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
     <build>
         <plugins>
             <plugin>
