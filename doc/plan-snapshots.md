@@ -408,8 +408,6 @@ también. Espera, porque necesita decisiones o coordinación:
 - Recién después se borran `SnapshotFile`, `SnapshotFactory`, `SpectrumState`, `SnapshotLoader`,
   `SnapshotSaver`, `SnapshotZ80`, `RestoredFromASnapshot` y `AyFromASnapshot`, y la red del paso 0,
   que hoy sólo mira el Z80 de oozx.
-- **El oráculo sobre la máquina** (libspectrum contra la máquina cargada) no se hizo: sigue el del
-  paso 0.
 - **El pom raíz de oozx** nombra `prototypes/tdd`, que no existe: hoy no carga. Para construir se
   usó un agregador temporal fuera de git.
 

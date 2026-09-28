@@ -67,14 +67,19 @@ public final class SzxFormat extends DeclaredFormat implements SnapshotFormat {
       .is(0, MachineTypes.SPECTRUM16K).is(1, MachineTypes.SPECTRUM48K).is(2, MachineTypes.SPECTRUM128K)
       .is(3, MachineTypes.SPECTRUMPLUS2).is(4, MachineTypes.SPECTRUMPLUS2A).is(5, MachineTypes.SPECTRUMPLUS3);
 
+  /** Without a Z80R the processor is left as libspectrum leaves it (decision 8); a Z80R says the rest over it. */
   static final Layout<Cpu> CPU = Layout.<Cpu>of()
+      .assuming(AF, 0).assuming(BC, 0).assuming(DE, 0).assuming(HL, 0)
+      .assuming(AF_, 0).assuming(BC_, 0).assuming(DE_, 0).assuming(HL_, 0)
+      .assuming(IX, 0).assuming(IY, 0).assuming(SP, 0).assuming(PC, 0).assuming(I, 0).assuming(R, 0)
+      .assuming(IFF1, true).assuming(IFF2, true).assuming(IM, 1).assuming(MEMPTR, 0)
       .u16(Z80R, 0, AF).u16(Z80R, 2, BC).u16(Z80R, 4, DE).u16(Z80R, 6, HL)
       .u16(Z80R, 8, AF_).u16(Z80R, 10, BC_).u16(Z80R, 12, DE_).u16(Z80R, 14, HL_)
       .u16(Z80R, 16, IX).u16(Z80R, 18, IY).u16(Z80R, 20, SP).u16(Z80R, 22, PC)
       .u8(Z80R, 24, I).u8(Z80R, 25, R).flag(Z80R, 26, IFF1).flag(Z80R, 27, IFF2).u8(Z80R, 28, IM)
       .bit(Z80R, 34, 0, EI_PENDING).bit(Z80R, 34, 1, HALTED)
       .u16(Z80R, 35, MEMPTR);
-  static final Layout<SpectrumZ80Clock> CLOCK = Layout.<SpectrumZ80Clock>of().u32(Z80R, 29, TSTATES);
+  static final Layout<SpectrumZ80Clock> CLOCK = Layout.<SpectrumZ80Clock>of().assuming(TSTATES, 69664).u32(Z80R, 29, TSTATES);
   static final Layout<Border> BORDER_TABLE = Layout.<Border>of().bits(SPCR, 0, 0, 0x07, BORDER);
   static final Layout<Paging128> PAGING = Layout.<Paging128>of().u8(SPCR, 1, PORT_7FFD);
   static final Layout<PagingPlus3> PAGING_PLUS3 = Layout.<PagingPlus3>of().u8(SPCR, 2, PORT_1FFD);
