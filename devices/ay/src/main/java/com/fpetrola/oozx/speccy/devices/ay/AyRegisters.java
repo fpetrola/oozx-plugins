@@ -43,6 +43,11 @@ class AyRegisters {
     return current;
   }
 
+  /** What a register holds, without what a read of the port adds. */
+  public int value(int register) {
+    return values[register & 0x0f];
+  }
+
   public void select(int register) {
     current = register & 0x0f;
   }

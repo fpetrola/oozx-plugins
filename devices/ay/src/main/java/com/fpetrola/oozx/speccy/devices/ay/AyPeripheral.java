@@ -37,6 +37,7 @@ import com.google.inject.Inject;
 public class AyPeripheral extends AbstractPeripheral {
 
   private final Sound sound;
+  private final Z80Clock clock;
   private final AyRegisters registers = new AyRegisters();
   private Ay chip;
 
@@ -56,6 +57,7 @@ public class AyPeripheral extends AbstractPeripheral {
                          boolean dataPortAnswers) {
     super(List.of());
     this.sound = sound;
+    this.clock = clock;
     ports(Wired.at(selectMask, selectValue, new AyPortHandler(true, registers, this, clock)),
         Wired.at(dataMask, dataValue, new AyPortHandler(false, registers, this, clock, dataPortAnswers)));
   }
@@ -80,6 +82,33 @@ public class AyPeripheral extends AbstractPeripheral {
     if (chip != null) {
       chip.write(register, value, tstates);
     }
+  }
+
+  /** The register the select port last chose. */
+  public int selected() {
+    return registers.current();
+  }
+
+  /** Chooses a register, as a write to the select port does. */
+  public void select(int register) {
+    registers.select(register);
+  }
+
+  /** What a register holds, as the chip keeps it: only the bits it has. */
+  public int register(int number) {
+    return registers.value(number);
+  }
+
+  /**
+   * Puts a value in a register as a write to the data port does, heard by what sounds, and
+   * leaves the selected register as it was.
+   */
+  public void register(int number, int value) {
+    int selected = registers.current();
+    registers.select(number);
+    registers.write(value);
+    heard(number & 0x0f, registers.value(number), clock.getTStates());
+    registers.select(selected);
   }
 
   /** Exposes only the write count, not the chip itself, which stays package-private. */
