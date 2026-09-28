@@ -1,1 +1,10 @@
-inserted = false
+inserted = true
+edges = 5
+stops = 0
+length = 2110
+digest = 60a1b23f2560a2dab611af4a
+855 191
+855 191
+0 255
+200 191
+200 191

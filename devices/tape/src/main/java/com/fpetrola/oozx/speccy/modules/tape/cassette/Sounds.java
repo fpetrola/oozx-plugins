@@ -226,6 +226,44 @@ public final class Sounds {
     }
   }
 
+  /** PZX pulses: low first, each pulse its length and then an edge. */
+  public static Sound pulseRun(PulseRun block) {
+    Steps steps = Steps.of(Step.now(LOW));
+    boolean first = true;
+    for (int at = 0; at < block.lengths().length; at++) {
+      for (int time = 0; time < block.repeats()[at]; time++) {
+        steps.add(Step.of(first ? KEEP : TOGGLE, block.lengths()[at]));
+        first = false;
+      }
+    }
+    if (!first) steps.add(Step.now(TOGGLE));
+    return steps;
+  }
+
+  /** PZX data: from its level, each bit the pulses of a 0 or a 1, the tail, and an edge after the last. */
+  public static Sound encodedData(EncodedData block) {
+    Steps steps = Steps.of(Step.now(block.startsHigh() ? HIGH : LOW));
+    boolean first = true;
+    for (int bit = 0; bit < block.bits(); bit++) {
+      boolean one = (block.data()[bit / 8] >> (7 - bit % 8) & 1) != 0;
+      for (int length : one ? block.one() : block.zero()) {
+        steps.add(Step.of(first ? KEEP : TOGGLE, length));
+        first = false;
+      }
+    }
+    if (block.tail() > 0) {
+      steps.add(Step.of(first ? KEEP : TOGGLE, block.tail()));
+      first = false;
+    }
+    if (!first) steps.add(Step.now(TOGGLE));
+    return steps;
+  }
+
+  /** PZX pause: the level it says, for as long as it says. */
+  public static Sound silence(Silence block) {
+    return Steps.of(Step.of(block.high() ? HIGH : LOW, block.tstates()));
+  }
+
   /** A silence, at the level a silent line rests at. */
   public static Sound silence(int tstates) {
     return Steps.of(Step.of(REST, tstates));

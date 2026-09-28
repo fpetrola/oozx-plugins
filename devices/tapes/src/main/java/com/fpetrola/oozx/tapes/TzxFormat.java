@@ -193,5 +193,9 @@ public final class TzxFormat implements TapeFormat {
     public Boolean customInfo(CustomInfo b) { return block(0x35, CUSTOM, b); }
     public Boolean glue(Glue b) { return block(0x5a, GLUE, b); }
     public Boolean cswTape(CswTape b) { return false; }
+    public Boolean pulseRun(PulseRun b) { return false; }
+    public Boolean encodedData(EncodedData b) { return false; }
+    public Boolean silence(Silence b) { return false; }
+    public Boolean pzxInfo(PzxInfo b) { return false; }
   }
 }

@@ -319,7 +319,7 @@ public class Tape extends AbstractPeripheral {
             return false;
         }
         String name = filename.toLowerCase();
-        return name.endsWith(".tap") || name.endsWith(".tzx") || name.endsWith(".csw");
+        return name.endsWith(".tap") || name.endsWith(".tzx") || name.endsWith(".csw") || name.endsWith(".pzx");
     }
 
     /** The deck of that emulator, which a window reaches the way it reaches any device. */
@@ -607,6 +607,22 @@ public class Tape extends AbstractPeripheral {
             return movesOn();
         }
 
+        public Boolean pulseRun(PulseRun b) {
+            block++;
+            return sounds(Sounds.pulseRun(b));
+        }
+
+        public Boolean encodedData(EncodedData b) {
+            block++;
+            return sounds(Sounds.encodedData(b));
+        }
+
+        public Boolean silence(Silence b) {
+            block++;
+            return sounds(Sounds.silence(b));
+        }
+
+        public Boolean pzxInfo(PzxInfo b) { return movesOn(); }
         public Boolean groupStart(GroupStart b) { return movesOn(); }
         public Boolean groupEnd(GroupEnd b) { return movesOn(); }
         public Boolean select(Select b) { return movesOn(); }

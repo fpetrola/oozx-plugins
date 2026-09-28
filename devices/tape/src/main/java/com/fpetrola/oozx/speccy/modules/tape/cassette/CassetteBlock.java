@@ -156,6 +156,26 @@ public sealed interface CassetteBlock {
     public <R> R accept(Visitor<R> v) { return v.cswTape(this); }
   }
 
+  /** PZX: pulses, each so many times, the first starting low; every pulse ends in an edge. */
+  record PulseRun(int[] repeats, int[] lengths) implements CassetteBlock {
+    public <R> R accept(Visitor<R> v) { return v.pulseRun(this); }
+  }
+
+  /** PZX: so many bits, each a pulse sequence of its own for 0 or for 1, from a level, and a tail. */
+  record EncodedData(int bits, boolean startsHigh, int tail, int[] zero, int[] one, byte[] data) implements CassetteBlock {
+    public <R> R accept(Visitor<R> v) { return v.encodedData(this); }
+  }
+
+  /** PZX: silence for so many T-states, at a level. */
+  record Silence(int tstates, boolean high) implements CassetteBlock {
+    public <R> R accept(Visitor<R> v) { return v.silence(this); }
+  }
+
+  /** PZX: the header, its version and what it says of the tape, kept as it came. */
+  record PzxInfo(byte[] body) implements CassetteBlock {
+    public <R> R accept(Visitor<R> v) { return v.pzxInfo(this); }
+  }
+
   /** Who does something with each kind of block. */
   interface Visitor<R> {
     R tapData(TapData b);
@@ -185,5 +205,9 @@ public sealed interface CassetteBlock {
     R customInfo(CustomInfo b);
     R glue(Glue b);
     R cswTape(CswTape b);
+    R pulseRun(PulseRun b);
+    R encodedData(EncodedData b);
+    R silence(Silence b);
+    R pzxInfo(PzxInfo b);
   }
 }

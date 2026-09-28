@@ -42,7 +42,7 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 class EveryTapeIsWrittenAsItWasReadTest {
 
   static final Path TAPES = Path.of("src/test/resources/tapes");
-  static final List<TapeFormat> FORMATS = List.of(new TapFormat(), new TzxFormat(), new CswFormat());
+  static final List<TapeFormat> FORMATS = List.of(new TapFormat(), new TzxFormat(), new CswFormat(), new com.fpetrola.oozx.tapes.PzxFormat());
 
   static Stream<Path> tapes() throws IOException {
     return Files.walk(TAPES).filter(Files::isRegularFile).filter(file -> !file.toString().contains("goldens"))
