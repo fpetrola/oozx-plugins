@@ -80,12 +80,13 @@ public class CallsFrame extends MachineFrame {
     JTabbedPane whatItCalled = new JTabbedPane();
     whatItCalled.addTab("Tree", asATree);
     whatItCalled.addTab("Graph", graph);
+    whatItCalled.setBorder(BorderFactory.createTitledBorder("What called what"));
+    JScrollPane whereItIs = new JScrollPane(stack);
     whatItCalled.addChangeListener(e -> {
+      whereItIs.setVisible(whatItCalled.getSelectedComponent() != graph);
       drawn = -1;
       draw();
     });
-    whatItCalled.setBorder(BorderFactory.createTitledBorder("What called what"));
-    JScrollPane whereItIs = new JScrollPane(stack);
     whereItIs.setBorder(BorderFactory.createTitledBorder("Where it is now"));
     whereItIs.setPreferredSize(new Dimension(400, 130));
     JSplitPane both = new JSplitPane(JSplitPane.VERTICAL_SPLIT, whatItCalled, whereItIs);
@@ -135,6 +136,7 @@ public class CallsFrame extends MachineFrame {
     drawStack();
     long counted = watching == null ? -1 : watching.counted();
     if (counted == drawn) {
+      if (graph.isShowing()) graph.repaint();
       return;
     }
     drawn = counted;
@@ -144,7 +146,7 @@ public class CallsFrame extends MachineFrame {
       watching.program().forEach(call -> program.add(nodeOf(call)));
     }
     model.reload();
-    if (graph.isShowing()) graph.show(watching == null ? List.of() : watching.program());
+    if (graph.isShowing()) graph.show(machine(), watching);
     tree.expandRow(0);
     for (int row = 0; row < tree.getRowCount(); row++) {
       if (open.contains(pathOf(tree.getPathForRow(row)))) {

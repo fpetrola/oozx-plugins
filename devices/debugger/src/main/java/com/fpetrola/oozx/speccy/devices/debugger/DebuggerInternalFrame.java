@@ -18,6 +18,7 @@
 package com.fpetrola.oozx.speccy.devices.debugger;
 
 import com.fpetrola.oozx.Speccy;
+import com.fpetrola.oozx.speccy.devices.InstructionListing;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.modules.z80.Disassembly;
 import com.fpetrola.oozx.speccy.windows.Widgets;
@@ -79,16 +80,14 @@ public class DebuggerInternalFrame extends MachineFrame {
   private final JButton stop = Widgets.iconButton("stop.png", "Stop", "Stop it and forget every breakpoint");
   private final JLabel where = new JLabel();
 
-  private final List<Disassembly.Line> lines = new ArrayList<>();
   /** Manually chosen listing start address; -1 means follow the machine's PC instead. */
   private int showing = -1;
   private final DefaultMutableTreeNode program = new DefaultMutableTreeNode("Program");
   private final DefaultTreeModel routineTree = new DefaultTreeModel(program);
   private final JTree routineList = new JTree(routineTree);
-  private final Instructions instructions = new Instructions();
   private final Bytes bytes = new Bytes();
   private final Breakpoints breakpointRows = new Breakpoints();
-  private final JTable instructionTable = new JTable(instructions);
+  private final InstructionListing instructionTable = new InstructionListing();
   private final JTable memoryTable = new JTable(bytes);
   private final JTable breakpointTable = new JTable(breakpointRows);
 
@@ -128,7 +127,7 @@ public class DebuggerInternalFrame extends MachineFrame {
         if (debugger == null || row < 0 || instructionTable.columnAtPoint(e.getPoint()) != 0) {
           return;
         }
-        int address = lines.get(row).address();
+        int address = instructionTable.lines().get(row).address();
         if (debugger.isBreakpoint(address)) {
           debugger.clearBreak(address);
         } else {
@@ -171,10 +170,7 @@ public class DebuggerInternalFrame extends MachineFrame {
   }
 
   private JPanel body() {
-    instructionTable.getColumnModel().getColumn(0).setMaxWidth(24);
-    instructionTable.getColumnModel().getColumn(1).setMaxWidth(70);
-    instructionTable.getColumnModel().getColumn(2).setMaxWidth(110);
-    instructionTable.getColumnModel().getColumn(3).setCellRenderer(new Z80InstructionRenderer());
+    instructionTable.breaksAt(address -> debugger != null && debugger.isBreakpoint(address));
     memoryTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
     memoryTable.getColumnModel().getColumn(0).setPreferredWidth(60);
     for (int column = 1; column <= 16; column++) {
@@ -263,7 +259,7 @@ public class DebuggerInternalFrame extends MachineFrame {
       debugger.close();
       debugger = null;
     }
-    lines.clear();
+    instructionTable.show(List.of());
     if (now != null) {
       debugger = new MachineDebugger(now);
       debugger.onStop(() -> SwingUtilities.invokeLater(() -> refresh(true)));
@@ -293,10 +289,9 @@ public class DebuggerInternalFrame extends MachineFrame {
     }
     showRoutines();
     int from = showing < 0 ? debugger.register(RegisterName.PC) : showing;
+    List<Disassembly.Line> lines = instructionTable.lines();
     if (lines.isEmpty() || lines.get(0).address() != from) {
-      lines.clear();
-      lines.addAll(debugger.listingFrom(from, LISTING));
-      instructions.fireTableDataChanged();
+      instructionTable.show(debugger.listingFrom(from, LISTING));
       breakpointRows.fireTableDataChanged();
       instructionTable.setRowSelectionInterval(0, 0);
       instructionTable.scrollRectToVisible(instructionTable.getCellRect(0, 0, true));
@@ -331,32 +326,6 @@ public class DebuggerInternalFrame extends MachineFrame {
   }
 
   /** Table model for the disassembly listing, including its breakpoint marker column. */
-  private class Instructions extends AbstractTableModel {
-    private final String[] columns = {"", "Address", "Bytes", "Instruction"};
-
-    public int getRowCount() {
-      return lines.size();
-    }
-
-    public int getColumnCount() {
-      return columns.length;
-    }
-
-    public String getColumnName(int column) {
-      return columns[column];
-    }
-
-    public Object getValueAt(int row, int column) {
-      Disassembly.Line at = lines.get(row);
-      return switch (column) {
-        case 0 -> debugger != null && debugger.isBreakpoint(at.address()) ? "●" : "";
-        case 1 -> hex4(at.address());
-        case 2 -> at.bytes();
-        default -> at.instruction();
-      };
-    }
-  }
-
   /** Table model presenting all 64K of memory, 16 bytes per row, read on demand. */
   private class Bytes extends AbstractTableModel {
     public int getRowCount() {
