@@ -1,0 +1,35 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.fpetrola</groupId>
+        <artifactId>devices</artifactId>
+        <version>0.0.2-alu-SNAPSHOT</version>
+    </parent>
+    <artifactId>device-formats</artifactId>
+    <packaging>jar</packaging>
+    <name>The engine a file format is declared on: sections, tables over the machine's parts, bindings</name>
+
+    <!--
+      No format lives here, and nothing of any device: a format declares its sections and a table
+      for each kind of part it carries, and this reads and writes the machine by walking it. What
+      it knows of a part is how to reach what that part already has, through its own API, and only
+      for the parts of the emulator's core. The tests a format inherits go out in the test-jar.
+    -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.1</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>
