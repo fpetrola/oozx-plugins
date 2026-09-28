@@ -399,8 +399,8 @@ Z80 → SZX → sacar lo viejo.
 
 Hecho: el RZX ya carga su snapshot embebido por los formatos nuevos sin cambios, y el catálogo
 también. Espera, porque necesita decisiones o coordinación:
-- **Las sesiones del escritorio** (decisión 10): hoy `Snapshots.packed()` sigue escribiendo el
-  `.z80` viejo. Hay que elegir el formato (recomendado SZX) antes de moverlas.
+- **Las sesiones del escritorio** (decisión 10): hecho. Se guardan como SZX, marcadas `szx:`, y una
+  sesión vieja sin la marca se lee como el `.z80` de antes.
 - **El traductor** (decisión 11): usa `SnapshotLoader` desde oozx, y oozx-lift depende de él.
 - **Los tests de oozx** que leen `.z80` sin plugins (`SavingBringsTheMachineBackTest`,
   `LoadingASnapshotTest`, `TestGameExecution`, `AFormatThatArrivedTest`,
