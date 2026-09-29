@@ -62,9 +62,9 @@ public final class Catalogues {
    * Asked of ZXDB, which keeps the votes and can order by them - the web service cannot, and pages
    * alphabetically - and which ships in this build with the most voted games in it.
    */
-  public static List<Hit> mostVoted(String machineType, String genreType) {
+  public static List<Hit> mostVoted(String query, String machineType, String genreType) {
     Zxdb zxdb = new Zxdb();
-    return zxdb.canAnswer() ? zxdb.search("", machineType, genreType) : List.of();
+    return zxdb.canAnswer() ? zxdb.search(query, machineType, genreType) : List.of();
   }
 
   public static GameEntry game(String id) {

@@ -782,12 +782,18 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
           found.addAll(gamesOnThisMachine(query, onlyUnknown));
         }
         if (onTheNet) {
-          // Everything, in an order that is not the catalogue's own: its first page is the first
+          // In an order that is not the catalogue's own: the web service answers with its first
           // hundred and fifty titles alphabetically, none of which anybody knows, so the most voted
-          // are asked for across all of it instead.
-          boolean ranked = query.isEmpty() && !AS_FOUND.equals(sortedBy);
-          found.addAll(createMockResults(query, ranked
-              ? Catalogues.mostVoted(machineType, genre) : Catalogues.search(query, machineType, genre)));
+          // that match are asked for too, from all of it.
+          List<Hit> hits = new ArrayList<>();
+          if (!AS_FOUND.equals(sortedBy))
+            hits.addAll(Catalogues.mostVoted(query, machineType, genre));
+          if (!query.isEmpty() || AS_FOUND.equals(sortedBy))
+            hits.addAll(Catalogues.search(query, machineType, genre));
+          // Once each, or a game both answered would count as two copies.
+          Set<String> seen = new java.util.HashSet<>();
+          hits.removeIf(hit -> hit._id != null && !seen.add(hit._id));
+          found.addAll(createMockResults(query, hits));
         }
         return found;
       }
