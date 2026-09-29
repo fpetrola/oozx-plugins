@@ -57,6 +57,16 @@ public final class Catalogues {
     return found == null ? List.of() : found;
   }
 
+  /**
+   * The games most people voted for, across the whole catalogue: the ones people know and played.
+   * Asked of ZXDB, which keeps the votes and can order by them - the web service cannot, and pages
+   * alphabetically - and which ships in this build with the most voted games in it.
+   */
+  public static List<Hit> mostVoted(String machineType, String genreType) {
+    Zxdb zxdb = new Zxdb();
+    return zxdb.canAnswer() ? zxdb.search("", machineType, genreType) : List.of();
+  }
+
   public static GameEntry game(String id) {
     return ask(who -> who.game(id));
   }

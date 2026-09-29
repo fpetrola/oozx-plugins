@@ -782,7 +782,12 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
           found.addAll(gamesOnThisMachine(query, onlyUnknown));
         }
         if (onTheNet) {
-          found.addAll(createMockResults(query, machineType, genre));
+          // Everything, in an order that is not the catalogue's own: its first page is the first
+          // hundred and fifty titles alphabetically, none of which anybody knows, so the most voted
+          // are asked for across all of it instead.
+          boolean ranked = query.isEmpty() && !AS_FOUND.equals(sortedBy);
+          found.addAll(createMockResults(query, ranked
+              ? Catalogues.mostVoted(machineType, genre) : Catalogues.search(query, machineType, genre)));
         }
         return found;
       }
@@ -977,10 +982,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     return cause.getMessage() != null ? cause.getMessage() : cause.toString();
   }
 
-  private List<GameSearchResult> createMockResults(String query, String machineType, String genreType) {
-    // Whoever can answer, which on a day the web service is down is ZXDB read on this machine.
-    List<Hit> search = Catalogues.search(query, machineType, genreType);
-
+  private List<GameSearchResult> createMockResults(String query, List<Hit> search) {
     List<GameSearchResult> results = new ArrayList<>();
 
     for (Hit hit : search) {
