@@ -34,6 +34,10 @@ public class GameSearchResult {
   /** Every file the entry offers that could be loaded, best first, for choosing among them. */
   java.util.List<String> files = java.util.List.of();
   /** Extras the entry carries, for filters the server cannot apply itself. */
+  /** The score World of Spectrum's voters gave it, 1 to 10, and how many voted; null when nobody did. */
+  Double score;
+  Integer votes;
+
   boolean hasRzx;
   boolean hasMap;
   /** The machine somebody picked for it, or null to let the file and its name decide. */

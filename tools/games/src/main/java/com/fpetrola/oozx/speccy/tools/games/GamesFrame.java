@@ -66,6 +66,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   private SwingWorker<List<GameSearchResult>, Void> runningSearch;
   private boolean loading;
   private JComboBox<String> sourceFilter;
+  private JComboBox<String> order;
   private JCheckBox unknownFilter;
   private JCheckBox colourFilter;
   private JLabel libraryLabel;
@@ -85,6 +86,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
    * filter so the bar needs no labels beside them, which is what makes it fit the window.
    */
   private static final String ANY_MACHINE = "Any machine";
+  private static final String AS_FOUND = "As found";
+  private static final String BEST_RATED = "Best rated";
   private static final String EVERYWHERE = "Everywhere";
   private static final String ON_THE_NET = "On the net";
   private static final String ON_THIS_MACHINE = "On this machine";
@@ -214,6 +217,10 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     sourceFilter = new JComboBox<>(new String[]{EVERYWHERE, ON_THE_NET, ON_THIS_MACHINE});
     sourceFilter.setToolTipText("Where to look: ZXInfo's catalogue, the games on this machine, or both");
     bar.add(labelled("Where", sourceFilter));
+    bar.add(Box.createVerticalStrut(6));
+    order = new JComboBox<>(new String[]{AS_FOUND, BEST_RATED});
+    order.setToolTipText("Best rated: highest score at World of Spectrum first, the most voted of equals first, unrated last");
+    bar.add(labelled("Order", order));
     bar.add(Box.createVerticalStrut(12));
 
     machineFilter = new JComboBox<>(new String[]{ANY_MACHINE});
@@ -258,6 +265,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     unknownFilter.addActionListener(research);
     colourFilter.addActionListener(research);
     sourceFilter.addActionListener(research);
+    order.addActionListener(research);
 
     loadFilterValues();
 
@@ -632,6 +640,12 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     return new ArrayList<>(byGame.values());
   }
 
+  /** Highest score first; of equal scores the one more people voted for; the unrated after all of them, as they came. */
+  static final java.util.Comparator<GameSearchResult> BY_RATING = java.util.Comparator
+      .comparing((GameSearchResult result) -> result.score == null)
+      .thenComparing(result -> result.score == null ? 0 : -result.score)
+      .thenComparing(result -> result.votes == null ? 0 : -result.votes);
+
   private static String keyOf(GameSearchResult result) {
     return result.id != null ? result.id : result.filename;
   }
@@ -646,6 +660,10 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     kept.onThisMachine |= other.onThisMachine;
     kept.available |= other.available;
     kept.hasRzx |= other.hasRzx;
+    if (kept.score == null) {
+      kept.score = other.score;
+      kept.votes = other.votes;
+    }
     kept.hasMap |= other.hasMap;
     kept.inColour |= other.inColour;
     kept.screenshot1 = kept.screenshot1 != null ? kept.screenshot1 : other.screenshot1;
@@ -712,15 +730,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     boolean machine = !ON_THE_NET.equals(where);
     boolean onlyUnknown = unknownFilter.isSelected();
     boolean onlyColour = colourFilter.isSelected();
-    // Asking the net for everything is not a search, but the games on this machine are a list
-    // that can simply be shown, so an empty box browses them instead of doing nothing.
-    if (query.isEmpty() && net && !machine) {
-      // Emptying the box with nothing but the net to look at leaves the last search's tiles on
-      // screen, which then say nothing about what is being asked.
-      showMessage("Type what to look for on the net, or look at what is on this machine");
-      setTitle("Game Browser");
-      return;
-    }
+    // An empty box is everything: the games on this machine, and on the net the catalogue from
+    // its first page, which is as much as one question to it brings.
 
     // A search in flight is abandoned rather than left to overwrite the newer one's results.
     if (runningSearch != null && !runningSearch.isDone()) {
@@ -736,8 +747,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     boolean onlyLoadable = loadableFilter.isSelected();
 
     setSearching(true);
-    showMessage(query.isEmpty() ? "Reading what is on this machine..."
-        : "Searching for \"" + query + "\"...");
+    boolean bestRated = BEST_RATED.equals(order.getSelectedItem());
+    showMessage(query.isEmpty() ? "Looking at everything..." : "Searching for \"" + query + "\"...");
 
     SwingWorker<List<GameSearchResult>, Void> search = new SwingWorker<>() {
       @Override
@@ -750,7 +761,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         if (onThisMachine) {
           found.addAll(gamesOnThisMachine(query, onlyUnknown));
         }
-        if (onTheNet && !query.isEmpty()) {
+        if (onTheNet) {
           found.addAll(createMockResults(query, machineType, genre));
         }
         return found;
@@ -773,6 +784,9 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         }
 
         results = oneTilePerGame(results);
+        if (bestRated) {
+          results.sort(BY_RATING);
+        }
         int found = results.size();
         // The extras and the availability are things a catalogue entry has; a file already on
         // the disk is available by being there, so those filters are not asked of it.
@@ -791,7 +805,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
 
         if (results.isEmpty()) {
           showMessage(found == 0
-              ? (query.isEmpty() ? "Nothing on this machine yet - add a folder to look in"
+              ? (query.isEmpty() ? "Nothing found - add a folder to look in, or look on the net"
                   : "No games found for \"" + query + "\"")
               : "None of the " + found + " games found match the filters");
           return;
@@ -1010,6 +1024,10 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         // Kept, not thrown away: an entry often has a 48K release and a 128K one, and the choice
         // between them is the person's to make rather than the scorer's to impose.
         result.files = DownloadAndUnzip.byPreference(files, url -> url);
+        if (game.score != null) {
+          result.score = game.score.score;
+          result.votes = game.score.votes;
+        }
         result.hasRzx = hasRzx;
         result.hasMap = hasMap;
         result.recordings = recordings;
