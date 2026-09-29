@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="OOZX con los plugins de este repo" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="openjdk-26" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="com.fpetrola.oozx.speccy.desktop.OOSpectrumLauncher" />
+    <module name="devices-all" />
+    <option name="VM_PARAMETERS" value="-Doozx.plugins=off -Duser.home=/tmp/oozx-dev" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
