@@ -24,7 +24,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-/** Best rated: the highest score first, the most voted of equals first, and the unrated after all, as they came. */
+/** Which games come first: the ones people know, and the ones many people rated well. */
 class BestRatedFirstTest {
 
   static GameSearchResult game(String title, Double score, Integer votes) {
@@ -34,13 +34,27 @@ class BestRatedFirstTest {
     return result;
   }
 
+  static List<String> sorted(java.util.Comparator<GameSearchResult> by, GameSearchResult... games) {
+    List<GameSearchResult> found = new ArrayList<>(List.of(games));
+    found.sort(by);
+    return found.stream().map(result -> result.title).toList();
+  }
+
   @Test
-  void theHighestScoreFirstTheMostVotedOfEqualsAndTheUnratedLast() {
-    List<GameSearchResult> found = new ArrayList<>(List.of(
-        game("unrated one", null, null), game("seven, few", 7.0, 3), game("nine", 9.1, 40),
-        game("seven, many", 7.0, 200), game("unrated two", null, null)));
-    found.sort(GamesFrame.BY_RATING);
-    assertEquals(List.of("nine", "seven, many", "seven, few", "unrated one", "unrated two"),
-        found.stream().map(result -> result.title).toList());
+  void mostKnownIsTheMostVotedWhateverItsScore() {
+    assertEquals(List.of("manic miner", "obscure gem", "never voted"),
+        sorted(GamesFrame.BY_VOTES, game("obscure gem", 9.8, 3), game("never voted", null, null), game("manic miner", 8.4, 412)));
+  }
+
+  @Test
+  void aFewHighVotesDoNotBeatManyGoodOnes() {
+    assertEquals(List.of("jet set willy", "obscure gem", "never voted"),
+        sorted(GamesFrame.BY_RATING, game("obscure gem", 10.0, 3), game("never voted", null, null), game("jet set willy", 9.0, 400)));
+  }
+
+  @Test
+  void ofTwoWellKnownTheBetterScoreWins() {
+    assertEquals(List.of("head over heels", "chuckie egg"),
+        sorted(GamesFrame.BY_RATING, game("chuckie egg", 8.0, 300), game("head over heels", 9.2, 250)));
   }
 }

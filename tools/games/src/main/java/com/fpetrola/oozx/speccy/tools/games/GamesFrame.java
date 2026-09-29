@@ -87,6 +87,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
    */
   private static final String ANY_MACHINE = "Any machine";
   private static final String AS_FOUND = "As found";
+  private static final String MOST_KNOWN = "Most known";
   private static final String BEST_RATED = "Best rated";
   private static final String EVERYWHERE = "Everywhere";
   private static final String ON_THE_NET = "On the net";
@@ -218,8 +219,9 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     sourceFilter.setToolTipText("Where to look: ZXInfo's catalogue, the games on this machine, or both");
     bar.add(labelled("Where", sourceFilter));
     bar.add(Box.createVerticalStrut(6));
-    order = new JComboBox<>(new String[]{AS_FOUND, BEST_RATED});
-    order.setToolTipText("Best rated: highest score at World of Spectrum first, the most voted of equals first, unrated last");
+    order = new JComboBox<>(new String[]{AS_FOUND, MOST_KNOWN, BEST_RATED});
+    order.setToolTipText("<html>Most known: the most voted at World of Spectrum first, which is who has played it<br>"
+        + "Best rated: the score, weighed by how many voted, so a few high votes do not beat many</html>");
     bar.add(labelled("Order", order));
     bar.add(Box.createVerticalStrut(12));
 
@@ -640,11 +642,29 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     return new ArrayList<>(byGame.values());
   }
 
-  /** Highest score first; of equal scores the one more people voted for; the unrated after all of them, as they came. */
+  /** The most voted first: votes are who played it, and a game nobody knows has few or none. Unvoted last, as they came. */
+  static final java.util.Comparator<GameSearchResult> BY_VOTES = java.util.Comparator
+      .comparingInt((GameSearchResult result) -> result.votes == null ? 0 : -result.votes);
+
+  /** How many votes a score needs before it counts for more than the average does. */
+  static final double VOTES_TO_BE_BELIEVED = 25;
+  /** The score a game with no votes to speak of is taken to have: about the catalogue's average. */
+  static final double AVERAGE_SCORE = 6.5;
+
+  /**
+   * The score weighed by how many voted, as the lists of best films do: a few votes pull it toward
+   * the average, so three 10s do not beat four hundred 9s. Unrated last, as they came.
+   */
+  static double weighed(GameSearchResult result) {
+    if (result.score == null || result.votes == null) {
+      return 0;
+    }
+    double votes = result.votes;
+    return (votes * result.score + VOTES_TO_BE_BELIEVED * AVERAGE_SCORE) / (votes + VOTES_TO_BE_BELIEVED);
+  }
+
   static final java.util.Comparator<GameSearchResult> BY_RATING = java.util.Comparator
-      .comparing((GameSearchResult result) -> result.score == null)
-      .thenComparing(result -> result.score == null ? 0 : -result.score)
-      .thenComparing(result -> result.votes == null ? 0 : -result.votes);
+      .comparingDouble((GameSearchResult result) -> -weighed(result));
 
   private static String keyOf(GameSearchResult result) {
     return result.id != null ? result.id : result.filename;
@@ -747,7 +767,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     boolean onlyLoadable = loadableFilter.isSelected();
 
     setSearching(true);
-    boolean bestRated = BEST_RATED.equals(order.getSelectedItem());
+    Object sortedBy = order.getSelectedItem();
     showMessage(query.isEmpty() ? "Looking at everything..." : "Searching for \"" + query + "\"...");
 
     SwingWorker<List<GameSearchResult>, Void> search = new SwingWorker<>() {
@@ -784,7 +804,9 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         }
 
         results = oneTilePerGame(results);
-        if (bestRated) {
+        if (MOST_KNOWN.equals(sortedBy)) {
+          results.sort(BY_VOTES);
+        } else if (BEST_RATED.equals(sortedBy)) {
           results.sort(BY_RATING);
         }
         int found = results.size();
