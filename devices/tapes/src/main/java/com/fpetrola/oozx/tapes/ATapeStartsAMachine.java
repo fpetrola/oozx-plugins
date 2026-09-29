@@ -13,13 +13,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */package com.fpetrola.oozx.speccy.devices.tape;
+ */package com.fpetrola.oozx.tapes;
 
 import dev.crystal.plugins.api.Answers;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.machine.StartsAMachineOn;
-import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.modules.tape.TapeAutoLoader;
 import com.fpetrola.oozx.speccy.modules.tape.TapeHardware;
 
@@ -36,7 +35,7 @@ public class ATapeStartsAMachine implements StartsAMachineOn {
 
   @Override
   public boolean handles(File file) {
-    return Tape.isATape(file.getName());
+    return com.fpetrola.oozx.speccy.modules.tape.cassette.Cassettes.isATape(file.getName());
   }
 
   /** What the tape says it was made for, or a 128 when its own name says so. */
