@@ -88,6 +88,18 @@ class TheSessionOfAGameTest extends MachineTest {
   }
 
   @Test
+  void anEzxThatCarriesItsColoursPutsTheMachineOnTheNineWithNothingBesideIt() throws IOException {
+    machine();
+    Path exolon = where.resolve("exolon.ezx");
+    Files.copy(Path.of("../snapshots/src/test/resources/ezx/exolon.ezx"), exolon);
+
+    load(exolon.toString());
+
+    assertEquals("Spec256", speccy.processors.current(), "the colours came inside the file");
+    assertEquals("exolon.ezx", session().playing(), "and they are that file's");
+  }
+
+  @Test
   void aSnapshotThatBringsNoColoursLeavesTheMachineWhereItWas() throws IOException {
     machine();
     String was = speccy.processors.current();

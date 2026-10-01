@@ -32,12 +32,14 @@ import com.fpetrola.oozx.speccy.peripherals.FilesOfItsOwn;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
+import com.fpetrola.oozx.formats.SnapshotFormat;
 import java.io.File;
+import java.util.Map;
+import java.util.function.Function;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -51,8 +53,8 @@ import java.util.List;
  */
 @Singleton
 public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsOwn, Painting.Line {
-  private static final String COLOURS = ".gfx";
-  private static final String SAYS = ".cfg";
+  private static final String COLOURS = "gfx";
+  private static final String SAYS = "cfg";
   /**
    * Where a game keeps the colours of the letters and shapes the machine itself draws with.
    * <p>
@@ -61,7 +63,7 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
    * 48K machine has and so the one to look for first. Another calls it {@code rom0.gfx} and does
    * not put the game's name on it at all.
    */
-  private static final String[] ROM_COLOURS = {".gfb", ".gfa"};
+  private static final String[] ROM_COLOURS = {"gfb", "gfa"};
   private static final String ANY_ROM = "rom0.gfx";
   /** A background is 320 by 200 of a colour each, laid under the screen and centred on it. */
   private static final int BACKGROUND_WIDTH = 320, BACKGROUND_HEIGHT = 200;
@@ -107,26 +109,28 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
    * what the file is called.
    */
   public static boolean hasColours(String url) {
-    return withTheSameName(url, COLOURS) != null;
+    return withTheSameName(url, "." + COLOURS) != null || SnapshotFormat.carriedBy(new File(url)).containsKey(COLOURS);
   }
 
   public void beside(String url) {
-    File colours = withTheSameName(url, COLOURS);
+    Function<String, byte[]> beside = besideOf(url);
+    byte[] colours = beside.apply(COLOURS);
     if (colours == null) {
       over();
       return;
     }
     try {
-      planes.take(Files.readAllBytes(colours.toPath()));
-    } catch (IOException | IllegalArgumentException notColoursAfterAll) {
-      TellsThePerson.that("%s is beside the snapshot but is not a game's colours: %s".formatted(colours, notColoursAfterAll.getMessage()));
+      planes.take(colours);
+    } catch (IllegalArgumentException notColoursAfterAll) {
+      TellsThePerson.that("%s has something called its colours that are not a game's colours: %s".formatted(url, notColoursAfterAll.getMessage()));
       over();
       return;
     }
-    playing = colours.getName();
-    romBeside(colours);
-    backgroundsBeside(colours);
-    rules.read(withTheSameName(url, SAYS));
+    File apart = withTheSameName(url, "." + COLOURS);
+    playing = (apart != null ? apart : new File(url)).getName();
+    romBeside(beside, url);
+    backgroundsBeside(beside);
+    rules.read(beside.apply(SAYS));
     takeWhatTheGameAsksFor();
     if (wasOn == null) wasOn = processors.current();
     processors.use(Spec256Core.NAME);
@@ -282,24 +286,24 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
    * The colours of the ROM, which are not named after the game: every one of them that has any
    * calls the file the same thing, because the ROM is the machine's and not the game's.
    */
-  private void romBeside(File colours) {
+  private void romBeside(Function<String, byte[]> beside, String url) {
     for (String ending : ROM_COLOURS) {
-      if (takeTheRomFrom(withTheSameName(colours.getPath(), ending))) return;
+      if (takeTheRomFrom(beside.apply(ending), url)) return;
     }
-    File[] beside = colours.getParentFile().listFiles();
-    if (beside == null) return;
-    for (File file : beside) {
-      if (file.getName().equalsIgnoreCase(ANY_ROM) && takeTheRomFrom(file)) return;
+    File[] there = new File(url).getAbsoluteFile().getParentFile().listFiles();
+    if (there == null) return;
+    for (File file : there) {
+      if (file.getName().equalsIgnoreCase(ANY_ROM) && takeTheRomFrom(read(file), url)) return;
     }
   }
 
-  private boolean takeTheRomFrom(File file) {
-    if (file == null) return false;
+  private boolean takeTheRomFrom(byte[] colours, String url) {
+    if (colours == null) return false;
     try {
-      planes.takeTheRom(Files.readAllBytes(file.toPath()));
+      planes.takeTheRom(colours);
       return true;
-    } catch (IOException | IllegalArgumentException notTheRomsColours) {
-      TellsThePerson.that("%s is not this ROM's colours: %s".formatted(file, notTheRomsColours.getMessage()));
+    } catch (IllegalArgumentException notTheRomsColours) {
+      TellsThePerson.that("%s has ROM colours that are not this ROM's: %s".formatted(url, notTheRomsColours.getMessage()));
       return false;
     }
   }
@@ -308,23 +312,12 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
    * The pictures that lie under the screen, in files named after the game and numbered. Whatever
    * is not the right size is somebody else's file with an unlucky name.
    */
-  private void backgroundsBeside(File colours) {
+  private void backgroundsBeside(Function<String, byte[]> beside) {
     backgrounds.clear();
     showing = 0;
-    String stem = withoutItsEnding(colours.getName());
-    File[] beside = colours.getParentFile().listFiles();
-    if (beside == null) return;
-    File[] sorted = beside.clone();
-    Arrays.sort(sorted, (one, other) -> one.getName().compareToIgnoreCase(other.getName()));
-    for (File file : sorted) {
-      String name = file.getName();
-      if (!withoutItsEnding(name).equalsIgnoreCase(stem) || !name.matches("(?i).*\\.b[0-9][0-9]")) continue;
-      try {
-        byte[] picture = Files.readAllBytes(file.toPath());
-        if (picture.length == BACKGROUND_SIZE) backgrounds.add(picture);
-      } catch (IOException unreadable) {
-        TellsThePerson.that("%s looks like a background of this game but cannot be read: %s".formatted(file, unreadable.getMessage()));
-      }
+    for (int number = 0; number < 100; number++) {
+      byte[] picture = beside.apply("b%02d".formatted(number));
+      if (picture != null && picture.length == BACKGROUND_SIZE) backgrounds.add(picture);
     }
   }
 
@@ -420,6 +413,25 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
     display.painting.line(null);
     display.picture().sinclairColours();
     display.refreshAll();
+  }
+
+  /**
+   * What a game keeps beside it, asked for by the ending such a file has: what the snapshot itself
+   * carries, or else a file of the same name next to it.
+   */
+  private static Function<String, byte[]> besideOf(String url) {
+    Map<String, byte[]> carried = SnapshotFormat.carriedBy(new File(url));
+    return ending -> carried.containsKey(ending) ? carried.get(ending) : read(withTheSameName(url, "." + ending));
+  }
+
+  private static byte[] read(File file) {
+    if (file == null) return null;
+    try {
+      return Files.readAllBytes(file.toPath());
+    } catch (IOException unreadable) {
+      TellsThePerson.that("%s is beside the game but cannot be read: %s".formatted(file, unreadable.getMessage()));
+      return null;
+    }
   }
 
   /**

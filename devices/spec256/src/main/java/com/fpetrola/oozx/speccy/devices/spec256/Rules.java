@@ -18,14 +18,10 @@
 
 package com.fpetrola.oozx.speccy.devices.spec256;
 
-import com.fpetrola.oozx.TellsThePerson;
 
 import com.google.inject.Singleton;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.util.Locale;
 
 /**
@@ -104,16 +100,12 @@ public final class Rules {
    * A game's own file, if it brought one. Whatever it says that is not one of these is some other
    * emulator's business, and whatever it says badly is left at its default.
    */
-  public void read(File said) {
+  public void read(byte[] said) {
     asTheyComeByDefault();
     if (said == null) return;
-    try {
-      for (String line : Files.readString(said.toPath(), StandardCharsets.ISO_8859_1).split("\\R")) {
-        int equals = line.indexOf('=');
-        if (equals > 0) says(line.substring(0, equals).trim(), line.substring(equals + 1).trim());
-      }
-    } catch (IOException unreadable) {
-      TellsThePerson.that("%s is this game's rules but cannot be read: %s".formatted(said, unreadable.getMessage()));
+    for (String line : new String(said, StandardCharsets.ISO_8859_1).split("\\R")) {
+      int equals = line.indexOf('=');
+      if (equals > 0) says(line.substring(0, equals).trim(), line.substring(equals + 1).trim());
     }
   }
 
