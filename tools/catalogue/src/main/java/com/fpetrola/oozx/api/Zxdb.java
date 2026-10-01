@@ -33,7 +33,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -67,7 +66,7 @@ public class Zxdb implements KnowsTheGames {
   /** Which TOSEC dumps are which entry. ZXDB does not say; ZXInfo keeps the list it answers with. */
   private static final String TOSEC =
       "https://raw.githubusercontent.com/thomasheckmann/zxinfo-db/master/ZXInfoExt/TOSEC/tosec_2023.txt";
-  private static final int MOST_AT_ONCE = 150, SHIPPED_GAMES = 5000;
+  private static final int MOST_AT_ONCE = 1000, SHIPPED_GAMES = 5000;
 
   /** The tables kept per entry, which are what the part that ships is cut down by. */
   private static final List<String> BY_ENTRY =
@@ -194,8 +193,14 @@ public class Zxdb implements KnowsTheGames {
     String named = words.isEmpty() ? "" : " AND e.id IN (SELECT id FROM (SELECT id, title FROM entries"
         + " UNION ALL SELECT entry_id, title FROM aliases) WHERE "
         + words.stream().map(word -> "title LIKE ?").collect(Collectors.joining(" AND ")) + ")";
-    return answers(Hit.class, ENTRY + " WHERE (? IS NULL OR m.text = ?) AND (? IS NULL OR g.type = ?)" + named
-        + " ORDER BY e.title LIKE ? DESC, s.votes DESC, e.title LIMIT " + MOST_AT_ONCE, parameters.toArray());
+    // Which ones first, from plain columns, and only then the whole entry of each: ordering the entries
+    // themselves built every one in the catalogue before keeping the first, a second or two for nothing.
+    String order = " ORDER BY e.title LIKE ? DESC, s.votes DESC, e.title";
+    String chosen = "SELECT e.id FROM entries e LEFT JOIN machinetypes m ON m.id = e.machinetype_id"
+        + " LEFT JOIN scores s ON s.entry_id = e.id LEFT JOIN " + GENRES + " g ON g.id = e.genretype_id"
+        + " WHERE (? IS NULL OR m.text = ?) AND (? IS NULL OR g.type = ?)" + named + order + " LIMIT " + MOST_AT_ONCE;
+    parameters.add(asked + "%");
+    return answers(Hit.class, ENTRY + " WHERE e.id IN (" + chosen + ")" + order, parameters.toArray());
   }
 
   @Override
@@ -232,11 +237,16 @@ public class Zxdb implements KnowsTheGames {
     }
   }
 
+  /** Through the driver itself: DriverManager only finds drivers the application's class loader sees. */
+  private static Connection open(Object file) throws SQLException {
+    return org.sqlite.JDBC.createConnection("jdbc:sqlite:" + file, new java.util.Properties());
+  }
+
   /** The whole database when it has been brought down; the part that ships, read into memory, until then. */
   private static Connection connection() throws SQLException, IOException {
     if (connection == null) {
       boolean whole = WHOLE.exists();
-      connection = DriverManager.getConnection("jdbc:sqlite:" + (whole ? WHOLE : ":memory:"));
+      connection = open(whole ? WHOLE : ":memory:");
       if (!whole) {
         try (InputStream shipped = Zxdb.class.getResourceAsStream(SHIPPED)) {
           connection.unwrap(SQLiteConnection.class).deserialize("main", shipped.readAllBytes());
@@ -267,7 +277,7 @@ public class Zxdb implements KnowsTheGames {
    */
   private static void bringDown(File into) throws IOException, SQLException {
     Files.deleteIfExists(into.toPath());
-    try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + into); Statement sql = db.createStatement();
+    try (Connection db = open(into); Statement sql = db.createStatement();
          ZipInputStream dump = new ZipInputStream(new ByteArrayInputStream(DownloadAndUnzip.downloadFile(new URL(DUMP))))) {
       db.setAutoCommit(false);
       dump.getNextEntry();
@@ -328,7 +338,7 @@ public class Zxdb implements KnowsTheGames {
   /** The most voted games of the whole database, as the part that ships with the build. */
   private static void keepTheMostVoted(int games, File shipped) throws IOException, SQLException {
     Files.deleteIfExists(shipped.toPath());
-    try (Connection db = DriverManager.getConnection("jdbc:sqlite:" + shipped); Statement sql = db.createStatement()) {
+    try (Connection db = open(shipped); Statement sql = db.createStatement()) {
       sql.executeUpdate("ATTACH '" + WHOLE + "' AS whole");
       sql.executeUpdate("CREATE TABLE entries AS SELECT * FROM whole.entries WHERE id IN"
           + " (SELECT entry_id FROM whole.scores ORDER BY votes DESC, entry_id LIMIT " + games + ")");
