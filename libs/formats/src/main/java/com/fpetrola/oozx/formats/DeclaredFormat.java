@@ -88,7 +88,8 @@ public abstract class DeclaredFormat implements SnapshotFormat {
   /** The file whole, or refused: until this answers, the machine has not been touched. */
   public final SnapshotFile understood(byte[] bytes) throws SnapshotException {
     try {
-      return shapeOf(Cursor.over(bytes)).parse(bytes);
+      byte[] laidOut = unwrapped(bytes);
+      return shapeOf(Cursor.over(laidOut)).parse(laidOut);
     } catch (Refused refused) {
       throw new SnapshotException(label() + ": " + refused.getMessage(), refused);
     } catch (RuntimeException fall) {
@@ -114,6 +115,11 @@ public abstract class DeclaredFormat implements SnapshotFormat {
     } catch (Refused refused) {
       throw new SnapshotException(label() + ": " + refused.getMessage(), refused);
     }
+  }
+
+  /** The bytes the shape describes: a format that wraps them, compressing them say, takes the wrapping off here. */
+  protected byte[] unwrapped(byte[] file) {
+    return file;
   }
 
   /** What the file says is plugged in, plugged in before the machine is walked, so the walk meets it. */
