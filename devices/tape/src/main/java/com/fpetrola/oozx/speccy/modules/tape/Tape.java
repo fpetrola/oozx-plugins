@@ -30,7 +30,7 @@ import com.fpetrola.oozx.speccy.modules.tape.cassette.Described;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.Sound;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.Sounds;
 import com.fpetrola.oozx.speccy.modules.tape.cassette.Step;
-import com.fpetrola.oozx.speccy.modules.timer.Timer;
+import com.fpetrola.oozx.speccy.modules.timer.Speed;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
 import com.fpetrola.oozx.speccy.peripherals.AbstractPeripheral;
 import com.google.inject.Inject;
@@ -96,11 +96,14 @@ public class Tape extends AbstractPeripheral {
     private int[] calls;
     private int callsMade;
     private int callFrom;
+    private final Speed speed;
+    /** The speed the machine had before a fast load took it flat out, or -1 when none is going on. */
+    private int speedBeforeLoading = -1;
 
     @Inject
-    public Tape(TapeSettings settings, SpectrumZ80Clock clock, Scheduler scheduler, Timer timer) {
+    public Tape(TapeSettings settings, SpectrumZ80Clock clock, Scheduler scheduler, Speed speed) {
         super(List.of());
-        timer.loading(this::isTapePlaying);
+        this.speed = speed;
         this.clock = clock;
         this.scheduler = scheduler;
         this.settings = settings;
@@ -157,7 +160,7 @@ public class Tape extends AbstractPeripheral {
         sound = null;
         stopsPassed = 0;
         calls = null;
-        playing = false;
+        if (playing) playing(false);
         reached(block);
         return true;
     }
@@ -179,6 +182,25 @@ public class Tape extends AbstractPeripheral {
 
     public File getTapeFilename() {
         return file;
+    }
+
+    /** Playing with fast loading on runs the machine flat out, and stopping gives it back its speed. */
+    private void playing(boolean now) {
+        playing = now;
+        if (now) {
+            hurry();
+        } else if (speedBeforeLoading >= 0) {
+            speed.setEmulation(speedBeforeLoading);
+            speedBeforeLoading = -1;
+        }
+    }
+
+    /** Flat out from now until the tape stops, when fast loading is on: for whatever leads up to playing it. */
+    public void hurry() {
+        if (speed.fastLoading && speedBeforeLoading < 0) {
+            speedBeforeLoading = speed.emulation();
+            speed.setEmulation(Speed.UNLIMITED);
+        }
     }
 
     public boolean isTapePlaying() {
@@ -223,7 +245,7 @@ public class Tape extends AbstractPeripheral {
             return false;
         }
         this.byHand = byHand;
-        playing = true;
+        playing(true);
         sound = null;
         earBit = rest();
         startEdges();
@@ -235,7 +257,7 @@ public class Tape extends AbstractPeripheral {
         if (cassette == null || !playing) {
             return;
         }
-        playing = false;
+        playing(false);
         // Back to a resting line, the microphone put down on stop: the port reads this level
         // whether or not anything is playing, so a tape that stopped halfway through an edge
         // would otherwise leave the line held high for good.

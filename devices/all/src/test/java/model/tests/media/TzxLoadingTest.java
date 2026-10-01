@@ -244,10 +244,10 @@ public class TzxLoadingTest {
     tape.addListener(block -> blocks[0] = Math.max(blocks[0], block));
 
     // The launcher's own auto loader: type LOAD "" on the keyboard, insert, play, and wait for
-    // the load to finish. It normally drops to real Spectrum speed at that point; here it stays
-    // fast, since the Timer sleeps to hold 1x and the run after the load would take minutes.
-    TapeAutoLoader autoLoader = new TapeAutoLoader(speccy, tapeFile,
-        TapeAutoLoader.LOADING_SPEED, TapeAutoLoader.LOADING_SPEED);
+    // the load to finish. Flat out throughout, since the Timer sleeps to hold 1x and the run after
+    // the load would take minutes.
+    speccy.speed.emulation = com.fpetrola.oozx.speccy.modules.timer.Speed.UNLIMITED;
+    TapeAutoLoader autoLoader = new TapeAutoLoader(speccy, tapeFile);
     for (long step = 0; step < 200_000_000L && !autoLoader.isDone(); step++) {
       autoLoader.step();
       MachineTest.step(speccy);

@@ -28,26 +28,17 @@ import java.util.List;
  * Types LOAD "" on the emulated keyboard and starts the tape.
  * <p>
  * This is a state machine stepped from the emulation loop rather than a thread that sleeps
- * alongside it: the emulator runs at {@code emulationSpeed} (200x real time by default), so
- * wall-clock delays translate into wildly different amounts of emulated time from one run to
+ * alongside it: the emulator may run far above real time, so wall-clock delays translate into wildly different amounts of emulated time from one run to
  * the next, and the keystrokes race the loop that is supposed to read them.
  * <p>
  * Keys go through {@link com.fpetrola.oozx.speccy.modules.keyboard.KeyMatrix}. Writing the key code into
  * LAST_K and raising bit 5 of FLAGS does not register as a keypress here, so a LOAD typed that
  * way never reaches the interpreter and the machine stays in the editor.
  * <p>
- * The tape runs at {@code loadingSpeed} so a multi-minute load takes seconds, and the emulator
- * drops to {@code speedAfterLoading} once the deck stops, so the game itself plays at its real
- * pace. Both switches happen with the tape idle: raising the speed before it starts and lowering
- * it after it has stopped, never mid-block, since changing speed resets the clock the tape times
- * its pulses against.
+ * How fast it loads is not this class's business: the deck runs the machine flat out while it
+ * plays, when fast loading is on.
  */
 public class TapeAutoLoader {
-
-  /** Emulation speed, in percent, while the tape is loading. */
-  public static final int LOADING_SPEED = 20000;
-  /** Emulation speed, in percent, once it has loaded. 100 is real Spectrum speed. */
-  public static final int NORMAL_SPEED = 100;
 
   /** Frames to let the ROM reach the BASIC prompt before typing. */
   private static final int BOOT_FRAMES = 120;
@@ -57,7 +48,6 @@ public class TapeAutoLoader {
 
   private final Speccy speccy;
   private final File tapeFile;
-  private final int speedAfterLoading;
   private final List<Runnable> steps = new ArrayList<>();
 
   private long previousTStates;
@@ -68,22 +58,9 @@ public class TapeAutoLoader {
   private String error;
 
   public TapeAutoLoader(Speccy speccy, File tapeFile) {
-    this(speccy, tapeFile, LOADING_SPEED, NORMAL_SPEED);
-  }
-
-  /**
-   * @param loadingSpeed      emulation speed, in percent, while the tape runs
-   * @param speedAfterLoading emulation speed, in percent, once the deck stops
-   */
-  public TapeAutoLoader(Speccy speccy, File tapeFile, int loadingSpeed, int speedAfterLoading) {
     this.speccy = speccy;
     this.tapeFile = tapeFile;
-    this.speedAfterLoading = speedAfterLoading;
     this.previousTStates = speccy.zxClock.getTStates();
-
-    // Set directly rather than through Z80.changeSpeed: nothing is running yet, and
-    // changeSpeed resets the clock and restarts sound.
-    speccy.speed.emulation = loadingSpeed;
 
     // What has to be typed depends on the machine that is listening.
     //
@@ -155,13 +132,13 @@ public class TapeAutoLoader {
 
     if (waitingForTapeToStop) {
       if (!Tape.of(speccy).isTapePlaying()) {
-        speccy.timer.changeSpeed(speedAfterLoading);
         previousTStates = speccy.zxClock.getTStates();
         finished = true;
       }
       return;
     }
 
+    Tape.of(speccy).hurry();
     if (framesToWait > 0) {
       framesToWait--;
       return;
@@ -176,7 +153,7 @@ public class TapeAutoLoader {
     }
   }
 
-  /** True once the tape has loaded and the emulator is back at normal speed. */
+  /** True once the tape has loaded. */
   public boolean isDone() {
     return finished;
   }
