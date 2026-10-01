@@ -88,6 +88,11 @@ public class SettingsInternalFrame extends AttachedFrame {
   /** Writes what is set here into whatever this window is on: a machine, or what machines start with. */
   public void apply() {
     panel.apply();
+    String was = whom.getText();
+    whom.setText(isAttached() ? "Applied to this machine" : "Applied to every machine, the open ones too");
+    javax.swing.Timer back = new javax.swing.Timer(2500, e -> whom.setText(was));
+    back.setRepeats(false);
+    back.start();
   }
 
   /** Built again against whoever it is on now: every control reads the state of what it configures. */
@@ -103,13 +108,13 @@ public class SettingsInternalFrame extends AttachedFrame {
     EmulatorCore core = isAttached() ? coreOf.apply(getMachineWindow()) : null;
     boolean aMachine = core != null;
     whom.setText(aMachine ? "Configuring this machine: " + core.getCurrentModel()
-        : "Defaults - what a machine opened from now on starts with");
+        : "Defaults - every machine, the open ones too");
     whom.setForeground(aMachine ? UIManagerForeground() : DEFAULTS);
     setTitle(aMachine ? "Settings - " + core.getCurrentModel() : "Settings - defaults");
 
     apply.setToolTipText(aMachine
         ? "Write what is set here into this machine, including what was set before it was clipped on"
-        : "Write what is set here into what every machine opened from now on starts with");
+        : "Write what is set here into every machine: the open ones and the ones opened from now on");
 
     body.removeAll();
     panel = new SettingsPanel(aMachine ? core : defaults, config, edits, aMachine);
