@@ -99,6 +99,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   private static final int BOX = 20;
   /** How many tiles are built at once, which is also how many pictures get asked for. */
   private static final int AT_A_TIME = 60;
+  /** Everything the last search found and filtered, of which the gallery has built the first tiles. */
+  private List<GameSearchResult> showing = List.of();
   private static final String ANY_GENRE = "Any genre";
   public static Gson gson = new Gson();
   private final RzxArchive archive = new RzxArchive();
@@ -121,7 +123,35 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
 
   /** A row of this list as the desk takes it: which file, which machine, and what it is. */
   private static Desk.Game asAGame(GameSearchResult result) {
-    return new Desk.Game(result.filename, result.machine, result.id, result.title);
+    String machine = result.machine != null ? result.machine : catalogued(result.id);
+    return new Desk.Game(result.filename, emulated(machine), result.id, result.title);
+  }
+
+  /** The machine the catalogue says the game is for, when a file does not say it; null when unknown. */
+  private static String catalogued(String id) {
+    try {
+      return id == null ? null : Catalogues.game(id).machineType;
+    } catch (RuntimeException unknown) {
+      return null;
+    }
+  }
+
+  /**
+   * This emulator's name for a machine as the catalogue names it: ZXDB says "ZX-Spectrum 128K" or
+   * "ZX-Spectrum 48K/128K" where the emulator says "Spectrum 128K", and the biggest one a game
+   * lists is the one it gets the most out of. A name chosen from the emulator's own list passes through.
+   */
+  static String emulated(String catalogued) {
+    if (catalogued == null || !(catalogued.startsWith("ZX-Spectrum") || catalogued.startsWith("Pentagon"))) {
+      return catalogued;
+    }
+    String biggest = catalogued.substring(catalogued.lastIndexOf('/') + 1);
+    if (catalogued.startsWith("Pentagon")) return "Pentagon";
+    if (biggest.contains("+2A") || biggest.contains("+3")) return "Spectrum Plus 3";
+    if (biggest.contains("+2")) return "Spectrum Plus 2";
+    if (biggest.contains("128")) return "Spectrum 128K";
+    if (biggest.contains("16K") && !catalogued.contains("48K")) return "Spectrum 16K";
+    return "Spectrum 48K";
   }
 
   public GamesFrame() {
@@ -150,6 +180,12 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     gallery.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
     gallery.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
     gallery.getVerticalScrollBar().setUnitIncrement(16);
+    gallery.getVerticalScrollBar().addAdjustmentListener(scrolled -> {
+      javax.swing.JScrollBar bar = gallery.getVerticalScrollBar();
+      if (!scrolled.getValueIsAdjusting() && bar.getValue() + bar.getVisibleAmount() >= bar.getMaximum() - bar.getVisibleAmount()) {
+        showMore();
+      }
+    });
     // The gallery wraps by being given the number of columns the width allows, which has to be
     // worked out again every time the window or the divider moves.
     gallery.addComponentListener(new java.awt.event.ComponentAdapter() {
@@ -672,9 +708,10 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
 
   /** Folds the second into the first, keeping whichever of the two knows more. */
   private void join(GameSearchResult kept, GameSearchResult other) {
-    // Files from this machine go first, so the one a click loads is the copy already on the disk.
-    kept.files = kept.onThisMachine
-        ? concat(kept.files, other.files) : concat(other.files, kept.files);
+    // The best kind of file wins wherever it is, a TZX that says its machine over a TAP that cannot;
+    // between two as good, the copy already on the disk, which is why those go first into a stable sort.
+    kept.files = com.fpetrola.oozx.speccy.media.DownloadAndUnzip.byPreference(kept.onThisMachine
+        ? concat(kept.files, other.files) : concat(other.files, kept.files), file -> file);
     kept.filename = kept.files.isEmpty() ? kept.filename : kept.files.get(0);
     kept.copies = kept.copies + other.copies;
     kept.onThisMachine |= other.onThisMachine;
@@ -845,17 +882,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         }
 
         resultsPanel.removeAll();
-        // A wall of tiles is a wall of pictures to fetch, so only a screenful's worth of them is
-        // built at a time. Everything found is still counted, and the search says so.
-        for (GameSearchResult result : results.subList(0, Math.min(results.size(), AT_A_TIME))) {
-          resultsPanel.add(createGameTile(result));
-        }
-        // In the title bar, where it does not cost a widget and does not push the gallery down.
-        setTitle(results.size() > AT_A_TIME
-            ? "Game Browser - showing " + AT_A_TIME + " of " + results.size()
-            : "Game Browser - " + results.size() + (results.size() == 1 ? " game" : " games"));
-        resultsPanel.revalidate();
-        resultsPanel.repaint();
+        showing = results;
+        showMore();
       }
     };
 
@@ -951,6 +979,24 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     Desk.theOne().open(asAGame(result), () -> setLoading(false, null));
   }
 
+  /**
+   * A wall of tiles is a wall of pictures to fetch, so a screenful's worth more is built each time
+   * the gallery is scrolled near its end.
+   */
+  private void showMore() {
+    int built = resultsPanel.getComponentCount();
+    if (built >= showing.size()) return;
+    for (GameSearchResult result : showing.subList(built, Math.min(showing.size(), built + AT_A_TIME))) {
+      resultsPanel.add(createGameTile(result));
+    }
+    // In the title bar, where it does not cost a widget and does not push the gallery down.
+    int now = resultsPanel.getComponentCount();
+    setTitle(now < showing.size() ? "Game Browser - showing " + now + " of " + showing.size()
+        : "Game Browser - " + showing.size() + (showing.size() == 1 ? " game" : " games"));
+    resultsPanel.revalidate();
+    resultsPanel.repaint();
+  }
+
   private void setLoading(boolean busy, String title) {
     loading = busy;
     searchProgress.setVisible(busy);
@@ -971,6 +1017,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
 
   /** Replaces the result list with a single centred line of text. */
   private void showMessage(String message) {
+    showing = List.of();
     resultsPanel.removeAll();
     JLabel label = new JLabel(message);
     label.setAlignmentX(Component.CENTER_ALIGNMENT);

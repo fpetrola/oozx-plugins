@@ -180,6 +180,13 @@ public class DownloadAndUnzip {
 
   private static final int UNLOADABLE = Integer.MIN_VALUE + 1;
 
+  /** Whether a snapshot format this emulator has reads it: asked of them, so a new one counts at once. */
+  private static boolean aSnapshot(String name) {
+    java.io.File file = new java.io.File(name);
+    return com.fpetrola.oozx.plugins.Plugins.found(com.fpetrola.oozx.formats.SnapshotFormat.class).stream()
+        .anyMatch(format -> format.reads(file));
+  }
+
   private static int scoreOf(String fileName) {
     // A URL carries TOSEC's brackets escaped, and the rules below read the name, not the escaping.
     String path = fileName.toLowerCase().replace("%5b", "[");
@@ -196,9 +203,11 @@ public class DownloadAndUnzip {
     int score;
     if (name.endsWith(".rzx")) {
       score = 40; // a recording: a zip holding one holds nothing else worth loading
-    } else if (name.endsWith(".z80") || name.endsWith(".sna") || name.endsWith(".szx")) {
+    } else if (aSnapshot(name)) {
       score = 30; // a snapshot loads instantly and cannot fail on tape timing
-    } else if (name.endsWith(".tzx") || name.endsWith(".tap")) {
+    } else if (name.endsWith(".tzx")) {
+      score = 22; // a TZX can say which machine it wants, and keeps a loader's timing; a TAP neither
+    } else if (name.endsWith(".tap")) {
       score = 20;
     } else if (name.endsWith(".csw")) {
       score = 10;
