@@ -55,6 +55,7 @@
         <module>frames</module>
         <module>pokes</module>
         <module>poke-finder</module>
+        <module>map</module>
     </modules>
 
     <dependencies>
