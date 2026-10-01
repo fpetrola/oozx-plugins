@@ -36,6 +36,7 @@ package com.fpetrola.oozx.speccy.devices.joystick;
 
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.modules.input.Input;
+import com.fpetrola.oozx.speccy.modules.joystick.Joystick;
 import com.fpetrola.oozx.Speccy;
 
 import javax.swing.JComponent;
@@ -97,10 +98,15 @@ public class JoystickFrame extends MachineFrame {
     return "Keep this under the machine's window, the same width as it";
   }
 
-  /** What the machine's Kempston port answers right now, bit by bit. */
+  /** What the joystick the game reads answers right now, bit by bit; the Kempston until it reads one. */
   int pressed() {
     Speccy machine = machine();
-    return machine == null ? 0 : Input.of(machine).joystick().kempstonReads() & 0xFF;
+    return machine == null ? 0 : Input.of(machine).joystick().reads(showing(machine)) & 0xFF;
+  }
+
+  private static Joystick.JoystickType showing(Speccy machine) {
+    Joystick.JoystickType read = Input.of(machine).joystick().inUse();
+    return read != null ? read : Joystick.JoystickType.JOYSTICK_TYPE_KEMPSTON;
   }
 
   String reading() {
@@ -110,7 +116,8 @@ public class JoystickFrame extends MachineFrame {
   void refresh() {
     String pad = gamepad.get();
     Speccy machine = machine();
-    setTitle("Joystick: " + (pad == null ? "no gamepad" : pad));
+    setTitle((machine == null ? "Joystick" : Input.of(machine).joystick().JOYSTICK_NAME[showing(machine).ordinal()])
+        + ": " + (pad == null ? "no gamepad" : pad));
     reading.setText(machine == null ? "No machine" : Input.of(machine).setup.kempstonJoystick ? "Kempston on" : "Kempston off");
     stick.show(pressed());
   }
@@ -130,8 +137,9 @@ public class JoystickFrame extends MachineFrame {
     protected void paintComponent(Graphics g) {
       Graphics2D pen = (Graphics2D) g;
       pen.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-      int size = Math.min(getWidth(), getHeight()) / 2 - 8;
-      int cx = getWidth() / 2 - size / 2, cy = getHeight() / 2;
+      // The drawing spans 4.25 sizes across (arrows and fire button) and 3 sizes down.
+      int size = (int) Math.max(0, Math.min((getWidth() - 16) / 4.25, (getHeight() - 16) / 3.0));
+      int cx = getWidth() / 2 - size * 5 / 8, cy = getHeight() / 2;
       arrow(pen, cx, cy - size, 0, -1, size / 2, (pressed & UP) != 0);
       arrow(pen, cx, cy + size, 0, 1, size / 2, (pressed & DOWN) != 0);
       arrow(pen, cx - size, cy, -1, 0, size / 2, (pressed & LEFT) != 0);

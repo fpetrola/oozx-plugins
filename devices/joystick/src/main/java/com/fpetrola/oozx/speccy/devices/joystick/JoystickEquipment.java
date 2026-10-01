@@ -38,6 +38,8 @@ import dev.crystal.plugins.api.Offers;
 
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
+import com.fpetrola.oozx.speccy.modules.input.Input;
+import com.fpetrola.oozx.Speccy;
 
 /** The joystick window, offered like any other equipment: found, not named by the application. */
 @Offers("Plug in: Joystick")
@@ -48,5 +50,10 @@ public class JoystickEquipment implements Equipment {
 
   public MachineFrame open() {
     return new JoystickFrame();
+  }
+
+  @Override
+  public boolean usedBy(Speccy machine) {
+    return Input.of(machine).joystick().inUse() != null;
   }
 }
