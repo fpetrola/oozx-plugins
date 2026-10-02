@@ -32,17 +32,20 @@ import java.util.Set;
  * taken, by where the player was when leaving, as {@link PlayerVariable} tells. The map is laid
  * out again from the votes after each arrival, so that a side told wrong once is outvoted by the
  * times after. Two rooms the memory can no longer tell apart, as what identifies a room narrows
- * down, become one.
+ * down, become one. A room is only a room once the player has moved in it: a title, or a room
+ * the game has not finished setting up, is let go of when the next one comes, way and all.
  */
 public final class Rooms {
 
-  /** One room: the screen it was first seen as, the memory it is known by, where it is on the map, and what it leads to. */
+  /** One room: the screen it was last seen as, the memory it is known by, where it is on the map, and what it leads to. */
   public static final class Room {
     public final int number;
-    public final byte[] screen;
+    public byte[] screen;
     final byte[] memory;
     public int x, y;
     public final Set<Integer> leadsTo = new HashSet<>();
+    /** Not yet played in: nobody has moved here. */
+    boolean provisional = true;
 
     Room(int number, byte[] screen, byte[] memory) {
       this.number = number;
@@ -62,10 +65,16 @@ public final class Rooms {
 
   /** A room arrived at: known by these bytes of memory, looking like this, the last one left by that side. */
   public synchronized void arrive(List<Integer> identity, byte[] memory, byte[] screen, Side leftBy) {
+    if (current != null && current.provisional) {
+      rooms.remove(current);
+      current = null;
+    }
     Room known = rooms.stream().filter(room -> same(room.memory, memory, identity)).findFirst().orElse(null);
     if (known == null) {
       known = new Room(numbered++, screen.clone(), memory);
       rooms.add(known);
+    } else {
+      known.screen = screen.clone();
     }
     if (current != null && current != known) {
       current.leadsTo.add(known.number);
@@ -76,6 +85,11 @@ public final class Rooms {
     current = known;
     mergeWhatIsNowTheSame(identity);
     layOut();
+  }
+
+  /** The player moved in the room now: it is a room. */
+  public synchronized void played() {
+    if (current != null) current.provisional = false;
   }
 
   public synchronized List<Room> rooms() {
@@ -159,7 +173,7 @@ public final class Rooms {
     return best;
   }
 
-  private int strengthOf(Room one, Room other) {
+  int strengthOf(Room one, Room other) {
     int[] tally = votes.get(key(one, other));
     return tally == null ? 0 : tally[best(tally)];
   }
@@ -182,59 +196,90 @@ public final class Rooms {
   }
 
   /**
-   * Every room put on the grid again from the first: the best voted way from a room already placed
-   * to one that is not, again and again, each next to the other on its side - or on the nearest
-   * free square when that one is taken, which is where a map stops being a grid.
+   * Every room put on the grid again, by whichever room makes the best beginning: from each in
+   * turn, outwards - the rooms a voted way from it reaches first, then those a way from them
+   * reaches, and so on, the better voted way first among those as far out - each next to the room
+   * it is reached from, on its side, or on the nearest free square when that one is taken. The
+   * beginning kept is the one that leaves the fewest votes not drawn as voted, a way along
+   * counting double, since the rooms of a floor are a row: a game whose ways do not all fit a
+   * grid has some that cannot be, and the map keeps to the most taken. A room no
+   * voted way reaches - where the game began, before it was being played - goes in a strip of its
+   * own below, where it takes nobody's square.
    */
   private void layOut() {
-    Map<Long, Room> taken = new HashMap<>();
-    Set<Room> placed = new HashSet<>();
     if (rooms.isEmpty()) return;
-    place(rooms.get(0), 0, 0, taken, placed);
-    while (placed.size() < rooms.size()) {
-      Room bestFrom = null, bestTo = null;
-      int bestStrength = -1;
-      for (Room from : placed) {
+    Map<Room, int[]> best = null;
+    int fewest = Integer.MAX_VALUE;
+    for (Room root : rooms) {
+      Map<Room, int[]> laid = layOutFrom(root);
+      int undrawn = 0;
+      for (Room from : rooms) {
         for (int number : from.leadsTo) {
           Room to = byNumber(number, null, null);
-          if (to == null || placed.contains(to)) continue;
-          int strength = strengthOf(from, to);
-          if (strength > bestStrength) {
-            bestStrength = strength;
-            bestFrom = from;
-            bestTo = to;
+          Side side = to == null ? null : sideOf(from, to);
+          if (side != null && (laid.get(to)[0] != laid.get(from)[0] + dx(side) || laid.get(to)[1] != laid.get(from)[1] + dy(side))) {
+            undrawn += strengthOf(from, to) * (dx(side) != 0 ? 2 : 1);
           }
         }
       }
-      if (bestTo == null) {
-        Room alone = rooms.stream().filter(room -> !placed.contains(room)).findFirst().orElseThrow();
-        int below = placed.stream().mapToInt(room -> room.y).max().orElse(0) + 2;
-        placeNear(alone, 0, below, taken, placed);
+      if (undrawn < fewest) {
+        fewest = undrawn;
+        best = laid;
+      }
+    }
+    best.forEach((room, at) -> {
+      room.x = at[0];
+      room.y = at[1];
+    });
+  }
+
+  private record Way(int farOut, int strength, Room from, Room to) {
+  }
+
+
+  private Map<Room, int[]> layOutFrom(Room root) {
+    Map<Room, int[]> laid = new HashMap<>();
+    Set<Long> taken = new HashSet<>();
+    java.util.PriorityQueue<Way> ways = new java.util.PriorityQueue<>(
+        java.util.Comparator.comparingInt((Way way) -> way.farOut).thenComparingInt(way -> -way.strength));
+    placeNear(root, 0, 0, laid, taken);
+    waysOutOf(root, 1, ways);
+    while (laid.size() < rooms.size()) {
+      Way way = ways.poll();
+      if (way == null) {
+        Room alone = rooms.stream().filter(room -> !laid.containsKey(room)).findFirst().orElseThrow();
+        int below = laid.values().stream().mapToInt(at -> at[1]).max().orElse(0) + 2;
+        placeNear(alone, 0, below, laid, taken);
+        waysOutOf(alone, 1, ways);
         continue;
       }
-      Side side = sideOf(bestFrom, bestTo);
-      placeNear(bestTo, bestFrom.x + (side == null ? 0 : dx(side)), bestFrom.y + (side == null ? 1 : dy(side)), taken, placed);
+      if (laid.containsKey(way.to)) continue;
+      Side side = sideOf(way.from, way.to);
+      placeNear(way.to, laid.get(way.from)[0] + dx(side), laid.get(way.from)[1] + dy(side), laid, taken);
+      waysOutOf(way.to, way.farOut + 1, ways);
+    }
+    return laid;
+  }
+
+  /** The voted ways out of a room just placed that far out, for the rooms they reach to be placed next. */
+  private void waysOutOf(Room from, int farOut, java.util.PriorityQueue<Way> ways) {
+    for (int number : from.leadsTo) {
+      Room to = byNumber(number, null, null);
+      if (to != null && sideOf(from, to) != null) ways.add(new Way(farOut, strengthOf(from, to), from, to));
     }
   }
 
-  private void placeNear(Room room, int x, int y, Map<Long, Room> taken, Set<Room> placed) {
+  private static void placeNear(Room room, int x, int y, Map<Room, int[]> laid, Set<Long> taken) {
     for (int ring = 0; ; ring++) {
       for (int dy = -ring; dy <= ring; dy++) {
         for (int dx = -ring; dx <= ring; dx++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) == ring && !taken.containsKey(cell(x + dx, y + dy))) {
-            place(room, x + dx, y + dy, taken, placed);
+          if (Math.max(Math.abs(dx), Math.abs(dy)) == ring && taken.add(cell(x + dx, y + dy))) {
+            laid.put(room, new int[]{x + dx, y + dy});
             return;
           }
         }
       }
     }
-  }
-
-  private static void place(Room room, int x, int y, Map<Long, Room> taken, Set<Room> placed) {
-    room.x = x;
-    room.y = y;
-    taken.put(cell(x, y), room);
-    placed.add(room);
   }
 
   private static long cell(int x, int y) {

@@ -17,7 +17,9 @@
 
 package com.fpetrola.oozx.speccy.tools.map;
 
-/** The shape of a Spectrum screen, and two screens compared by it. */
+import java.awt.image.BufferedImage;
+
+/** The shape of a Spectrum screen, two screens compared by it, and one drawn. */
 final class Screens {
   static final int SCREEN = 6912, BITMAP = 6144, COLUMNS = 32, ROWS = 24, CELLS = COLUMNS * ROWS;
 
@@ -54,5 +56,26 @@ final class Screens {
       if (differs) differing++;
     }
     return differing;
+  }
+
+  /** A Spectrum screen as a picture, in the colours the machine shows it in, or the usual ones without a machine. */
+  static BufferedImage picture(byte[] screen, int[] palette) {
+    BufferedImage picture = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
+    for (int offset = 0; offset < BITMAP; offset++) {
+      int column = offset & 31, line = (offset >> 8 & 7) | (offset >> 2 & 0x38) | (offset >> 5 & 0xc0);
+      int attribute = screen[BITMAP + (line >> 3) * 32 + column] & 0xff;
+      int bright = attribute >> 3 & 8;
+      int ink = colour(palette, attribute & 7 | bright), paper = colour(palette, attribute >> 3 & 7 | bright);
+      for (int bit = 0; bit < 8; bit++) {
+        picture.setRGB(column * 8 + bit, line, (screen[offset] << bit & 0x80) != 0 ? ink : paper);
+      }
+    }
+    return picture;
+  }
+
+  private static int colour(int[] palette, int index) {
+    if (palette != null) return palette[index];
+    int level = (index & 8) != 0 ? 0xff : 0xcd;
+    return ((index & 2) != 0 ? level << 16 : 0) | ((index & 4) != 0 ? level << 8 : 0) | ((index & 1) != 0 ? level : 0);
   }
 }

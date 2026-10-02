@@ -49,6 +49,8 @@ public final class PlayerVariable {
   static final int KEPT = 32;
   /** Frames the byte has to have been followed before its word is taken: the first to show is not always the one. */
   static final int TRUSTED_AFTER = 1500;
+  /** Frames without the position changing after which whoever it is was not being played. */
+  static final int IDLE = 200;
 
   /** A byte the keys move: which key sends it up, which down, and how sure that is. */
   public record Found(int address, int up, int down, int changes, double score) {
@@ -67,7 +69,7 @@ public final class PlayerVariable {
   private Found player;
   private boolean wide;
   private final int[] kept = new int[KEPT];
-  private int followed;
+  private int followed, lastMovedAt = -IDLE;
   private final Map<Integer, Integer> stepsAlong = new HashMap<>(), otherSteps = new HashMap<>();
   private int xMin = Integer.MAX_VALUE, xMax = -1, yMin = Integer.MAX_VALUE, yMax = -1, modulusWas;
 
@@ -107,7 +109,7 @@ public final class PlayerVariable {
       }
     }
     started = true;
-    if (frame % 50 == 0) choose();
+    if (frame % 50 == 0 && followed < TRUSTED_AFTER) choose();
     if (player != null) follow(held);
   }
 
@@ -122,6 +124,25 @@ public final class PlayerVariable {
     otherSteps.clear();
     xMin = yMin = Integer.MAX_VALUE;
     xMax = yMax = -1;
+  }
+
+  /** Starts out knowing what another one found: the byte, how it is read, and where its edges are. */
+  public void learnedFrom(PlayerVariable other) {
+    player = other.player;
+    wide = other.wide;
+    stepsAlong.putAll(other.stepsAlong);
+    otherSteps.putAll(other.otherSteps);
+    xMin = other.xMin;
+    xMax = other.xMax;
+    yMin = other.yMin;
+    yMax = other.yMax;
+    modulusWas = other.modulusWas;
+    followed = TRUSTED_AFTER;
+  }
+
+  /** Whether the player moved in the frame just seen. */
+  public boolean movedNow() {
+    return player != null && lastMovedAt == frame;
   }
 
   /** Whether the player has been found, so that where they are can be asked. */
@@ -156,6 +177,8 @@ public final class PlayerVariable {
     int x = at(before) % modulus, y = at(before) / modulus;
     int lastMove = 0;
     for (int back = before; back + 1 < KEPT && lastMove == 0; back++) lastMove = at(back) - at(back + 1);
+    // Nobody who has not moved for a while left by anywhere: a title, or a game not yet being played.
+    if (frame - lastMovedAt > IDLE) return null;
     // Packed, the columns run from nought to the row's width, and the player is wider than one.
     boolean packed = down > across;
     int left = packed ? 0 : xMin, right = packed ? modulus - 1 - across : xMax;
@@ -188,6 +211,9 @@ public final class PlayerVariable {
     if (delta != 0) {
       boolean along = (held >> player.up & 1) != 0 || (held >> player.down & 1) != 0;
       (along ? stepsAlong : otherSteps).merge(Math.abs(delta), 1, Integer::sum);
+      // A move is a step or two, which a jump or a fall is; being put somewhere, as a game does on
+      // starting or on a death, is not.
+      if (Math.abs(delta) <= 2 * Math.max(stepAlong(), stepDown())) lastMovedAt = frame;
     }
     int modulus = modulus(stepAlong(), stepDown());
     if (modulus != modulusWas) {

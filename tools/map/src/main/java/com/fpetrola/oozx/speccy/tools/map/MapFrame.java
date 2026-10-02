@@ -123,6 +123,7 @@ public class MapFrame extends MachineFrame {
     if (roomVariable.leaving()) leftBy = playerVariable.sideOfLeaving();
     if (arrived) rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy);
     playerVariable.frame(keys);
+    if (playerVariable.movedNow()) rooms.played();
   }
 
   private void stopWatching() {
@@ -134,7 +135,8 @@ public class MapFrame extends MachineFrame {
 
   /** The whole map fitted to the window, and from there dragged about and zoomed with the wheel; a double click fits it again. */
   private class Drawing extends JComponent {
-    private final Map<Integer, BufferedImage> pictures = new HashMap<>();
+    /** By the screen itself: a room seen again has a new one, and the old picture goes with the old screen. */
+    private final Map<byte[], BufferedImage> pictures = new java.util.IdentityHashMap<>();
     private double zoom = 1, panX, panY;
 
     Drawing() {
@@ -194,7 +196,7 @@ public class MapFrame extends MachineFrame {
       Rooms.Room current = rooms.current();
       for (Rooms.Room room : found) {
         int x = (room.x - left) * width, y = (room.y - top) * height;
-        pen.drawImage(pictures.computeIfAbsent(room.number, n -> pictureOf(room.screen)), x, y, width, height, null);
+        pen.drawImage(pictures.computeIfAbsent(room.screen, this::pictureOf), x, y, width, height, null);
         if (room == current) {
           pen.setColor(Color.YELLOW);
           pen.drawRect(x, y, width - 1, height - 1);
@@ -203,26 +205,8 @@ public class MapFrame extends MachineFrame {
       }
     }
 
-    /** A Spectrum screen as a picture, in the colours the machine shows it in. */
     private BufferedImage pictureOf(byte[] screen) {
-      int[] palette = machine() == null ? null : machine().display.picture().palette;
-      BufferedImage picture = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
-      for (int offset = 0; offset < Screens.BITMAP; offset++) {
-        int column = offset & 31, line = (offset >> 8 & 7) | (offset >> 2 & 0x38) | (offset >> 5 & 0xc0);
-        int attribute = screen[Screens.BITMAP + (line >> 3) * 32 + column] & 0xff;
-        int bright = attribute >> 3 & 8;
-        int ink = colour(palette, attribute & 7 | bright), paper = colour(palette, attribute >> 3 & 7 | bright);
-        for (int bit = 0; bit < 8; bit++) {
-          picture.setRGB(column * 8 + bit, line, (screen[offset] << bit & 0x80) != 0 ? ink : paper);
-        }
-      }
-      return picture;
-    }
-
-    private int colour(int[] palette, int index) {
-      if (palette != null) return palette[index];
-      int level = (index & 8) != 0 ? 0xff : 0xcd;
-      return ((index & 2) != 0 ? level << 16 : 0) | ((index & 4) != 0 ? level << 8 : 0) | ((index & 1) != 0 ? level : 0);
+      return Screens.picture(screen, machine() == null ? null : machine().display.picture().palette);
     }
   }
 }
