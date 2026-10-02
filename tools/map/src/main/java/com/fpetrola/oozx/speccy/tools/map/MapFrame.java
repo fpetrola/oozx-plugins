@@ -47,6 +47,10 @@ public class MapFrame extends MachineFrame {
   private final JLabel said = new JLabel(" ");
   private final Drawing drawing = new Drawing();
   private Rooms rooms = new Rooms();
+  private RoomVariable roomVariable;
+  private PlayerVariable playerVariable;
+  private InputsSeen inputs;
+  private PlayerVariable.Side leftBy;
   private PcTraps.Watch watching;
   private long frame = -1;
 
@@ -54,7 +58,7 @@ public class MapFrame extends MachineFrame {
     super("Map");
     setSize(480, 360);
     JButton again = new JButton("Start again");
-    again.addActionListener(e -> rooms = new Rooms());
+    again.addActionListener(e -> startAgain(machine()));
     controls.add(again);
     controls.add(said);
     assemble(drawing);
@@ -63,7 +67,8 @@ public class MapFrame extends MachineFrame {
       int found = rooms.rooms().size();
       String way = rooms.lastWayOut();
       said.setText(machine() == null ? "not clipped onto a machine"
-          : found + (found == 1 ? " room" : " rooms") + (way.isEmpty() ? "" : " - last way out: " + way));
+          : found + (found == 1 ? " room" : " rooms") + (way.isEmpty() ? "" : " - last way out: " + way)
+          + (playerVariable == null || !playerVariable.known() ? " - looking for the player" : ""));
       drawing.repaint();
     });
     refresh.start();
@@ -79,8 +84,17 @@ public class MapFrame extends MachineFrame {
   @Override
   protected void machineChanged(Speccy was, Speccy now) {
     stopWatching();
-    rooms = new Rooms();
+    startAgain(now);
     if (now != null) watching = now.cpu.beforeFetch().watch(0x0000, 0xffff, pc -> lookAtTheScreen(now));
+  }
+
+  /** What is known starts over: the rooms, and what the game's memory says of rooms and the player. */
+  private void startAgain(Speccy machine) {
+    rooms = new Rooms();
+    if (inputs != null) inputs.off();
+    inputs = machine == null ? null : new InputsSeen(machine);
+    roomVariable = machine == null ? null : new RoomVariable(machine.memory::peek);
+    playerVariable = machine == null ? null : new PlayerVariable(machine.memory::peek);
   }
 
   @Override
@@ -93,19 +107,29 @@ public class MapFrame extends MachineFrame {
     return "Clip this onto the machine whose game is being mapped";
   }
 
-  /** Once a frame, the first time the processor fetches in a new one: the screen as the last left it. */
+  /**
+   * Once a frame, the first time the processor fetches in a new one: the screen as the last left
+   * it, the keys the game saw, and what the memory says. Leaving is noticed as the next room starts
+   * being drawn, which is when the player was last where they left by; arriving when it is drawn.
+   */
   private void lookAtTheScreen(Speccy machine) {
     long now = machine.machine.current.frameCount();
     if (now == frame) return;
     frame = now;
-    byte[] screen = new byte[Rooms.SCREEN];
+    byte[] screen = new byte[Screens.SCREEN];
     for (int offset = 0; offset < screen.length; offset++) screen[offset] = (byte) machine.memory.peek(SCREEN + offset);
-    rooms.frame(screen);
+    long keys = inputs.frame();
+    boolean arrived = roomVariable.frame(screen);
+    if (roomVariable.leaving()) leftBy = playerVariable.sideOfLeaving();
+    if (arrived) rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy);
+    playerVariable.frame(keys);
   }
 
   private void stopWatching() {
     if (watching != null) watching.off();
     watching = null;
+    if (inputs != null) inputs.off();
+    inputs = null;
   }
 
   /** The whole map fitted to the window, and from there dragged about and zoomed with the wheel; a double click fits it again. */
@@ -183,9 +207,9 @@ public class MapFrame extends MachineFrame {
     private BufferedImage pictureOf(byte[] screen) {
       int[] palette = machine() == null ? null : machine().display.picture().palette;
       BufferedImage picture = new BufferedImage(256, 192, BufferedImage.TYPE_INT_RGB);
-      for (int offset = 0; offset < Rooms.BITMAP; offset++) {
+      for (int offset = 0; offset < Screens.BITMAP; offset++) {
         int column = offset & 31, line = (offset >> 8 & 7) | (offset >> 2 & 0x38) | (offset >> 5 & 0xc0);
-        int attribute = screen[Rooms.BITMAP + (line >> 3) * 32 + column] & 0xff;
+        int attribute = screen[Screens.BITMAP + (line >> 3) * 32 + column] & 0xff;
         int bright = attribute >> 3 & 8;
         int ink = colour(palette, attribute & 7 | bright), paper = colour(palette, attribute >> 3 & 7 | bright);
         for (int bit = 0; bit < 8; bit++) {
