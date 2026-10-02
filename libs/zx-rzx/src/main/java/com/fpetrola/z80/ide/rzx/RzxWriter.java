@@ -21,6 +21,7 @@ package com.fpetrola.z80.ide.rzx;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -108,22 +109,56 @@ public class RzxWriter {
       frames.addAll(extra);
     }
 
-    byte[] payload = deflate(encodeFrames(frames));
-
     try (OutputStream os = Files.newOutputStream(out)) {
       os.write(prefix);
       if (nuevo)
         os.write(original.getTail());
-      os.write(0x80);
-      // block length includes its own id and length fields: 1 + 4 + 4 (frame count)
-      // + 1 (reserved) + 4 (tStates) + 4 (flags) = 18 bytes of header
-      writeInt(os, 18 + payload.length);
-      writeInt(os, frames.size());
-      os.write(0);
-      writeInt(os, nuevo ? 0 : (int) block.tStates);
-      writeInt(os, 0x02); // protected=0, so the written recording can be extended again
-      os.write(payload);
+      writeInputBlock(os, frames, nuevo ? 0 : (int) block.tStates);
     }
+  }
+
+  /**
+   * A recording made from nothing: the machine as it was, as the snapshot it is given, and the
+   * frames played since. Readable by the parser here and by any player.
+   */
+  public static void write(byte[] snapshot, String snapshotExtension, List<InputRecordingBlock.Frame> frames, Path out)
+      throws IOException {
+    try (OutputStream os = Files.newOutputStream(out)) {
+      os.write("RZX!".getBytes(StandardCharsets.US_ASCII));
+      os.write(0);
+      os.write(13);
+      writeInt(os, 0);
+      byte[] creator = new byte[20];
+      byte[] name = "oozx".getBytes(StandardCharsets.US_ASCII);
+      System.arraycopy(name, 0, creator, 0, name.length);
+      os.write(0x10);
+      writeInt(os, 29);
+      os.write(creator);
+      os.write(new byte[]{0, 0, 0, 0});
+      os.write(0x30);
+      writeInt(os, 17 + snapshot.length);
+      writeInt(os, 0);
+      byte[] extension = new byte[4];
+      byte[] named = snapshotExtension.getBytes(StandardCharsets.US_ASCII);
+      System.arraycopy(named, 0, extension, 0, Math.min(named.length, 4));
+      os.write(extension);
+      writeInt(os, snapshot.length);
+      os.write(snapshot);
+      writeInputBlock(os, frames, 0);
+    }
+  }
+
+  private static void writeInputBlock(OutputStream os, List<InputRecordingBlock.Frame> frames, int tStates) throws IOException {
+    byte[] payload = deflate(encodeFrames(frames));
+    os.write(0x80);
+    // block length includes its own id and length fields: 1 + 4 + 4 (frame count)
+    // + 1 (reserved) + 4 (tStates) + 4 (flags) = 18 bytes of header
+    writeInt(os, 18 + payload.length);
+    writeInt(os, frames.size());
+    os.write(0);
+    writeInt(os, tStates);
+    writeInt(os, 0x02); // protected=0, so the written recording can be extended again
+    os.write(payload);
   }
 
   /**

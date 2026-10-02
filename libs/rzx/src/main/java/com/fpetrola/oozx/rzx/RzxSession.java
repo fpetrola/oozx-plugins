@@ -108,6 +108,11 @@ public class RzxSession {
   }
 
   /** The model the recording was made on, which is the one the machine became to replay it. */
+  /** Told what the recording hands the machine for every port read: a recorder of this machine keeps that. */
+  public void whenRead(com.fpetrola.z80.minizx.emulation.OutListener listener) {
+    ports.player.addInListener(listener);
+  }
+
   public String getMachineName() {
     return speccy.machine.current.getName();
   }
