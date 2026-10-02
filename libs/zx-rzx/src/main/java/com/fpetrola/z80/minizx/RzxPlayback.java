@@ -20,7 +20,9 @@ package com.fpetrola.z80.minizx;
 
 import com.fpetrola.z80.cpu.OOZ80;
 import com.fpetrola.z80.cpu.State;
+import com.fpetrola.z80.ide.rzx.InputRecordingBlock;
 import com.fpetrola.z80.ide.rzx.RzxFile;
+import java.util.List;
 import com.fpetrola.z80.registers.Register;
 
 /**
@@ -55,7 +57,7 @@ public class RzxPlayback {
   private final Register registerR;
   private final RZXPlayerIO player;
   private final java.util.function.IntPredicate endOfFrame;
-  private final int frames;
+  private final List<InputRecordingBlock.Frame> frames;
   private final com.fpetrola.z80.cpu.Z80Clock clock;
   /** Told the length of every frame the recording ends, for the machine to end its own on. */
   private final java.util.function.IntConsumer frameEnded;
@@ -82,7 +84,7 @@ public class RzxPlayback {
     this.player = player;
     this.state = cpu.getState();
     this.registerR = state.getRegisterR();
-    this.frames = recording.getInputRecordingBlock().frames.size();
+    this.frames = recording.getInputRecordingBlock().frames;
 
     player.setup(recording);
     player.setPc(state.getPc());
@@ -165,8 +167,9 @@ public class RzxPlayback {
     previousR = now;
   }
 
+  /** Asked of the recording each time, since one being made grows while it is played. */
   public boolean isFinished() {
-    return frameIndex >= frames;
+    return frameIndex >= frames.size();
   }
 
   /** Frames played so far. The player's own index should agree; they part company on a desync. */
@@ -179,7 +182,7 @@ public class RzxPlayback {
   }
 
   public int getFrameCount() {
-    return frames;
+    return frames.size();
   }
 
   public long getInstructions() {

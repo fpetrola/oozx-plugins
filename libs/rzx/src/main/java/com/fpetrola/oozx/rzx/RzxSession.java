@@ -113,6 +113,14 @@ public class RzxSession {
     ports.player.addInListener(listener);
   }
 
+  /** No picture to paint and no sound to pace the frames: for a session nobody watches, which goes as fast as it can. */
+  public RzxSession quiet() {
+    speccy.picture.active = false;
+    speccy.sound.output.enabled = false;
+    speccy.sound.setCard(new com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice());
+    return this;
+  }
+
   public String getMachineName() {
     return speccy.machine.current.getName();
   }
@@ -128,9 +136,6 @@ public class RzxSession {
 
   public static RzxSession open(File file) {
     RzxFile recording = new RzxParser().parseFile(file.getAbsolutePath());
-    // The parser answers null for anything it does not recognise rather than saying so, and a
-    // recording without a snapshot starts from a machine state it does not carry, which this
-    // cannot supply. Both were reaching the caller as a NullPointerException from somewhere else.
     if (recording == null) {
       throw new IllegalArgumentException(file.getName() + " is not a recording this can read");
     }
@@ -138,7 +143,22 @@ public class RzxSession {
       throw new IllegalArgumentException(
           file.getName() + " carries no snapshot, so there is no state to start it from");
     }
+    return of(recording);
+  }
 
+  /**
+   * A session on a recording still being made: it plays the frames there are and says there is
+   * nothing to play, rather than that it has finished, when it has caught up with the recorder.
+   */
+  public static RzxSession follow(RzxRecorder recorder) {
+    RzxSession session = of(recorder.recording());
+    session.following = recorder;
+    return session;
+  }
+
+  private RzxRecorder following;
+
+  private static RzxSession of(RzxFile recording) {
     RZXPlayerIO player = new RZXPlayerIO();
     SwitchableIO ports = new SwitchableIO(player);
     // Made the way every machine is made, with the ports overridden: made from the bare module
@@ -222,6 +242,8 @@ public class RzxSession {
    * @return false at the end of the recording
    */
   public boolean playFrame() {
+    // The player looks for the next frame as it closes this one, so both have to be there.
+    if (following != null && !following.hasFrame(playback.getFrameIndex() + 1)) return false;
     // This is how a machine driven by a recording advances, so it is where what was deferred
     // gets done - the ordinary loop does it at the end of doOpcodes, which never runs here.
     speccy.loop.applyWhatWasDeferred();

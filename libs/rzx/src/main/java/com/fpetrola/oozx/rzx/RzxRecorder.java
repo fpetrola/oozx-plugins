@@ -20,8 +20,12 @@ package com.fpetrola.oozx.rzx;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.z80.PcTraps;
+import com.fpetrola.z80.ide.rzx.CreatorInfo;
 import com.fpetrola.z80.ide.rzx.InputRecordingBlock;
+import com.fpetrola.z80.ide.rzx.RzxFile;
+import com.fpetrola.z80.ide.rzx.RzxHeader;
 import com.fpetrola.z80.ide.rzx.RzxWriter;
+import com.fpetrola.z80.ide.rzx.SnapshotBlock;
 import com.fpetrola.z80.registers.Register;
 
 import java.io.ByteArrayOutputStream;
@@ -54,7 +58,7 @@ public final class RzxRecorder {
 
   private final Speccy speccy;
   private final Register registerR;
-  private final List<InputRecordingBlock.Frame> frames = new ArrayList<>();
+  private final List<InputRecordingBlock.Frame> frames = java.util.Collections.synchronizedList(new ArrayList<>());
   private final ByteArrayOutputStream answers = new ByteArrayOutputStream();
   private final PcTraps.Watch fetching, executed;
   private final Runnable taken, stopListening;
@@ -93,9 +97,7 @@ public final class RzxRecorder {
       frame.fetchCounter = fetches;
       frame.returnValues = answers.toByteArray();
       frame.inCounter = frame.returnValues.length;
-      synchronized (frames) {
-        frames.add(frame);
-      }
+      frames.add(frame);
     } else {
       snapshot = snapshotNow();
       started = true;
@@ -135,9 +137,29 @@ public final class RzxRecorder {
   }
 
   public int frames() {
-    synchronized (frames) {
-      return frames.size();
-    }
+    return frames.size();
+  }
+
+  /** Whether that frame has been recorded, so a session following this can play up to it. */
+  public boolean hasFrame(int index) {
+    return index < frames.size();
+  }
+
+  /**
+   * The recording as it stands and as it grows: the frames are this recorder's own, so a session
+   * playing it finds the frames recorded after it started.
+   */
+  public RzxFile recording() {
+    if (!started) throw new IllegalStateException("nothing recorded yet");
+    RzxHeader header = new RzxHeader();
+    header.signature = "RZX!";
+    SnapshotBlock block = new SnapshotBlock();
+    block.setSnapshotExtension(SNAPSHOT);
+    block.setSnapshotData(snapshot);
+    block.setUncompressedLength(snapshot.length);
+    InputRecordingBlock input = new InputRecordingBlock();
+    input.frames = frames;
+    return new RzxFile(header, new CreatorInfo(), block, input);
   }
 
   /** The recording so far, as a file a session opens. */

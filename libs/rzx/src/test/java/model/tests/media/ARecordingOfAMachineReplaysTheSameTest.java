@@ -45,19 +45,10 @@ class ARecordingOfAMachineReplaysTheSameTest {
     }
   }
 
-  /** A session without a picture to paint or sound to pace it: the frames go as fast as they come. */
-  private static RzxSession quietly(File recording) {
-    RzxSession session = RzxSession.open(recording);
-    session.getSpeccy().picture.active = false;
-    session.getSpeccy().sound.output.enabled = false;
-    session.getSpeccy().sound.setCard(new com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice());
-    return session;
-  }
-
   @Test
   @org.junit.jupiter.api.Timeout(value = 10, unit = java.util.concurrent.TimeUnit.MINUTES)
   void the_recording_of_a_played_machine_replays_to_the_same_screen() throws Exception {
-    played = quietly(recording());
+    played = RzxSession.open(recording()).quiet();
     for (int frame = 0; frame < SKIPPED; frame++) played.playFrame();
     RzxRecorder recorder = new RzxRecorder(played.getSpeccy(), answer -> {
       played.whenRead((port, value) -> answer.accept(value));
@@ -74,7 +65,7 @@ class ARecordingOfAMachineReplaysTheSameTest {
     recorder.writeTo(copy);
     int kept = recorder.frames();
 
-    RzxSession replayed = quietly(copy.toFile());
+    RzxSession replayed = RzxSession.open(copy.toFile()).quiet();
     int[] matching = new int[3], firstDiffering = {-1, -1, -1};
     int frames = 0;
     while (replayed.playFrame()) {
@@ -94,6 +85,43 @@ class ARecordingOfAMachineReplaysTheSameTest {
     assertEquals(frames, Math.max(matching[0], Math.max(matching[1], matching[2])), "frames whose screen is the played machine's");
     this.played.release();
     replayed.release();
+  }
+
+  /** A session following the recorder catches up with the played machine and then waits for it, frame by frame. */
+  @Test
+  @org.junit.jupiter.api.Timeout(value = 10, unit = java.util.concurrent.TimeUnit.MINUTES)
+  void a_session_following_the_recorder_catches_up_and_waits_for_it() throws Exception {
+    played = RzxSession.open(recording()).quiet();
+    for (int frame = 0; frame < SKIPPED; frame++) played.playFrame();
+    RzxRecorder recorder = new RzxRecorder(played.getSpeccy(), answer -> {
+      played.whenRead((port, value) -> answer.accept(value));
+      return () -> { };
+    });
+    for (int frame = 0; frame < 200; frame++) played.playFrame();
+    RzxSession twin = RzxSession.follow(recorder).quiet();
+    java.util.List<byte[]> seen = new java.util.ArrayList<>();
+    int caughtUp = 0, matching = 0, compared = 0;
+    for (int frame = 0; frame < RECORDED; frame++) {
+      played.playFrame();
+      seen.add(screenOf(played.getSpeccy()));
+      while (twin.playFrame()) {
+        // The twin's frames count from the recorder's start, 200 frames before this loop's.
+        int at = twin.getPlayback().getFrameIndex() - 200;
+        if (at >= 0 && at < seen.size()) {
+          compared++;
+          if (java.util.Arrays.equals(screenOf(twin.getSpeccy()), seen.get(at))) matching++;
+        }
+      }
+      caughtUp++;
+    }
+    recorder.stop();
+    System.out.printf("twin: played %d frames, compared %d, matching %d%n", twin.getPlayback().getFrameIndex(), compared, matching);
+    assertEquals(RECORDED, caughtUp, "times the twin had nothing left to play");
+    assertEquals(RECORDED - 1, compared, "twin frames held against the played machine's");
+    assertEquals(compared, matching, "twin frames whose screen is the played machine's");
+    assertEquals(RECORDED + 200 - 2, twin.getPlayback().getFrameIndex(), "frames the twin played: all but the recorder's first and the one it cannot touch");
+    played.release();
+    twin.release();
   }
 
   private static byte[] screenOf(Speccy speccy) {
