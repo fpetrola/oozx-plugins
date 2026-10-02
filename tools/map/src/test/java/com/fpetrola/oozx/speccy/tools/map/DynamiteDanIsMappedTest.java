@@ -65,29 +65,35 @@ class DynamiteDanIsMappedTest {
     Map<Integer, Set<Integer>> screensOfRoom = new HashMap<>(), roomsOfScreen = new HashMap<>();
     Mapping.Pass pass = Mapping.twice(RECORDING, new Mapping.Watching() {
     }, new Mapping.Watching() {
-      PlayerVariable.Side said;
-      int screenBefore = -1, roomBefore = -1;
+      int screenBefore = -1, roomBefore = -1, screenLeft = -1;
+      PlayerVariable.Side truth;
 
       @Override
-      public void leaving(Speccy speccy, int frames, PlayerVariable.Side said) {
-        this.said = said;
-      }
-
-      @Override
-      public void arrived(Speccy speccy, int frames, Rooms rooms, PlayerVariable player, RoomVariable roomVariable) {
+      public void arrived(Speccy speccy, int frames, Rooms rooms, PlayerVariable player, RoomVariable roomVariable, PlayerVariable.Side voted) {
         int screen = speccy.memory.peek(SCREEN), room = rooms.current().number;
         screensOfRoom.computeIfAbsent(room, r -> new HashSet<>()).add(screen);
         roomsOfScreen.computeIfAbsent(screen, s -> new HashSet<>()).add(room);
-        PlayerVariable.Side voted = said != null ? said : player.sideOfLeaving(true);
-        said = null;
+        truth = null;
+        screenLeft = -1;
         if (roomBefore >= 0 && room != roomBefore) {
-          PlayerVariable.Side truth = sideFrom(screenBefore, screen);
-          int[] tally = sides.computeIfAbsent(truth == null ? "no way" : truth.toString(), s -> new int[2]);
-          tally[voted == truth ? 0 : 1]++;
-          if (voted != truth) System.out.printf("  from screen %d to %d, %s, voted %s%n", screenBefore, screen, truth == null ? "not a way" : "the game says " + truth, voted);
+          truth = sideFrom(screenBefore, screen);
+          screenLeft = screenBefore;
         }
         screenBefore = screen;
         roomBefore = room;
+        if (screenLeft >= 0) tally(truth, voted, 1);
+      }
+
+      @Override
+      public void wayToldLate(PlayerVariable.Side side) {
+        if (screenLeft < 0) return;
+        tally(truth, null, -1);
+        tally(truth, side, 1);
+      }
+
+      private void tally(PlayerVariable.Side truth, PlayerVariable.Side voted, int by) {
+        sides.computeIfAbsent(truth == null ? "no way" : truth.toString(), s -> new int[2])[voted == truth ? 0 : 1] += by;
+        if (by > 0 && voted != truth) System.out.printf("  screen %d -> %d: %s, voted %s%n", screenLeft, screenBefore, truth == null ? "not a way" : "the game says " + truth, voted);
       }
     });
     System.out.print("  sides of leaving:");

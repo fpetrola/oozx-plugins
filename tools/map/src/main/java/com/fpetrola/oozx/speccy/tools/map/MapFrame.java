@@ -50,7 +50,7 @@ public class MapFrame extends MachineFrame {
   private RoomVariable roomVariable;
   private PlayerVariable playerVariable;
   private InputsSeen inputs;
-  private PlayerVariable.Side leftBy;
+  private Mapper mapper;
   private PcTraps.Watch watching;
   private long frame = -1;
 
@@ -95,6 +95,8 @@ public class MapFrame extends MachineFrame {
     inputs = machine == null ? null : new InputsSeen(machine);
     roomVariable = machine == null ? null : new RoomVariable(machine.memory::peek);
     playerVariable = machine == null ? null : new PlayerVariable(machine.memory::peek);
+    mapper = machine == null ? null : new Mapper(roomVariable, playerVariable, rooms, new Mapper.Listener() {
+    });
   }
 
   @Override
@@ -107,27 +109,14 @@ public class MapFrame extends MachineFrame {
     return "Clip this onto the machine whose game is being mapped";
   }
 
-  /**
-   * Once a frame, the first time the processor fetches in a new one: the screen as the last left
-   * it, the keys the game saw, and what the memory says. Leaving is noticed as the next room starts
-   * being drawn, which is when the player was last where they left by; arriving when it is drawn.
-   */
+  /** Once a frame, the first time the processor fetches in a new one: the screen as the last left it and the keys the game saw. */
   private void lookAtTheScreen(Speccy machine) {
     long now = machine.machine.current.frameCount();
     if (now == frame) return;
     frame = now;
     byte[] screen = new byte[Screens.SCREEN];
     for (int offset = 0; offset < screen.length; offset++) screen[offset] = (byte) machine.memory.peek(SCREEN + offset);
-    long keys = inputs.frame();
-    boolean arrived = roomVariable.frame(screen);
-    if (roomVariable.leaving()) leftBy = playerVariable.sideOfLeaving(false);
-    if (arrived) {
-      PlayerVariable.Side onArriving = playerVariable.sideOfLeaving(true);
-      rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy != null ? leftBy : onArriving);
-      playerVariable.roomEntered();
-    }
-    playerVariable.frame(keys);
-    if (playerVariable.movedNow()) rooms.played();
+    mapper.frame(screen, inputs.frame());
   }
 
   private void stopWatching() {

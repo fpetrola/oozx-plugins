@@ -42,9 +42,12 @@ import java.util.Map;
  */
 public final class PlayerVariable {
   static final int FROM = 0x5B00, TO = 0x10000, KEYS = 45;
-  /** Changes under a key before the key is believed, changes in all before a byte is, and how consistently they must go one way. */
-  static final int ENOUGH = 60, SEEN = 300;
-  static final double CONSISTENT = 0.75;
+  /**
+   * How sure a key's way has to be: the rises against the falls under it, in standard deviations
+   * of what chance gives, and as a share of the two, since a counter of four goes one way three
+   * times in four however long it is watched.
+   */
+  static final double SURE = 3, CONSISTENT = 0.75;
   /** Changes with no key held, as a share of all its changes, beyond which a byte is not the player's. */
   static final double UNBIDDEN = 0.5;
   /** Frames a key is still taken as held after it was seen: the game moves a while after it reads. */
@@ -53,7 +56,7 @@ public final class PlayerVariable {
   static final int KEPT = 64;
   /** Frames the byte has to have been followed before its word is taken: the first to show is not always the one. */
   static final int TRUSTED_AFTER = 1500;
-  /** Frames without the position changing after which whoever it is was not being played. */
+  /** Frames with no key held and the player not moving after which nobody is playing: a title showing rooms is not a game. */
   static final int IDLE = 200;
   /** How common the other step has to be against the step along for the byte to pack a row with the column. */
   static final double PACKED = 0.2;
@@ -79,12 +82,13 @@ public final class PlayerVariable {
   private Found player;
   private boolean wide;
   private final int[] kept = new int[KEPT];
-  private int followed, lastMovedAt = -IDLE, steppedAt = -1;
+  private int followed, lastMovedAt = -IDLE, lastKeyAt = -IDLE, steppedAt = -1;
+  private boolean learned;
   private final Map<Integer, Integer> stepsAlong = new HashMap<>(), otherSteps = new HashMap<>();
   private int xMin = Integer.MAX_VALUE, xMax = -1, yMin = Integer.MAX_VALUE, yMax = -1, modulusWas;
   private final byte[][] remembered = new byte[KEPT][TO];
   private final int[] rowLeaps = new int[TO], leaps = new int[TO];
-  private int rowVotings, enteredAt;
+  private int rowVotings, enteredAt, arrivedAt;
   private int row = -1;
   private boolean rowWide;
   private int rowMin = Integer.MAX_VALUE, rowMax = -1;
@@ -96,6 +100,7 @@ public final class PlayerVariable {
   /** At the end of a frame, with the keys the game saw held during it. */
   public void frame(long keys) {
     frame++;
+    if (keys != 0) lastKeyAt = frame;
     lately[frame % LINGER] = keys;
     long held = 0;
     for (long seen : lately) held |= seen;
@@ -127,7 +132,7 @@ public final class PlayerVariable {
       }
     }
     started = true;
-    if (frame % 50 == 0 && followed < TRUSTED_AFTER) choose();
+    if (frame % 50 == 0 && !learned) choose();
     if (player != null) follow(held);
   }
 
@@ -163,11 +168,27 @@ public final class PlayerVariable {
     System.arraycopy(other.leaps, 0, leaps, 0, TO);
     rowVotings = other.rowVotings;
     followed = TRUSTED_AFTER;
+    learned = true;
   }
 
-  /** A room has just been arrived at: the leap that brought the player here is not a leaving. */
-  public void roomEntered() {
+  /** A room has been arrived at, with the way in told already or still to be looked for while the player stands still. */
+  public void roomEntered(boolean wayTold) {
+    arrivedAt = frame;
+    if (wayTold) waySettled();
+  }
+
+  /**
+   * The way into the room now is settled, told or given up on: the leap that brought the player
+   * here is not a leaving any more, and whether the column leapt in it says which bytes may be the row.
+   */
+  public void waySettled() {
+    if (player != null && !packed()) lookForTheRow(leapOf(this::at, 0) != null);
     enteredAt = frame;
+  }
+
+  /** Whether nothing has moved the player since arriving: a leap now still belongs to the way in. */
+  public boolean stillSinceArriving() {
+    return lastMovedAt < arrivedAt;
   }
 
   /** Whether the player took a step in the frame just seen: walked, as against being carried or falling. */
@@ -193,12 +214,12 @@ public final class PlayerVariable {
    * The side the room was just left by, from the leap the game made the position take to put the
    * player at the next room's door: the column from its most to its least is leaving on the
    * right, the row likewise is leaving at the bottom. Null until the player has been followed for
-   * a while, when nobody was being played, and when nothing has leapt yet: asked as the next room
-   * starts being drawn it may be too soon, and asked again on arriving it is not. Arriving is
-   * also when the row is looked for, since by then the leap has surely been taken.
+   * a while, when nobody was being played, and when nothing has leapt since the last room was
+   * settled into: asked as the next room starts being drawn it may be too soon, and asked again
+   * on arriving, or after, it is not.
    */
-  public Side sideOfLeaving(boolean arrived) {
-    if (player == null || followed < TRUSTED_AFTER || frame - lastMovedAt > IDLE) return null;
+  public Side sideOfLeaving() {
+    if (player == null || followed < TRUSTED_AFTER || frame - lastPlayedAt() > IDLE) return null;
     int down = stepDown();
     int[] leap = leapOf(this::at, packed() ? down : 0);
     if (packed()) {
@@ -208,7 +229,6 @@ public final class PlayerVariable {
       if (rowLeapt && columnLeapt) return null;
       return rowLeapt ? across(fromRow, toRow, yMin, yMax, Side.DOWN, Side.UP) : across(fromColumn, toColumn, xMin, xMax, Side.RIGHT, Side.LEFT);
     }
-    if (arrived) lookForTheRow(leap != null);
     int[] rowLeap = row < 0 ? null : leapOf(this::rowValue, 0);
     if (leap != null && rowLeap != null) return null;
     if (leap != null) return across(leap[0], leap[1], xMin, xMax, Side.RIGHT, Side.LEFT);
@@ -266,7 +286,7 @@ public final class PlayerVariable {
     int skip = wide ? 2 : 1;
     for (int address = FROM; address < TO; address++) {
       // Not the column itself, not what seldom changes, and not what leaps all the time, like the stack.
-      if (address >= player.address && address < player.address + skip || changes[address] < SEEN || leaps[address] > 4 * rowVotings) continue;
+      if (address >= player.address && address < player.address + skip || leaps[address] > 4 * rowVotings) continue;
       int leap = 0;
       for (int back = 1; back < KEPT; back++) {
         int change = (remembered[(frame - back + 1 + KEPT) % KEPT][address] & 0xff) - (remembered[(frame - back + KEPT) % KEPT][address] & 0xff);
@@ -313,12 +333,12 @@ public final class PlayerVariable {
       boolean along = (held >> player.up & 1) != 0 || (held >> player.down & 1) != 0;
       (along ? stepsAlong : otherSteps).merge(Math.abs(delta), 1, Integer::sum);
       // A move is a step or two, which a jump or a fall is; being put somewhere, as a game does on
-      // starting or on a death, is not.
-      if (Math.abs(delta) <= 2 * Math.max(stepAlong(), stepDown())) lastMovedAt = steppedAt = frame;
+      // starting, on a death or at a door, is not. Unpacked, the other steps are such leaps.
+      if (Math.abs(delta) <= 2 * (packed() ? Math.max(stepAlong(), stepDown()) : stepAlong())) lastMovedAt = steppedAt = frame;
     }
-    // Carried up or down, as by a lift, the player is being played as much as when walking.
+    // Carried up or down, as by a lift, the player has moved as much as by walking.
     if (row >= 0 && rowValue(0) != rowValue(1) && Math.abs(rowValue(0) - rowValue(1)) < LEAP) lastMovedAt = frame;
-    // Where the player is while nobody plays, as on a title, says nothing of where they can be.
+    // Where the byte stands while it has not moved for a while, as on a title, is not where the player can be.
     if (frame - lastMovedAt > IDLE) return;
     int modulus = modulus(stepAlong(), stepDown());
     if (modulus != modulusWas) {
@@ -334,6 +354,11 @@ public final class PlayerVariable {
       rowMin = Math.min(rowMin, rowValue(0));
       rowMax = Math.max(rowMax, rowValue(0));
     }
+  }
+
+  /** The last frame anybody played: a key held, or the player moved, as a lift moves them with no key held. */
+  private int lastPlayedAt() {
+    return Math.max(lastMovedAt, lastKeyAt);
   }
 
   private int stepAlong() {
@@ -368,23 +393,28 @@ public final class PlayerVariable {
   public List<Found> found() {
     List<Found> found = new ArrayList<>();
     for (int address = FROM; address < TO; address++) {
-      if (changes[address] < SEEN || unbidden[address] > UNBIDDEN * changes[address]) continue;
+      if (changes[address] == 0 || unbidden[address] > UNBIDDEN * changes[address]) continue;
+      // The key with the most evidence each way: one seen a few times always sending it up says
+      // less than one seen hundreds of times sending it up nearly always.
       int up = -1, down = -1;
-      double upSure = CONSISTENT, downSure = CONSISTENT;
+      double upEvidence = SURE, downEvidence = SURE;
       for (int key = 0; key < KEYS; key++) {
         if (upUnder[key] == null) continue;
         int rises = upUnder[key][address], falls = downUnder[key][address];
-        if (rises + falls < ENOUGH) continue;
-        if (rises / (double) (rises + falls) >= upSure) {
-          upSure = rises / (double) (rises + falls);
+        if (Math.max(rises, falls) <= CONSISTENT * (rises + falls)) continue;
+        double evidence = Math.abs(rises - falls) / Math.sqrt(rises + falls);
+        if (rises > falls && evidence >= upEvidence) {
+          upEvidence = evidence;
           up = key;
         }
-        if (falls / (double) (rises + falls) >= downSure) {
-          downSure = falls / (double) (rises + falls);
+        if (falls > rises && evidence >= downEvidence) {
+          downEvidence = evidence;
           down = key;
         }
       }
-      if (up < 0 || down < 0 || upSure + downSure <= 2 * CONSISTENT) continue;
+      if (up < 0 || down < 0) continue;
+      double upSure = upUnder[up][address] / (double) (upUnder[up][address] + downUnder[up][address]);
+      double downSure = downUnder[down][address] / (double) (upUnder[down][address] + downUnder[down][address]);
       int explained = upUnder[up][address] + downUnder[up][address] + upUnder[down][address] + downUnder[down][address];
       // The margin over what a counter that wraps round shows, times how much the keys explain: a
       // position goes the key's way almost always, a counter of four does three times in four.

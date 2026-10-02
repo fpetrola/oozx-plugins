@@ -76,45 +76,47 @@ class TheGameKeepsTheRoomAndThePlayerTest {
     List<int[]> seenAs = new ArrayList<>();
     Map<Integer, byte[]> screens = new HashMap<>();
     Map<String, int[]> sides = new TreeMap<>();
-    int frames = 0, roomWas = -1, roomBefore = -1, changedAt = -1000, leftRoom = -1, arrivals = 0;
-    PlayerVariable.Side leftBy = null;
-    try {
-      for (; frames < 200_000 && session.playFrame(); frames++) {
-        byte[] screen = JetSetWilly.screenOf(speccy);
-        long keys = inputs.frame();
+    int[] frames = {0}, roomWas = {-1}, roomBefore = {-1}, changedAt = {-1000}, leftRoom = {-1}, arrivals = {0};
+    String[] truth = {null};
+    Mapper mapper = new Mapper(roomVariable, playerVariable, rooms, new Mapper.Listener() {
+      @Override
+      public void leaving(PlayerVariable.Side said) {
+        leftRoom[0] = frames[0] - changedAt[0] <= 30 ? roomBefore[0] : roomWas[0];
+      }
+
+      @Override
+      public void arrived(PlayerVariable.Side leftBy) {
+        arrivals[0]++;
         int room = JetSetWilly.room(speccy);
-        if (room != roomWas && roomWas >= 0) {
-          roomBefore = roomWas;
-          changedAt = frames;
+        seenAs.add(new int[]{rooms.current().number, room});
+        screens.putIfAbsent(room, JetSetWilly.screenOf(speccy));
+        truth[0] = leftRoom[0] >= 0 && leftRoom[0] != room ? JetSetWilly.sideFrom(speccy, leftRoom[0], room) : null;
+        if (truth[0] != null) sides.computeIfAbsent(truth[0], k -> new int[2])[truth[0].equals(String.valueOf(leftBy)) ? 0 : 1]++;
+        leftRoom[0] = -1;
+      }
+
+      @Override
+      public void wayToldLate(PlayerVariable.Side side) {
+        if (truth[0] == null) return;
+        sides.get(truth[0])[1]--;
+        sides.get(truth[0])[truth[0].equals(side.toString()) ? 0 : 1]++;
+      }
+    });
+    try {
+      for (; frames[0] < 200_000 && session.playFrame(); frames[0]++) {
+        int room = JetSetWilly.room(speccy);
+        if (room != roomWas[0] && roomWas[0] >= 0) {
+          roomBefore[0] = roomWas[0];
+          changedAt[0] = frames[0];
         }
-        roomWas = room;
-        boolean arrived = roomVariable.frame(screen);
-        if (roomVariable.leaving()) {
-          leftBy = playerVariable.sideOfLeaving(false);
-          leftRoom = frames - changedAt <= 30 ? roomBefore : room;
-        }
-        if (arrived) {
-          arrivals++;
-          if (leftBy == null) leftBy = playerVariable.sideOfLeaving(true);
-          else playerVariable.sideOfLeaving(true);
-          rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy);
-          playerVariable.roomEntered();
-          seenAs.add(new int[]{rooms.current().number, room});
-          screens.putIfAbsent(room, screen);
-          if (leftRoom >= 0 && leftRoom != room) {
-            String truth = JetSetWilly.sideFrom(speccy, leftRoom, room);
-            sides.computeIfAbsent(truth, k -> new int[2])[truth.equals(String.valueOf(leftBy)) ? 0 : 1]++;
-          }
-          leftRoom = -1;
-        }
-        playerVariable.frame(keys);
-        if (playerVariable.movedNow()) rooms.played();
+        roomWas[0] = room;
+        mapper.frame(JetSetWilly.screenOf(speccy), inputs.frame());
       }
     } finally {
       inputs.off();
       session.release();
     }
-    System.out.printf("%s: %d arrivals in %d rooms of the game, %d rooms on the map%n", label, arrivals, screens.size(), rooms.rooms().size());
+    System.out.printf("%s: %d arrivals in %d rooms of the game, %d rooms on the map%n", label, arrivals[0], screens.size(), rooms.rooms().size());
     System.out.print("  sides of leaving:");
     sides.forEach((side, tally) -> System.out.printf(" %s right %d wrong %d;", side, tally[0], tally[1]));
     System.out.println();

@@ -47,7 +47,12 @@ final class Mapping {
     default void leaving(Speccy speccy, int frames, PlayerVariable.Side said) {
     }
 
-    default void arrived(Speccy speccy, int frames, Rooms rooms, PlayerVariable player, RoomVariable roomVariable) {
+    /** A room arrived at, and the side the last one was voted left by, if any. */
+    default void arrived(Speccy speccy, int frames, Rooms rooms, PlayerVariable player, RoomVariable roomVariable, PlayerVariable.Side leftBy) {
+    }
+
+    /** The way into the room arrived at last, told only now. */
+    default void wayToldLate(PlayerVariable.Side side) {
     }
   }
 
@@ -87,33 +92,31 @@ final class Mapping {
     Speccy speccy = session.getSpeccy();
     InputsSeen inputs = new InputsSeen(speccy);
     Rooms rooms = new Rooms();
-    int frames = 0, arrivals = 0;
-    PlayerVariable.Side leftBy = null;
-    try {
-      for (; frames < 200_000 && session.playFrame(); frames++) {
-        byte[] screen = screenOf(speccy);
-        long keys = inputs.frame();
-        boolean arrived = roomVariable.frame(screen);
-        if (roomVariable.leaving()) {
-          leftBy = playerVariable.sideOfLeaving(false);
-          watching.leaving(speccy, frames, leftBy);
-        }
-        if (arrived) {
-          arrivals++;
-          PlayerVariable.Side onArriving = playerVariable.sideOfLeaving(true);
-          if (leftBy == null) leftBy = onArriving;
-          rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy);
-          playerVariable.roomEntered();
-          watching.arrived(speccy, frames, rooms, playerVariable, roomVariable);
-        }
-        playerVariable.frame(keys);
-        if (playerVariable.movedNow()) rooms.played();
+    int[] frames = {0}, arrivals = {0};
+    Mapper mapper = new Mapper(roomVariable, playerVariable, rooms, new Mapper.Listener() {
+      @Override
+      public void leaving(PlayerVariable.Side said) {
+        watching.leaving(speccy, frames[0], said);
       }
+
+      @Override
+      public void arrived(PlayerVariable.Side leftBy) {
+        arrivals[0]++;
+        watching.arrived(speccy, frames[0], rooms, playerVariable, roomVariable, leftBy);
+      }
+
+      @Override
+      public void wayToldLate(PlayerVariable.Side side) {
+        watching.wayToldLate(side);
+      }
+    });
+    try {
+      for (; frames[0] < 200_000 && session.playFrame(); frames[0]++) mapper.frame(screenOf(speccy), inputs.frame());
     } finally {
       inputs.off();
       session.release();
     }
-    return new Pass(roomVariable, playerVariable, rooms, arrivals, frames);
+    return new Pass(roomVariable, playerVariable, rooms, arrivals[0], frames[0]);
   }
 
   private static void describe(String label, Pass pass) {
@@ -121,6 +124,7 @@ final class Mapping {
     System.out.printf("%s: %d frames, %d arrivals, %d rooms on the map, %d of %d voted ways not drawn as voted; room identity of %d bytes; player %s%n",
         label, pass.frames, pass.arrivals, pass.rooms.rooms().size(), undrawn(pass.rooms), votedWays(pass.rooms), pass.roomVariable.survivors().size(),
         player == null ? "not found" : String.format("0x%04X %s, up %s down %s", player.address(), pass.playerVariable.wide() ? "16 bits" : "8 bits", keyName(player.up()), keyName(player.down())));
+    System.out.println("  " + pass.playerVariable.state());
   }
 
   static int votedWays(Rooms rooms) {

@@ -60,7 +60,7 @@ public final class Rooms {
   private int numbered;
   /** Which room each number folded into, for whoever remembers a room by the number it had. */
   private final Map<Integer, Integer> foldedInto = new HashMap<>();
-  private Room current;
+  private Room current, cameFrom;
   private String lastWayOut = "";
 
   /** A room arrived at: known by these bytes of memory, looking like this, the last one left by that side. */
@@ -76,14 +76,23 @@ public final class Rooms {
     } else {
       known.screen = screen.clone();
     }
-    if (current != null && current != known) {
-      current.leadsTo.add(known.number);
-      known.leadsTo.add(current.number);
-      vote(current, known, leftBy, 1);
+    cameFrom = current != known ? current : null;
+    if (cameFrom != null) {
+      cameFrom.leadsTo.add(known.number);
+      known.leadsTo.add(cameFrom.number);
+      vote(cameFrom, known, leftBy, 1);
       lastWayOut = leftBy == null ? "unknown" : leftBy.toString();
     }
     current = known;
     mergeWhatIsNowTheSame(identity);
+    layOut();
+  }
+
+  /** The way into the room now, told only after arriving: the game moved the player after changing the room. */
+  public synchronized void lastWayWas(Side side) {
+    if (cameFrom == null || !rooms.contains(cameFrom) || !rooms.contains(current)) return;
+    vote(cameFrom, current, side, 1);
+    lastWayOut = side.toString();
     layOut();
   }
 
