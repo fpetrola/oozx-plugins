@@ -92,8 +92,9 @@ public final class Rooms {
     if (current != null) current.provisional = false;
   }
 
+  /** The rooms played in: one nobody has moved in yet is not shown, since it may be no room. */
   public synchronized List<Room> rooms() {
-    return List.copyOf(rooms);
+    return rooms.stream().filter(room -> !room.provisional).toList();
   }
 
   public synchronized Room current() {

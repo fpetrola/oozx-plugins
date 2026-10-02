@@ -66,7 +66,6 @@ class TheGameKeepsTheRoomAndThePlayerTest {
     PlayerVariable knowing = new PlayerVariable(session.getSpeccy().memory::peek);
     knowing.learnedFrom(first.playerVariable);
     Pass second = play(session, new RoomVariable(session.getSpeccy().memory::peek, survivors), knowing, "KNOWING");
-    System.out.println("  first changers: " + second.roomVariable.firstChangers());
     compareWithTheGamesTable(session.getSpeccy(), second);
   }
 
@@ -91,12 +90,15 @@ class TheGameKeepsTheRoomAndThePlayerTest {
         roomWas = room;
         boolean arrived = roomVariable.frame(screen);
         if (roomVariable.leaving()) {
-          leftBy = playerVariable.sideOfLeaving();
+          leftBy = playerVariable.sideOfLeaving(false);
           leftRoom = frames - changedAt <= 30 ? roomBefore : room;
         }
         if (arrived) {
           arrivals++;
+          if (leftBy == null) leftBy = playerVariable.sideOfLeaving(true);
+          else playerVariable.sideOfLeaving(true);
           rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy);
+          playerVariable.roomEntered();
           seenAs.add(new int[]{rooms.current().number, room});
           screens.putIfAbsent(room, screen);
           if (leftRoom >= 0 && leftRoom != room) {

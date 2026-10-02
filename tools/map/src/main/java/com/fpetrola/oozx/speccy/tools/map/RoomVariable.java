@@ -87,22 +87,18 @@ public final class RoomVariable {
   }
 
   /**
-   * Knowing already which bytes are the room: one of them changing is leaving, all of them still
-   * is arriving. Among them, the room itself is what changes in the very frame a room is left,
-   * before anything of the next one is drawn; what is drawn follows over the frames after.
+   * Knowing already which bytes may be the room, from the game played once before: one of them
+   * changing is leaving, all of them still is arriving, and whatever is then found to change
+   * inside a room, or between two visits to one, is struck off as when finding out.
    */
   public RoomVariable(Ram ram, List<Integer> known) {
-    this(ram);
+    this.ram = ram;
     this.known = List.copyOf(known);
-    changedFirst = new int[known.size()];
+    for (int address : known) steady[address] = true;
   }
 
-  /** How often a known byte has to change in the first frame of a leaving, against the one that does most, to be the room. */
-  static final double FIRST = 0.8;
   private List<Integer> known;
   private byte[] knownValues, settledValues;
-  private int[] changedFirst;
-  private int leavings;
 
   /** The screen at the end of a frame; true when a room has just been arrived at. */
   public boolean frame(byte[] screen) {
@@ -157,37 +153,34 @@ public final class RoomVariable {
   }
 
   private boolean frameKnowing(byte[] screen) {
+    sceneryChanged(screen);
     byte[] now = new byte[known.size()];
-    for (int i = 0; i < now.length; i++) now[i] = (byte) ram.peek(known.get(i));
+    for (int i = 0; i < now.length; i++) {
+      int address = known.get(i);
+      now[i] = steady[address] ? (byte) ram.peek(address) : settledValues == null ? 0 : settledValues[i];
+    }
     leaving = !flipping && !java.util.Arrays.equals(now, settledValues);
     if (leaving) {
       flipping = true;
-      leavings++;
-      for (int i = 0; i < now.length; i++) if (now[i] != knownValues[i]) changedFirst[i]++;
+      still = 0;
+      java.util.Arrays.fill(suspectedAt, 0);
     }
     boolean arrived = false;
     if (flipping) {
       still = java.util.Arrays.equals(now, knownValues) ? still + 1 : 0;
       if (still >= SETTLING) {
-        onArrival = snapshot();
+        arrive(screen);
         settledValues = now;
         flipping = false;
         arrived = true;
       }
+    } else {
+      if (frames - arrivedAt == JUDGED_AFTER) judgeLookalikes();
+      if (frames % EVERY == 0) lookInside();
     }
     knownValues = now;
     previous = screen;
     return arrived;
-  }
-
-  /** The known bytes most often changed in the first frame of a leaving, for whoever is measuring. */
-  public String firstChangers() {
-    List<Integer> order = new ArrayList<>();
-    for (int i = 0; i < known.size(); i++) order.add(i);
-    order.sort((a, b) -> changedFirst[b] - changedFirst[a]);
-    StringBuilder text = new StringBuilder(leavings + " leavings;");
-    for (int i : order.subList(0, Math.min(10, order.size()))) text.append(String.format(" 0x%04X:%d", known.get(i), changedFirst[i]));
-    return text.toString();
   }
 
   /** Whether a room has just been seen to be left: the frame the next one started being drawn in. */
@@ -197,14 +190,11 @@ public final class RoomVariable {
 
   /** The addresses that have only ever changed between rooms: the room's identity is their values. */
   public List<Integer> survivors() {
-    if (known != null) {
-      if (leavings < 5) return known;
-      int most = java.util.Arrays.stream(changedFirst).max().orElse(0);
-      List<Integer> room = new ArrayList<>();
-      for (int i = 0; i < known.size(); i++) if (changedFirst[i] >= FIRST * most) room.add(known.get(i));
-      return room.isEmpty() ? known : room;
-    }
     List<Integer> survivors = new ArrayList<>();
+    if (known != null) {
+      for (int address : known) if (steady[address]) survivors.add(address);
+      return survivors;
+    }
     for (int address = FROM; address < TO; address++) if (steady[address] && changedBetweenRooms[address]) survivors.add(address);
     return survivors;
   }

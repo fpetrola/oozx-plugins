@@ -31,10 +31,14 @@ import java.util.Map;
  * <p>
  * Once found, the byte is read as a position. If the byte after it changes only when this one
  * wraps round, the two are one number. Its steps along, under the keys, and its other steps,
- * which are down or up, say how it packs a column and a row: Jet Set Willy keeps Willy as an
- * address in a screen buffer, so a column is one and a row is thirty-two. A room is left by the
- * edge the position was against just before the game put the player at the next room's door,
- * which is a jump no walk makes.
+ * when those are as common, say it packs a column and a row: Jet Set Willy keeps Willy as an
+ * address in a screen buffer, so a column is one and a row is thirty-two. Otherwise it is the
+ * column alone, and the row is the byte that leaps when a room is left without the column
+ * leaping, as happens going up or down, and not when it is left with the column leaping.
+ * <p>
+ * A room is left by the side the game then puts the player opposite to: leaving on the right,
+ * the column leaps from its most to its least, and the leap says the side. A leap from anywhere
+ * else, or in the column and the row at once, is a teleport or a death and says nothing.
  */
 public final class PlayerVariable {
   static final int FROM = 0x5B00, TO = 0x10000, KEYS = 45;
@@ -46,11 +50,17 @@ public final class PlayerVariable {
   /** Frames a key is still taken as held after it was seen: the game moves a while after it reads. */
   static final int LINGER = 3;
   /** Frames of the position kept, to look back from a room change to before the player was moved. */
-  static final int KEPT = 32;
+  static final int KEPT = 64;
   /** Frames the byte has to have been followed before its word is taken: the first to show is not always the one. */
   static final int TRUSTED_AFTER = 1500;
   /** Frames without the position changing after which whoever it is was not being played. */
   static final int IDLE = 200;
+  /** How common the other step has to be against the step along for the byte to pack a row with the column. */
+  static final double PACKED = 0.2;
+  /** Leaps a byte has to take without the column leaping, net of those with, to be the row; and how small a leap may be. */
+  static final int ROW_LEAPS = 3, LEAP = 16;
+  /** The share of a position's range, at either end, a leaving leaps from and lands in: a leap from anywhere else is a teleport or a death. */
+  static final int EDGE = 4;
 
   /** A byte the keys move: which key sends it up, which down, and how sure that is. */
   public record Found(int address, int up, int down, int changes, double score) {
@@ -69,9 +79,15 @@ public final class PlayerVariable {
   private Found player;
   private boolean wide;
   private final int[] kept = new int[KEPT];
-  private int followed, lastMovedAt = -IDLE;
+  private int followed, lastMovedAt = -IDLE, steppedAt = -1;
   private final Map<Integer, Integer> stepsAlong = new HashMap<>(), otherSteps = new HashMap<>();
   private int xMin = Integer.MAX_VALUE, xMax = -1, yMin = Integer.MAX_VALUE, yMax = -1, modulusWas;
+  private final byte[][] remembered = new byte[KEPT][TO];
+  private final int[] rowLeaps = new int[TO], leaps = new int[TO];
+  private int rowVotings, enteredAt;
+  private int row = -1;
+  private boolean rowWide;
+  private int rowMin = Integer.MAX_VALUE, rowMax = -1;
 
   public PlayerVariable(RoomVariable.Ram ram) {
     this.ram = ram;
@@ -86,10 +102,12 @@ public final class PlayerVariable {
     int wrapped = -2;
     for (int address = FROM; address < TO; address++) {
       byte now = (byte) ram.peek(address);
+      remembered[frame % KEPT][address] = now;
       int delta = now - previous[address];
       boolean wraps = Math.abs((now & 0xff) - (previous[address] & 0xff)) > 128;
       previous[address] = now;
       if (delta == 0 || !started) continue;
+      if (Math.abs(delta) >= LEAP) leaps[address]++;
       if (wrapped == address - 1) carries[wrapped]++;
       else if (address > FROM) notCarries[address - 1]++;
       if (wraps) wrapped = address;
@@ -137,12 +155,24 @@ public final class PlayerVariable {
     yMin = other.yMin;
     yMax = other.yMax;
     modulusWas = other.modulusWas;
+    row = other.row;
+    rowWide = other.rowWide;
+    rowMin = other.rowMin;
+    rowMax = other.rowMax;
+    System.arraycopy(other.rowLeaps, 0, rowLeaps, 0, TO);
+    System.arraycopy(other.leaps, 0, leaps, 0, TO);
+    rowVotings = other.rowVotings;
     followed = TRUSTED_AFTER;
   }
 
-  /** Whether the player moved in the frame just seen. */
+  /** A room has just been arrived at: the leap that brought the player here is not a leaving. */
+  public void roomEntered() {
+    enteredAt = frame;
+  }
+
+  /** Whether the player took a step in the frame just seen: walked, as against being carried or falling. */
   public boolean movedNow() {
-    return player != null && lastMovedAt == frame;
+    return player != null && steppedAt == frame;
   }
 
   /** Whether the player has been found, so that where they are can be asked. */
@@ -160,33 +190,104 @@ public final class PlayerVariable {
   }
 
   /**
-   * The side the room was just left by: the edge the player was against before the game moved
-   * them to the next room's door, or, away from every edge, the way they were last going. Null
-   * until the player has been followed for a while.
+   * The side the room was just left by, from the leap the game made the position take to put the
+   * player at the next room's door: the column from its most to its least is leaving on the
+   * right, the row likewise is leaving at the bottom. Null until the player has been followed for
+   * a while, when nobody was being played, and when nothing has leapt yet: asked as the next room
+   * starts being drawn it may be too soon, and asked again on arriving it is not. Arriving is
+   * also when the row is looked for, since by then the leap has surely been taken.
    */
-  public Side sideOfLeaving() {
-    if (player == null || followed < TRUSTED_AFTER) return null;
-    int across = stepAlong(), down = stepDown();
-    int modulus = modulus(across, down);
-    int before = 1;
-    for (int back = 1; back < KEPT / 2; back++) {
-      int from = at(back), to = at(back - 1);
-      boolean leapt = Math.abs(to % modulus - from % modulus) > (xMax - xMin) / 2 || down > 0 && Math.abs(to / modulus - from / modulus) > 2;
-      if (leapt) before = back + 1;
+  public Side sideOfLeaving(boolean arrived) {
+    if (player == null || followed < TRUSTED_AFTER || frame - lastMovedAt > IDLE) return null;
+    int down = stepDown();
+    int[] leap = leapOf(this::at, packed() ? down : 0);
+    if (packed()) {
+      if (leap == null) return null;
+      int fromRow = leap[0] / down, toRow = leap[1] / down, fromColumn = leap[0] % down, toColumn = leap[1] % down;
+      boolean rowLeapt = Math.abs(toRow - fromRow) >= 2, columnLeapt = Math.abs(toColumn - fromColumn) >= Math.max(LEAP, 8 * stepAlong());
+      if (rowLeapt && columnLeapt) return null;
+      return rowLeapt ? across(fromRow, toRow, yMin, yMax, Side.DOWN, Side.UP) : across(fromColumn, toColumn, xMin, xMax, Side.RIGHT, Side.LEFT);
     }
-    int x = at(before) % modulus, y = at(before) / modulus;
-    int lastMove = 0;
-    for (int back = before; back + 1 < KEPT && lastMove == 0; back++) lastMove = at(back) - at(back + 1);
-    // Nobody who has not moved for a while left by anywhere: a title, or a game not yet being played.
-    if (frame - lastMovedAt > IDLE) return null;
-    // Packed, the columns run from nought to the row's width, and the player is wider than one.
-    boolean packed = down > across;
-    int left = packed ? 0 : xMin, right = packed ? modulus - 1 - across : xMax;
-    boolean atLeft = x <= left + across, atRight = x >= right - across, atTop = y <= yMin + 1, atBottom = y >= yMax - 1;
-    boolean movedAlong = down == 0 || Math.abs(lastMove) < down / 2;
-    if ((atLeft || atRight) && (movedAlong || !atTop && !atBottom)) return atLeft ? Side.LEFT : Side.RIGHT;
-    if (atTop || atBottom) return atTop ? Side.UP : Side.DOWN;
-    return lastMove < 0 ? Side.UP : Side.DOWN;
+    if (arrived) lookForTheRow(leap != null);
+    int[] rowLeap = row < 0 ? null : leapOf(this::rowValue, 0);
+    if (leap != null && rowLeap != null) return null;
+    if (leap != null) return across(leap[0], leap[1], xMin, xMax, Side.RIGHT, Side.LEFT);
+    return rowLeap == null ? null : across(rowLeap[0], rowLeap[1], rowMin, rowMax, Side.DOWN, Side.UP);
+  }
+
+  /**
+   * The side a leap from one end of the position's range to the other leaves by: the game puts
+   * the player at the door opposite the one they went out of. From the top end to the bottom end
+   * is the first side, the other way the second; from anywhere else it is no side, as a teleport
+   * or a death puts the player wherever. Nor is a leap in both the column and the row, which no
+   * door does: the caller sees to that.
+   */
+  private static Side across(int from, int to, int min, int max, Side fromTheTop, Side fromTheBottom) {
+    int margin = (max - min) / EDGE;
+    if (from >= max - margin && to <= min + margin) return fromTheTop;
+    if (from <= min + margin && to >= max - margin) return fromTheBottom;
+    return null;
+  }
+
+  /**
+   * The leap a position took lately, as what it was before and after the frames it leapt in, which
+   * can be more than one: the game may set the column in one frame and the row in the next. Null
+   * when it only ever stepped.
+   */
+  private int[] leapOf(java.util.function.IntUnaryOperator valueBack, int rowSize) {
+    int threshold = Math.max(LEAP, 8 * stepAlong());
+    // Only leaps since the room was entered: the one that brought the player in is still in the window.
+    int window = Math.min(KEPT, Math.max(1, frame - enteredAt));
+    int end = -1;
+    for (int back = 1; back < window && end < 0; back++) if (leaps(valueBack.applyAsInt(back), valueBack.applyAsInt(back - 1), rowSize, threshold)) end = back;
+    if (end < 0) return null;
+    int start = end;
+    while (start + 1 < window && leaps(valueBack.applyAsInt(start + 1), valueBack.applyAsInt(start), rowSize, threshold)) start++;
+    return new int[]{valueBack.applyAsInt(start), valueBack.applyAsInt(end - 1)};
+  }
+
+  private static boolean leaps(int from, int to, int rowSize, int threshold) {
+    if (rowSize > 0) return Math.abs(to / rowSize - from / rowSize) >= 2 || Math.abs(to % rowSize - from % rowSize) >= threshold;
+    return Math.abs(to - from) >= threshold;
+  }
+
+  /** Whether the other step is common enough for the byte to hold a row above the column. */
+  private boolean packed() {
+    int across = stepAlong(), down = stepDown();
+    return down > across && otherSteps.getOrDefault(down, 0) >= PACKED * stepsAlong.getOrDefault(across, 1);
+  }
+
+  /**
+   * The bytes that leapt lately, with the column still, are told for the row; those that leapt
+   * with the column leaping too are told against, since what is drawn afresh leaps either way.
+   */
+  private void lookForTheRow(boolean columnLeapt) {
+    rowVotings++;
+    int skip = wide ? 2 : 1;
+    for (int address = FROM; address < TO; address++) {
+      // Not the column itself, not what seldom changes, and not what leaps all the time, like the stack.
+      if (address >= player.address && address < player.address + skip || changes[address] < SEEN || leaps[address] > 4 * rowVotings) continue;
+      int leap = 0;
+      for (int back = 1; back < KEPT; back++) {
+        int change = (remembered[(frame - back + 1 + KEPT) % KEPT][address] & 0xff) - (remembered[(frame - back + KEPT) % KEPT][address] & 0xff);
+        if (Math.abs(change) > Math.abs(leap)) leap = change;
+      }
+      if (Math.abs(leap) >= LEAP) rowLeaps[address] += columnLeapt ? -1 : 1;
+    }
+    int best = -1;
+    for (int address = FROM; address < TO; address++) if (rowLeaps[address] >= ROW_LEAPS && (best < 0 || rowLeaps[address] > rowLeaps[best])) best = address;
+    if (best >= 0 && best != row) {
+      row = best;
+      rowWide = carries[row] > 0 && carries[row] >= notCarries[row];
+      rowMin = Integer.MAX_VALUE;
+      rowMax = -1;
+    }
+  }
+
+  private int rowValue(int back) {
+    byte[] then = remembered[(frame - back + KEPT) % KEPT];
+    int low = then[row] & 0xff;
+    return rowWide ? low | (then[row + 1] & 0xff) << 8 : low;
   }
 
   /** The position as it was that many frames ago. */
@@ -200,7 +301,7 @@ public final class PlayerVariable {
   }
 
   private int modulus(int across, int down) {
-    return down > across ? down : wide ? 0x10000 : 256;
+    return packed() ? down : wide ? 0x10000 : 256;
   }
 
   private void follow(long held) {
@@ -213,8 +314,12 @@ public final class PlayerVariable {
       (along ? stepsAlong : otherSteps).merge(Math.abs(delta), 1, Integer::sum);
       // A move is a step or two, which a jump or a fall is; being put somewhere, as a game does on
       // starting or on a death, is not.
-      if (Math.abs(delta) <= 2 * Math.max(stepAlong(), stepDown())) lastMovedAt = frame;
+      if (Math.abs(delta) <= 2 * Math.max(stepAlong(), stepDown())) lastMovedAt = steppedAt = frame;
     }
+    // Carried up or down, as by a lift, the player is being played as much as when walking.
+    if (row >= 0 && rowValue(0) != rowValue(1) && Math.abs(rowValue(0) - rowValue(1)) < LEAP) lastMovedAt = frame;
+    // Where the player is while nobody plays, as on a title, says nothing of where they can be.
+    if (frame - lastMovedAt > IDLE) return;
     int modulus = modulus(stepAlong(), stepDown());
     if (modulus != modulusWas) {
       xMin = yMin = Integer.MAX_VALUE;
@@ -225,6 +330,10 @@ public final class PlayerVariable {
     xMax = Math.max(xMax, now % modulus);
     yMin = Math.min(yMin, now / modulus);
     yMax = Math.max(yMax, now / modulus);
+    if (row >= 0) {
+      rowMin = Math.min(rowMin, rowValue(0));
+      rowMax = Math.max(rowMax, rowValue(0));
+    }
   }
 
   private int stepAlong() {
@@ -241,9 +350,9 @@ public final class PlayerVariable {
     if (player == null) return "no player yet";
     int across = stepAlong(), down = stepDown(), modulus = modulus(across, down);
     StringBuilder values = new StringBuilder();
-    for (int back = 0; back < 12; back++) values.append(at(back)).append(back < 11 ? "," : "");
-    return String.format("0x%04X wide %b followed %d across %d down %d modulus %d x %d..%d y %d..%d; last values %s",
-        player.address, wide, followed, across, down, modulus, xMin, xMax, yMin, yMax, values);
+    for (int back = 0; back < 40; back++) values.append(at(back)).append(back < 39 ? "," : "");
+    return String.format("0x%04X wide %b followed %d across %d down %d packed %b x %d..%d y %d..%d; row byte %s; last values %s",
+        player.address, wide, followed, across, down, packed(), xMin, xMax, yMin, yMax, row < 0 ? "none" : String.format("0x%04X%s %d..%d", row, rowWide ? " wide" : "", rowMin, rowMax), values);
   }
 
   /** What was seen of one byte, for whoever is measuring. */

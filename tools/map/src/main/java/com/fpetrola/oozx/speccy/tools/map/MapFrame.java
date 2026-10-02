@@ -120,8 +120,12 @@ public class MapFrame extends MachineFrame {
     for (int offset = 0; offset < screen.length; offset++) screen[offset] = (byte) machine.memory.peek(SCREEN + offset);
     long keys = inputs.frame();
     boolean arrived = roomVariable.frame(screen);
-    if (roomVariable.leaving()) leftBy = playerVariable.sideOfLeaving();
-    if (arrived) rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy);
+    if (roomVariable.leaving()) leftBy = playerVariable.sideOfLeaving(false);
+    if (arrived) {
+      PlayerVariable.Side onArriving = playerVariable.sideOfLeaving(true);
+      rooms.arrive(roomVariable.survivors(), roomVariable.memoryOnArrival(), screen, leftBy != null ? leftBy : onArriving);
+      playerVariable.roomEntered();
+    }
     playerVariable.frame(keys);
     if (playerVariable.movedNow()) rooms.played();
   }
