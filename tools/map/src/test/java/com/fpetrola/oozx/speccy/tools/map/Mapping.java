@@ -77,9 +77,16 @@ final class Mapping {
 
   /** Both passes, the second knowing what the first found, each watched. */
   static Pass twice(File recording, Watching first, Watching second) {
+    return twice(recording, first, second, found -> {
+    });
+  }
+
+  /** Both passes, with a look at what the first left before the second starts. */
+  static Pass twice(File recording, Watching first, Watching second, java.util.function.Consumer<Pass> afterFirst) {
     RzxSession session = open(recording);
     Pass found = play(session, new RoomVariable(session.getSpeccy().memory::peek), new PlayerVariable(session.getSpeccy().memory::peek), first);
     describe("FINDING OUT", found);
+    afterFirst.accept(found);
     session = open(recording);
     PlayerVariable knowing = new PlayerVariable(session.getSpeccy().memory::peek);
     knowing.learnedFrom(found.playerVariable);
