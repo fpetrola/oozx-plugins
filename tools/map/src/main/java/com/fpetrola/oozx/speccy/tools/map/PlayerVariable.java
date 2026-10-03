@@ -211,9 +211,9 @@ public final class PlayerVariable {
     return player != null && (packed() || row >= 0);
   }
 
-  /** The byte taken for the row, or -1: what a map made again from the start was taught, to be made once more when it changes. */
-  public int rowByte() {
-    return row;
+  /** What a map made again from the start is taught of the player, to be made once more when the game being played says otherwise. */
+  public String taught() {
+    return player == null ? "no player" : String.format("0x%04X%s row %d", player.address, wide ? " wide" : "", row);
   }
 
   public Found player() {

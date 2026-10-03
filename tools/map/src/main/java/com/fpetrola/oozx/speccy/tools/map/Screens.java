@@ -17,7 +17,12 @@
 
 package com.fpetrola.oozx.speccy.tools.map;
 
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import java.util.List;
+import java.util.function.Function;
 
 /** The shape of a Spectrum screen, two screens compared by it, and one drawn. */
 final class Screens {
@@ -63,6 +68,29 @@ final class Screens {
       if (differs) differing++;
     }
     return differing;
+  }
+
+  /** The rooms on their squares, fitted to the width and height, the one in play outlined. */
+  static void draw(Graphics2D pen, Rooms shown, int width, int height, Function<byte[], BufferedImage> pictures) {
+    List<Rooms.Room> found = shown.rooms();
+    if (found.isEmpty()) return;
+    int left = found.stream().mapToInt(room -> room.x).min().orElse(0);
+    int top = found.stream().mapToInt(room -> room.y).min().orElse(0);
+    int across = found.stream().mapToInt(room -> room.x).max().orElse(0) - left + 1;
+    int down = found.stream().mapToInt(room -> room.y).max().orElse(0) - top + 1;
+    double scale = Math.min(width / (across * 256.0), height / (down * 192.0));
+    int roomWidth = (int) (256 * scale), roomHeight = (int) (192 * scale);
+    pen.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+    Rooms.Room current = shown.current();
+    for (Rooms.Room room : found) {
+      int x = (room.x - left) * roomWidth, y = (room.y - top) * roomHeight;
+      pen.drawImage(pictures.apply(room.screen), x, y, roomWidth, roomHeight, null);
+      if (room == current) {
+        pen.setColor(Color.YELLOW);
+        pen.drawRect(x, y, roomWidth - 1, roomHeight - 1);
+        pen.drawRect(x + 1, y + 1, roomWidth - 3, roomHeight - 3);
+      }
+    }
   }
 
   /** A Spectrum screen as a picture, in the colours the machine shows it in, or the usual ones without a machine. */

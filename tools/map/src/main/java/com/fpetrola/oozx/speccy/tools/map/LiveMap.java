@@ -19,6 +19,9 @@ package com.fpetrola.oozx.speccy.tools.map;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.rzx.RzxRecorder;
+
+import java.io.IOException;
+import java.nio.file.Path;
 import com.fpetrola.oozx.speccy.modules.z80.PcTraps;
 
 /**
@@ -41,15 +44,17 @@ final class LiveMap {
   }
 
   private final Speccy machine;
-  private final Rooms rooms = new Rooms();
-  private final RoomVariable roomVariable;
-  private final PlayerVariable playerVariable;
+  final Rooms rooms = new Rooms();
+  final RoomVariable roomVariable;
+  final PlayerVariable playerVariable;
   private final InputsSeen inputs;
   private final Mapper mapper;
   private final RzxRecorder recorder;
   private final Twins twins;
   private final PcTraps.Watch watching;
   private volatile Twin twin;
+  /** The map of the last twin that caught up with the game: what is shown while a newer one is still catching up. */
+  private volatile Rooms caughtUp;
   private long frame = -1;
 
   LiveMap(Speccy machine, Twins twins) {
@@ -70,13 +75,15 @@ final class LiveMap {
     if (now == frame) return;
     frame = now;
     mapper.frame(Screens.of(machine.memory::peek), inputs.frame());
+    Twin again = twin;
+    if (again != null && again.caughtUp()) caughtUp = again.rooms;
     mapAgainIfReady();
   }
 
   private void mapAgainIfReady() {
     if (!recorder.started() || !playerVariable.trusted()) return;
     Twin again = twin;
-    if (again != null && again.rowByte == playerVariable.rowByte()) return;
+    if (again != null && again.taught.equals(playerVariable.taught())) return;
     if (again != null) again.stop();
     twin = again = new Twin(recorder, roomVariable, playerVariable, twins.listener());
     twins.started(again);
@@ -87,14 +94,24 @@ final class LiveMap {
     return twin;
   }
 
+  /** Whether what is drawn is a twin's map rather than the one made as the game went. */
+  boolean showsATwin() {
+    return caughtUp != null;
+  }
+
   boolean playerKnown() {
     return playerVariable.known();
   }
 
-  /** The rooms to draw: the map made again from the start once it has caught up with the game, the one made as the game went until then. */
+  /** The rooms to draw: the latest map made again from the start that has caught up with the game, or the one made as the game went until there is one. */
   Rooms shown() {
-    Twin again = twin;
-    return again != null && again.caughtUp() ? again.rooms : rooms;
+    Rooms made = caughtUp;
+    return made != null ? made : rooms;
+  }
+
+  /** The game as recorded since this began, as a file a session elsewhere plays: what the map was made from, to be looked at again. */
+  void save(Path out) throws IOException {
+    recorder.writeTo(out);
   }
 
   void stop() {

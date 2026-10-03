@@ -37,8 +37,8 @@ final class Twin {
   final Rooms rooms = new Rooms();
   final RoomVariable roomVariable;
   final PlayerVariable playerVariable;
-  /** The row byte it was taught, or -1: worth starting over once the game being played says another. */
-  final int rowByte;
+  /** What it was taught of the player: worth starting over once the game being played says otherwise. */
+  final String taught;
   private volatile boolean alive = true;
   private Thread thread;
 
@@ -50,7 +50,7 @@ final class Twin {
     roomVariable = new RoomVariable(speccy.memory::peek, learntRoom.survivors());
     playerVariable = new PlayerVariable(speccy.memory::peek);
     playerVariable.learnedFrom(learntPlayer);
-    rowByte = learntPlayer.rowByte();
+    taught = learntPlayer.taught();
     mapper = new Mapper(roomVariable, playerVariable, rooms, listener);
   }
 

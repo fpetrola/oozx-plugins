@@ -21,20 +21,20 @@ import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JComponent;
 import javax.swing.JLabel;
 import javax.swing.Timer;
 import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import java.awt.Color;
+import java.io.File;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.RenderingHints;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseWheelEvent;
 import java.awt.image.BufferedImage;
-import java.util.List;
 import java.util.Map;
 
 /** The map of the game being played, drawn as the rooms come: each on its square, the one in play outlined. */
@@ -50,6 +50,9 @@ public class MapFrame extends MachineFrame {
     JButton again = new JButton("Start again");
     again.addActionListener(e -> startAgain(machine()));
     controls.add(again);
+    JButton save = new JButton("Save recording");
+    save.addActionListener(e -> saveRecording());
+    controls.add(save);
     controls.add(said);
     assemble(drawing);
     setCompact(false);
@@ -87,6 +90,20 @@ public class MapFrame extends MachineFrame {
     if (live != null) live.stop();
     live = machine == null ? null : new LiveMap(machine, new LiveMap.Twins() {
     });
+  }
+
+  /** The recording the map is being made from, to be sent along with what the map got wrong. */
+  private void saveRecording() {
+    LiveMap live = this.live;
+    if (live == null) return;
+    JFileChooser chooser = new JFileChooser();
+    chooser.setSelectedFile(new File("map-session.rzx"));
+    if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
+    try {
+      live.save(chooser.getSelectedFile().toPath());
+    } catch (Exception failed) {
+      said.setText("could not save the recording: " + failed.getMessage());
+    }
   }
 
   @Override
@@ -150,28 +167,9 @@ public class MapFrame extends MachineFrame {
       pen.fillRect(0, 0, getWidth(), getHeight());
       LiveMap live = MapFrame.this.live;
       if (live == null) return;
-      Rooms shown = live.shown();
-      List<Rooms.Room> found = shown.rooms();
-      if (found.isEmpty()) return;
-      int left = found.stream().mapToInt(room -> room.x).min().orElse(0);
-      int top = found.stream().mapToInt(room -> room.y).min().orElse(0);
-      int across = found.stream().mapToInt(room -> room.x).max().orElse(0) - left + 1;
-      int down = found.stream().mapToInt(room -> room.y).max().orElse(0) - top + 1;
-      double scale = Math.min(getWidth() / (across * 256.0), getHeight() / (down * 192.0));
-      int width = (int) (256 * scale), height = (int) (192 * scale);
-      pen.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
       pen.translate(panX, panY);
       pen.scale(zoom, zoom);
-      Rooms.Room current = shown.current();
-      for (Rooms.Room room : found) {
-        int x = (room.x - left) * width, y = (room.y - top) * height;
-        pen.drawImage(pictures.computeIfAbsent(room.screen, this::pictureOf), x, y, width, height, null);
-        if (room == current) {
-          pen.setColor(Color.YELLOW);
-          pen.drawRect(x, y, width - 1, height - 1);
-          pen.drawRect(x + 1, y + 1, width - 3, height - 3);
-        }
-      }
+      Screens.draw(pen, live.shown(), getWidth(), getHeight(), screen -> pictures.computeIfAbsent(screen, this::pictureOf));
     }
 
     private BufferedImage pictureOf(byte[] screen) {
