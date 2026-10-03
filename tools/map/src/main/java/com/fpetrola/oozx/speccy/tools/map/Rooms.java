@@ -46,6 +46,8 @@ public final class Rooms {
     public final Set<Integer> leadsTo = new HashSet<>();
     /** Not yet played in: nobody has moved here. */
     boolean provisional = true;
+    /** Placed beside another by a voted way, and so left where it is; the rest wait in the strip below. */
+    boolean anchored;
 
     Room(int number, byte[] screen, byte[] memory) {
       this.number = number;
@@ -206,41 +208,97 @@ public final class Rooms {
   }
 
   /**
-   * Every room put on the grid again, by whichever room makes the best beginning: from each in
-   * turn, outwards - the rooms a voted way from it reaches first, then those a way from them
-   * reaches, and so on, the better voted way first among those as far out - each next to the room
-   * it is reached from, on its side, or on the nearest free square when that one is taken. The
-   * beginning kept is the one that leaves the fewest votes not drawn as voted, a way along
-   * counting double, since the rooms of a floor are a row: a game whose ways do not all fit a
-   * grid has some that cannot be, and the map keeps to the most taken. A room no
-   * voted way reaches - where the game began, before it was being played - goes in a strip of its
-   * own below, where it takes nobody's square.
+   * Each room put on the grid once, beside the room the best voted way reaches it from, on that
+   * side - or on the nearest free square when that one is taken - and left there: a room that
+   * moved about with every vote would never be where the player last saw it. A room no voted way
+   * reaches yet waits in a strip of its own below, where it takes nobody's square, until a way is
+   * voted. Only when the ways voted no longer all fit the grid as drawn is the whole map laid out
+   * again, from whichever room makes the best beginning, and only if that leaves fewer votes not
+   * drawn as voted, a way along counting double, since the rooms of a floor are a row: a game
+   * whose ways do not all fit a grid has some that cannot be, and the map keeps to the most taken.
    */
   private void layOut() {
     if (rooms.isEmpty()) return;
+    Map<Room, int[]> laid = new HashMap<>();
+    for (Room room : rooms) if (room.anchored) laid.put(room, new int[]{room.x, room.y});
+    if (laid.isEmpty()) {
+      Room first = rooms.get(0);
+      first.anchored = true;
+      laid.put(first, new int[]{first.x = 0, first.y = 0});
+    }
+    for (boolean more = true; more; ) {
+      more = false;
+      for (Room room : rooms) if (!room.anchored && anchor(room, laid)) more = true;
+    }
+    for (Room room : rooms) if (!room.anchored) placeBelow(room, laid);
+    int undrawn = undrawnIn(laid);
+    if (undrawn == 0) return;
     Map<Room, int[]> best = null;
-    int fewest = Integer.MAX_VALUE;
     for (Room root : rooms) {
-      Map<Room, int[]> laid = layOutFrom(root);
-      int undrawn = 0;
-      for (Room from : rooms) {
-        for (int number : from.leadsTo) {
-          Room to = byNumber(number, null, null);
-          Side side = to == null ? null : sideOf(from, to);
-          if (side != null && (laid.get(to)[0] != laid.get(from)[0] + dx(side) || laid.get(to)[1] != laid.get(from)[1] + dy(side))) {
-            undrawn += strengthOf(from, to) * (dx(side) != 0 ? 2 : 1);
-          }
-        }
-      }
-      if (undrawn < fewest) {
-        fewest = undrawn;
-        best = laid;
+      Map<Room, int[]> again = layOutFrom(root);
+      int count = undrawnIn(again);
+      if (count < undrawn) {
+        undrawn = count;
+        best = again;
       }
     }
-    best.forEach((room, at) -> {
+    if (best != null) best.forEach((room, at) -> {
       room.x = at[0];
       room.y = at[1];
+      room.anchored = reached(room);
     });
+  }
+
+  /** Beside the placed room the best voted way reaches it from, on that side; false while no placed room does. */
+  private boolean anchor(Room room, Map<Room, int[]> laid) {
+    Room from = null;
+    for (int number : room.leadsTo) {
+      Room other = byNumber(number, null, null);
+      if (other != null && laid.containsKey(other) && sideOf(other, room) != null && (from == null || strengthOf(other, room) > strengthOf(from, room))) from = other;
+    }
+    if (from == null) return false;
+    Side side = sideOf(from, room);
+    placeNear(room, laid.get(from)[0] + dx(side), laid.get(from)[1] + dy(side), laid, takenIn(laid));
+    room.x = laid.get(room)[0];
+    room.y = laid.get(room)[1];
+    return room.anchored = true;
+  }
+
+  private void placeBelow(Room room, Map<Room, int[]> laid) {
+    int below = laid.values().stream().mapToInt(at -> at[1]).max().orElse(-2) + 2;
+    placeNear(room, 0, below, laid, takenIn(laid));
+    room.x = laid.get(room)[0];
+    room.y = laid.get(room)[1];
+  }
+
+  private static Set<Long> takenIn(Map<Room, int[]> laid) {
+    Set<Long> taken = new HashSet<>();
+    for (int[] at : laid.values()) taken.add(cell(at[0], at[1]));
+    return taken;
+  }
+
+  /** Whether any voted way reaches the room, so that it has a place beside another rather than in the strip. */
+  private boolean reached(Room room) {
+    for (int number : room.leadsTo) {
+      Room other = byNumber(number, null, null);
+      if (other != null && sideOf(room, other) != null) return true;
+    }
+    return false;
+  }
+
+  /** The votes a layout does not draw as voted, a way along counting double. */
+  private int undrawnIn(Map<Room, int[]> laid) {
+    int undrawn = 0;
+    for (Room from : rooms) {
+      for (int number : from.leadsTo) {
+        Room to = byNumber(number, null, null);
+        Side side = to == null ? null : sideOf(from, to);
+        if (side != null && (laid.get(to)[0] != laid.get(from)[0] + dx(side) || laid.get(to)[1] != laid.get(from)[1] + dy(side))) {
+          undrawn += strengthOf(from, to) * (dx(side) != 0 ? 2 : 1);
+        }
+      }
+    }
+    return undrawn;
   }
 
   private record Way(int farOut, int strength, Room from, Room to) {

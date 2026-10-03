@@ -18,6 +18,8 @@
 package com.fpetrola.oozx.speccy.tools.map;
 
 import com.fpetrola.oozx.Speccy;
+
+import java.util.List;
 import com.fpetrola.oozx.rzx.RzxRecorder;
 import com.fpetrola.oozx.rzx.RzxSession;
 
@@ -37,17 +39,23 @@ final class Twin {
   final Rooms rooms = new Rooms();
   final RoomVariable roomVariable;
   final PlayerVariable playerVariable;
-  /** What it was taught of the player: worth starting over once the game being played says otherwise. */
+  /** What it was taught of the player and of the room: worth starting over once the game being played says otherwise. */
   final String taught;
+  final List<Integer> identity;
+  /** Frames of the game being played when this started and when it first caught up, to spend no longer replaying than playing. */
+  final int startedAt;
+  volatile int caughtUpAt = -1;
   private volatile boolean alive = true;
   private Thread thread;
 
   Twin(RzxRecorder recorder, RoomVariable learntRoom, PlayerVariable learntPlayer, Mapper.Listener listener) {
     this.recorder = recorder;
+    startedAt = recorder.frames();
     session = RzxSession.follow(recorder).quiet();
     Speccy speccy = session.getSpeccy();
     inputs = new InputsSeen(speccy);
-    roomVariable = new RoomVariable(speccy.memory::peek, learntRoom.survivors());
+    identity = learntRoom.survivors();
+    roomVariable = new RoomVariable(speccy.memory::peek, identity);
     playerVariable = new PlayerVariable(speccy.memory::peek);
     playerVariable.learnedFrom(learntPlayer);
     taught = learntPlayer.taught();

@@ -125,15 +125,7 @@ class TheGameKeepsTheRoomAndThePlayerTest {
 
   /** The map against the game's own table of ways: the rooms as the game numbers them, the ways voted, and where each room was put. */
   private void compareWithTheGamesTable(Speccy speccy, Pass pass) throws Exception {
-    Map<Integer, Map<Integer, Integer>> gameRoomsOf = new TreeMap<>();
-    java.util.Set<Integer> standing = pass.rooms.rooms().stream().map(room -> room.number).collect(java.util.stream.Collectors.toSet());
-    for (int[] seen : pass.seenAs) {
-      int ours = pass.rooms.numberNow(seen[0]);
-      if (standing.contains(ours)) gameRoomsOf.computeIfAbsent(ours, r -> new HashMap<>()).merge(seen[1], 1, Integer::sum);
-    }
-    Map<Integer, Integer> gameRoomOf = new HashMap<>();
-    gameRoomsOf.forEach((ours, theirs) -> gameRoomOf.put(ours, theirs.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey()));
-    gameRoomsOf.forEach((ours, theirs) -> { if (theirs.size() > 1) System.out.printf("  our room %d was the game's %s%n", ours, theirs); });
+    Map<Integer, Integer> gameRoomOf = Mapping.gameRoomOf(pass.rooms, pass.seenAs);
     List<Integer> identity = pass.roomVariable.survivors();
     Map<Integer, List<Rooms.Room>> oursOfGame = new TreeMap<>();
     pass.rooms.rooms().forEach(room -> { if (gameRoomOf.containsKey(room.number)) oursOfGame.computeIfAbsent(gameRoomOf.get(room.number), g -> new ArrayList<>()).add(room); });
@@ -168,46 +160,9 @@ class TheGameKeepsTheRoomAndThePlayerTest {
     System.out.printf("MAP: %d rooms (%d twice for one of the game's), ways voted right %d, wrong %d, unvoted %d, not a way of the game %d%n",
         pass.rooms.rooms().size(), doubled, right, wrong, unvoted, notAWay);
 
-    // The game's table, laid out from the bathroom by the same rule a map uses: each room beside the one it is reached from.
-    Map<Integer, int[]> table = new HashMap<>();
-    Deque<Integer> toVisit = new ArrayDeque<>(List.of(33));
-    table.put(33, new int[]{0, 0});
-    int clashes = 0;
-    while (!toVisit.isEmpty()) {
-      int room = toVisit.pop();
-      for (int side = 0; side < 4; side++) {
-        int next = speccy.memory.peek(JetSetWilly.ROOMS + room * 256 + JetSetWilly.EXITS + side) & 0xff;
-        if (next == room || next >= 61) continue;
-        int[] at = {table.get(room)[0] + (side == 1 ? 1 : side == 0 ? -1 : 0), table.get(room)[1] + (side == 3 ? 1 : side == 2 ? -1 : 0)};
-        int[] known = table.get(next);
-        if (known == null) {
-          table.put(next, at);
-          toVisit.add(next);
-        } else if (known[0] != at[0] || known[1] != at[1]) clashes++;
-      }
-    }
-    // Lined up by the shift most rooms agree on, since neither map has a corner to start from.
-    Map<String, Integer> shifts = new HashMap<>();
-    for (Rooms.Room room : pass.rooms.rooms()) {
-      Integer game = gameRoomOf.get(room.number);
-      if (game != null && table.containsKey(game)) shifts.merge((room.x - table.get(game)[0]) + "," + (room.y - table.get(game)[1]), 1, Integer::sum);
-    }
-    String[] shift = shifts.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey().split(",");
-    int shiftX = Integer.parseInt(shift[0]), shiftY = Integer.parseInt(shift[1]);
-    int placedAlike = 0, placedElsewhere = 0;
-    StringBuilder elsewhere = new StringBuilder();
-    for (Rooms.Room room : pass.rooms.rooms()) {
-      Integer game = gameRoomOf.get(room.number);
-      if (game == null || !table.containsKey(game)) continue;
-      int[] truth = table.get(game);
-      if (room.x - shiftX == truth[0] && room.y - shiftY == truth[1]) placedAlike++;
-      else {
-        placedElsewhere++;
-        elsewhere.append(String.format(" %d at %d,%d not %d,%d;", game, room.x - shiftX, room.y - shiftY, truth[0], truth[1]));
-      }
-    }
-    System.out.printf("LAYOUT: the game's table reaches %d rooms from the bathroom with %d ways disagreeing on where a room lies; ours puts %d rooms where the table does and %d elsewhere:%s%n",
-        table.size(), clashes, placedAlike, placedElsewhere, elsewhere);
+    Map<Integer, int[]> table = JetSetWilly.table(speccy), reference = JetSetWilly.reference(pass.screens);
+    System.out.printf("  ours draws %d of %d voted ways elsewhere than voted; against the game's table from the bathroom, %s%n", Mapping.undrawn(pass.rooms), Mapping.votedWays(pass.rooms), Mapping.placement(pass.rooms, gameRoomOf, table, 0));
+    System.out.printf("  %d of the game's %d rooms seen are found on the reference map; against it, %s%n", reference.size(), pass.screens.size(), Mapping.placement(pass.rooms, gameRoomOf, reference, 0));
     draw(pass.rooms.rooms().stream().collect(java.util.stream.Collectors.toMap(room -> gameRoomOf.getOrDefault(room.number, -1), room -> new int[]{room.x, room.y}, (a, b) -> a)),
         pass.screens, new File("target/jsw-map-ours.png"));
     draw(table, pass.screens, new File("target/jsw-map-table.png"));

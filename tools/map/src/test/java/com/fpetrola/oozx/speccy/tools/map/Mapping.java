@@ -127,6 +127,45 @@ final class Mapping {
     System.out.println("  " + pass.playerVariable.state());
   }
 
+  /** The game's room each of ours was seen as most often, from (our number, the game's) pairs noted at every arrival. */
+  static Map<Integer, Integer> gameRoomOf(Rooms rooms, List<int[]> seenAs) {
+    Map<Integer, Map<Integer, Integer>> counts = new HashMap<>();
+    for (int[] seen : seenAs) counts.computeIfAbsent(rooms.numberNow(seen[0]), r -> new HashMap<>()).merge(seen[1], 1, Integer::sum);
+    Map<Integer, Integer> majority = new HashMap<>();
+    counts.forEach((ours, theirs) -> majority.put(ours, theirs.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey()));
+    return majority;
+  }
+
+  /** Where the map puts each room against where the game does, lined up by the shift most rooms agree on; x modulo wrapX on a cylinder. */
+  static String placement(Rooms rooms, Map<Integer, Integer> gameRoomOf, Map<Integer, int[]> truth, int wrapX) {
+    Map<String, Integer> shifts = new HashMap<>();
+    for (Rooms.Room room : rooms.rooms()) {
+      Integer game = gameRoomOf.get(room.number);
+      if (game != null && truth.containsKey(game)) shifts.merge(shift(room.x - truth.get(game)[0], room.y - truth.get(game)[1], wrapX), 1, Integer::sum);
+    }
+    if (shifts.isEmpty()) return "LAYOUT: no room of the map is known as one of the game's";
+    String[] shift = shifts.entrySet().stream().max(Map.Entry.comparingByValue()).orElseThrow().getKey().split(",");
+    int shiftX = Integer.parseInt(shift[0]), shiftY = Integer.parseInt(shift[1]);
+    int alike = 0, elsewhere = 0;
+    StringBuilder where = new StringBuilder();
+    for (Rooms.Room room : rooms.rooms()) {
+      Integer game = gameRoomOf.get(room.number);
+      if (game == null || !truth.containsKey(game)) continue;
+      int[] at = truth.get(game);
+      int x = room.x - shiftX, y = room.y - shiftY;
+      if (shift(x - at[0], 0, wrapX).equals("0,0") && y == at[1]) alike++;
+      else {
+        elsewhere++;
+        where.append(String.format(" %d at %d,%d not %d,%d;", game, x, y, at[0], at[1]));
+      }
+    }
+    return String.format("LAYOUT: %d rooms where the game puts them, %d elsewhere:%s", alike, elsewhere, where);
+  }
+
+  private static String shift(int dx, int dy, int wrapX) {
+    return (wrapX > 0 ? Math.floorMod(dx, wrapX) : dx) + "," + dy;
+  }
+
   static int votedWays(Rooms rooms) {
     int ways = 0;
     for (Rooms.Room from : rooms.rooms()) for (Rooms.Room to : rooms.rooms()) if (from.number < to.number && rooms.sideOf(from, to) != null) ways++;

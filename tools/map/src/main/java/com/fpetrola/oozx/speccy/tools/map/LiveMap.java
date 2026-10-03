@@ -27,8 +27,10 @@ import com.fpetrola.oozx.speccy.modules.z80.PcTraps;
 /**
  * The map of a game being played: made as the game goes and, once the player is believed, made
  * again from the start on a twin machine that plays what was recorded since this began, knowing
- * what the game has taught - and once more whenever the row byte learnt since differs. The
- * twin's map is the one shown once it has caught up with the game.
+ * what the game has taught - and once more whenever what has been learnt since differs, the
+ * player or the bytes that are the room, once the last twin has caught up and as much has been
+ * played since as catching up took: no longer is spent replaying than playing. The last twin's
+ * map to catch up is the one shown.
  */
 final class LiveMap {
   /** What a twin is told and what becomes of it: left to follow the game on a thread of its own unless said otherwise. */
@@ -76,14 +78,18 @@ final class LiveMap {
     frame = now;
     mapper.frame(Screens.of(machine.memory::peek), inputs.frame());
     Twin again = twin;
-    if (again != null && again.caughtUp()) caughtUp = again.rooms;
+    if (again != null && again.caughtUp()) {
+      caughtUp = again.rooms;
+      if (again.caughtUpAt < 0) again.caughtUpAt = recorder.frames();
+    }
     mapAgainIfReady();
   }
 
   private void mapAgainIfReady() {
     if (!recorder.started() || !playerVariable.trusted()) return;
     Twin again = twin;
-    if (again != null && again.taught.equals(playerVariable.taught())) return;
+    if (again != null && (again.caughtUpAt < 0 || recorder.frames() - again.caughtUpAt < again.caughtUpAt - again.startedAt
+        || again.taught.equals(playerVariable.taught()) && again.identity.equals(roomVariable.survivors()))) return;
     if (again != null) again.stop();
     twin = again = new Twin(recorder, roomVariable, playerVariable, twins.listener());
     twins.started(again);

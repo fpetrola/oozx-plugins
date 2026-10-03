@@ -101,6 +101,11 @@ class DynamiteDanIsMappedTest {
       roomsOfScreen.forEach((screen, ours) -> { if (ours.size() > 1) System.out.printf("  the game's screen %d was our rooms %s%n", screen, ours); });
       System.out.printf("MAP: %d screens of the game seen, %d rooms on the map, %d of %d voted ways not drawn as voted%n",
           roomsOfScreen.size(), rooms.rooms().size(), Mapping.undrawn(rooms), Mapping.votedWays(rooms));
+      Map<Integer, Integer> screenOfRoom = new HashMap<>();
+      screensOfRoom.forEach((room, screens) -> { if (screens.size() == 1) screenOfRoom.put(room, screens.iterator().next()); });
+      Map<Integer, int[]> cells = new HashMap<>();
+      for (int screen = 0; screen < 48; screen++) cells.put(screen, cellOf(screen));
+      System.out.println("  " + Mapping.placement(rooms, screenOfRoom, cells, ACROSS));
     }
   }
 
