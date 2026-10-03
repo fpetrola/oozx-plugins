@@ -14,12 +14,11 @@
     <!-- El mapa de un juego de pantallas fijas, armado mirando la pantalla mientras se juega. -->
 
     <dependencies>
-        <!-- Solo para medir el mapa contra una partida grabada: el plugin no reproduce nada. -->
+        <!-- Graba la partida desde que se engancha y la vuelve a mapear desde el principio sabiendo lo aprendido; y mide el mapa contra partidas grabadas. -->
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>rzx</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
         </dependency>
     </dependencies>
 </project>

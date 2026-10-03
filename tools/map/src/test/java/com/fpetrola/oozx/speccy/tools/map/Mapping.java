@@ -61,18 +61,11 @@ final class Mapping {
 
   static RzxSession open(File recording) {
     Assumptions.assumeTrue(recording.isFile(), "needs " + recording);
-    RzxSession session = RzxSession.open(recording);
-    Speccy speccy = session.getSpeccy();
-    speccy.picture.active = false;
-    speccy.sound.output.enabled = false;
-    speccy.sound.setCard(new com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice());
-    return session;
+    return RzxSession.open(recording).quiet();
   }
 
   static byte[] screenOf(Speccy speccy) {
-    byte[] screen = new byte[Screens.SCREEN];
-    for (int offset = 0; offset < screen.length; offset++) screen[offset] = (byte) speccy.memory.peek(0x4000 + offset);
-    return screen;
+    return Screens.of(speccy.memory::peek);
   }
 
   /** Both passes, the second knowing what the first found, each watched. */

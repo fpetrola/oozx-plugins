@@ -76,8 +76,8 @@ public final class RoomVariable {
   private final int[] strikes = new int[TO], struckAt = new int[TO];
   private final int[] lastChanged = new int[Screens.CELLS];
   private final int[] sceneryChanged = new int[WITHIN];
-  private boolean flipping = true, leaving;
-  private int still, frames, arrivedAt = -1;
+  private boolean flipping = true, leaving, redrawn;
+  private int still, frames, arrivedAt = -1, leftAt;
   private byte[] screenOnArrival;
   private boolean[] movedSinceArrival;
 
@@ -152,8 +152,15 @@ public final class RoomVariable {
     return scenery;
   }
 
+  /**
+   * Knowing the room's bytes, a change in them is leaving and their standing still is arriving;
+   * but the bytes known so far may still hold some that change inside a room, and a change of
+   * those looks the same. What tells them apart is the screen: a room left is a screen redrawn.
+   * A change the screen never follows is struck off, twice to be sure, and is no arrival.
+   */
   private boolean frameKnowing(byte[] screen) {
-    sceneryChanged(screen);
+    int lately = sceneryChanged(screen);
+    for (int changed : sceneryChanged) lately += changed;
     byte[] now = new byte[known.size()];
     for (int i = 0; i < now.length; i++) {
       int address = known.get(i);
@@ -163,16 +170,26 @@ public final class RoomVariable {
     if (leaving) {
       flipping = true;
       still = 0;
+      leftAt = frames;
+      redrawn = false;
       java.util.Arrays.fill(suspectedAt, 0);
     }
     boolean arrived = false;
     if (flipping) {
+      redrawn |= lately >= REDRAWN;
+      // A room is set up within the grace a game gets for it; what still changes after that is a
+      // clock, not the room, and it would hold the arrival up forever.
+      if (frames - leftAt > GRACE) for (int i = 0; i < now.length; i++) if (now[i] != knownValues[i]) steady[known.get(i)] = false;
       still = java.util.Arrays.equals(now, knownValues) ? still + 1 : 0;
       if (still >= SETTLING) {
-        arrive(screen);
+        if (redrawn || settledValues == null) {
+          arrive(screen);
+          arrived = true;
+        } else {
+          for (int i = 0; i < now.length; i++) if (now[i] != settledValues[i]) strike(known.get(i), "changed with no room drawn");
+        }
         settledValues = now;
         flipping = false;
-        arrived = true;
       }
     } else {
       if (frames - arrivedAt == JUDGED_AFTER) judgeLookalikes();
@@ -257,13 +274,19 @@ public final class RoomVariable {
     for (int address = FROM; address < TO; address++) {
       if (!steady[address] || (byte) ram.peek(address) == onArrival[address]) continue;
       if (suspectedAt[address] == 0) suspectedAt[address] = frames;
-      else if (frames - suspectedAt[address] > GRACE && frames - struckAt[address] > APART) {
-        struckAt[address] = frames;
+      else if (frames - suspectedAt[address] > GRACE) {
         suspectedAt[address] = 0;
-        if (++strikes[address] >= STRIKES) steady[address] = false;
-        if (address == WATCHED) System.out.printf("  0x%04X strike %d at frame %d: differed inside a room since frame %d%n", address, strikes[address], frames, frames - GRACE);
+        strike(address, "differed inside a room since frame " + (frames - GRACE));
       }
     }
+  }
+
+  /** One strike against a byte being the room's, well apart from the last; the second strikes it off. */
+  private void strike(int address, String why) {
+    if (frames - struckAt[address] <= APART) return;
+    struckAt[address] = frames;
+    if (++strikes[address] >= STRIKES) steady[address] = false;
+    if (address == WATCHED) System.out.printf("  0x%04X strike %d at frame %d: %s%n", address, strikes[address], frames, why);
   }
 
   private byte[] snapshot() {

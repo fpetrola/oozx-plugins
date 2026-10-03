@@ -201,6 +201,21 @@ public final class PlayerVariable {
     return player != null;
   }
 
+  /** Whether the player has been followed long enough to be believed: what a map made again from the start can be given. */
+  public boolean trusted() {
+    return player != null && followed >= TRUSTED_AFTER;
+  }
+
+  /** Whether up and down can be told as well as left and right: the row is packed with the column or has been found. */
+  public boolean rowKnown() {
+    return player != null && (packed() || row >= 0);
+  }
+
+  /** The byte taken for the row, or -1: what a map made again from the start was taught, to be made once more when it changes. */
+  public int rowByte() {
+    return row;
+  }
+
   public Found player() {
     return player;
   }

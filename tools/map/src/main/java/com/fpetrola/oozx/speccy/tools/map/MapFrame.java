@@ -42,7 +42,6 @@ import java.util.Map;
 /** The map of the game being played, drawn as the rooms come: each on its square, the one in play outlined. */
 public class MapFrame extends MachineFrame {
   private static final int REFRESH_MILLIS = 250;
-  private static final int SCREEN = 0x4000;
 
   private final JLabel said = new JLabel(" ");
   private final Drawing drawing = new Drawing();
@@ -53,6 +52,8 @@ public class MapFrame extends MachineFrame {
   private Mapper mapper;
   private PcTraps.Watch watching;
   private long frame = -1;
+  private com.fpetrola.oozx.rzx.RzxRecorder recorder;
+  private volatile Twin twin;
 
   public MapFrame() {
     super("Map");
@@ -64,11 +65,14 @@ public class MapFrame extends MachineFrame {
     assemble(drawing);
     setCompact(false);
     Timer refresh = new Timer(REFRESH_MILLIS, e -> {
-      int found = rooms.rooms().size();
-      String way = rooms.lastWayOut();
+      Rooms shown = shown();
+      int found = shown.rooms().size();
+      String way = shown.lastWayOut();
+      Twin madeAgain = twin;
       said.setText(machine() == null ? "not clipped onto a machine"
           : found + (found == 1 ? " room" : " rooms") + (way.isEmpty() ? "" : " - last way out: " + way)
-          + (playerVariable == null || !playerVariable.known() ? " - looking for the player" : ""));
+          + (playerVariable == null || !playerVariable.known() ? " - looking for the player" : "")
+          + (madeAgain != null && madeAgain.behind() > 50 ? " - mapping again from the start, " + madeAgain.frame() + " of " + (madeAgain.frame() + madeAgain.behind()) + " frames" : ""));
       drawing.repaint();
     });
     refresh.start();
@@ -88,15 +92,48 @@ public class MapFrame extends MachineFrame {
     if (now != null) watching = now.cpu.beforeFetch().watch(0x0000, 0xffff, pc -> lookAtTheScreen(now));
   }
 
-  /** What is known starts over: the rooms, and what the game's memory says of rooms and the player. */
+  /**
+   * What is known starts over: the rooms, what the game's memory says of rooms and the player,
+   * and the recording of the game from here, which is what the map is made again from once the
+   * player has been found.
+   */
   private void startAgain(Speccy machine) {
     rooms = new Rooms();
     if (inputs != null) inputs.off();
+    if (recorder != null) recorder.stop();
+    stopTheTwin();
     inputs = machine == null ? null : new InputsSeen(machine);
     roomVariable = machine == null ? null : new RoomVariable(machine.memory::peek);
     playerVariable = machine == null ? null : new PlayerVariable(machine.memory::peek);
+    recorder = machine == null ? null : com.fpetrola.oozx.rzx.RzxRecorder.of(machine);
     mapper = machine == null ? null : new Mapper(roomVariable, playerVariable, rooms, new Mapper.Listener() {
     });
+  }
+
+  /** The rooms drawn: the map made again from the start once there is one, the one made as the game went until then. */
+  private Rooms shown() {
+    Twin again = twin;
+    return again != null ? again.rooms : rooms;
+  }
+
+  /**
+   * Once the player is believed, the game is mapped again from the start on a machine of its own,
+   * knowing what has been learnt; and once more whenever the row byte learnt since differs.
+   */
+  private void mapAgainIfReady() {
+    if (recorder == null || !recorder.started() || !playerVariable.trusted()) return;
+    Twin again = twin;
+    if (again != null && again.rowByte == playerVariable.rowByte()) return;
+    stopTheTwin();
+    twin = new Twin(recorder, roomVariable, playerVariable, new Mapper.Listener() {
+    });
+    twin.follow();
+  }
+
+  private void stopTheTwin() {
+    Twin again = twin;
+    twin = null;
+    if (again != null) again.stop();
   }
 
   @Override
@@ -114,9 +151,8 @@ public class MapFrame extends MachineFrame {
     long now = machine.machine.current.frameCount();
     if (now == frame) return;
     frame = now;
-    byte[] screen = new byte[Screens.SCREEN];
-    for (int offset = 0; offset < screen.length; offset++) screen[offset] = (byte) machine.memory.peek(SCREEN + offset);
-    mapper.frame(screen, inputs.frame());
+    mapper.frame(Screens.of(machine.memory::peek), inputs.frame());
+    mapAgainIfReady();
   }
 
   private void stopWatching() {
@@ -124,6 +160,9 @@ public class MapFrame extends MachineFrame {
     watching = null;
     if (inputs != null) inputs.off();
     inputs = null;
+    if (recorder != null) recorder.stop();
+    recorder = null;
+    stopTheTwin();
   }
 
   /** The whole map fitted to the window, and from there dragged about and zoomed with the wheel; a double click fits it again. */
@@ -175,7 +214,8 @@ public class MapFrame extends MachineFrame {
       Graphics2D pen = (Graphics2D) g;
       pen.setColor(Color.DARK_GRAY);
       pen.fillRect(0, 0, getWidth(), getHeight());
-      List<Rooms.Room> found = rooms.rooms();
+      Rooms shown = shown();
+      List<Rooms.Room> found = shown.rooms();
       if (found.isEmpty()) return;
       int left = found.stream().mapToInt(room -> room.x).min().orElse(0);
       int top = found.stream().mapToInt(room -> room.y).min().orElse(0);
@@ -186,7 +226,7 @@ public class MapFrame extends MachineFrame {
       pen.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
       pen.translate(panX, panY);
       pen.scale(zoom, zoom);
-      Rooms.Room current = rooms.current();
+      Rooms.Room current = shown.current();
       for (Rooms.Room room : found) {
         int x = (room.x - left) * width, y = (room.y - top) * height;
         pen.drawImage(pictures.computeIfAbsent(room.screen, this::pictureOf), x, y, width, height, null);

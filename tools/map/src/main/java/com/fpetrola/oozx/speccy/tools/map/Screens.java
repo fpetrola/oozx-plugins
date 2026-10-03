@@ -26,6 +26,13 @@ final class Screens {
   private Screens() {
   }
 
+  /** The screen as the memory holds it now. */
+  static byte[] of(RoomVariable.Ram ram) {
+    byte[] screen = new byte[SCREEN];
+    for (int offset = 0; offset < screen.length; offset++) screen[offset] = (byte) ram.peek(0x4000 + offset);
+    return screen;
+  }
+
   /** The character cell a bitmap byte belongs to. */
   static int cellOf(int offset) {
     return ((offset >> 8 & 0x18) | (offset >> 5 & 7)) * COLUMNS + (offset & 31);
