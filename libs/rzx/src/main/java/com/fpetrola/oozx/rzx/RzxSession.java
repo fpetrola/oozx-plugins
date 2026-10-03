@@ -107,12 +107,6 @@ public class RzxSession {
 
   }
 
-  /** The model the recording was made on, which is the one the machine became to replay it. */
-  /** Told what the recording hands the machine for every port read: a recorder of this machine keeps that. */
-  public void whenRead(com.fpetrola.z80.minizx.emulation.OutListener listener) {
-    ports.player.addInListener(listener);
-  }
-
   /** No picture to paint and no sound to pace the frames: for a session nobody watches, which goes as fast as it can. */
   public RzxSession quiet() {
     speccy.picture.active = false;
@@ -121,6 +115,7 @@ public class RzxSession {
     return this;
   }
 
+  /** The model the recording was made on, which is the one the machine became to replay it. */
   public String getMachineName() {
     return speccy.machine.current.getName();
   }

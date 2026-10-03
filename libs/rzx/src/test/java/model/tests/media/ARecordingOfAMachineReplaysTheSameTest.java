@@ -50,10 +50,7 @@ class ARecordingOfAMachineReplaysTheSameTest {
   void the_recording_of_a_played_machine_replays_to_the_same_screen() throws Exception {
     played = RzxSession.open(recording()).quiet();
     for (int frame = 0; frame < SKIPPED; frame++) played.playFrame();
-    RzxRecorder recorder = new RzxRecorder(played.getSpeccy(), answer -> {
-      played.whenRead((port, value) -> answer.accept(value));
-      return () -> { };
-    });
+    RzxRecorder recorder = new RzxRecorder(played.getSpeccy());
     java.util.List<byte[]> seen = screensAsEachFrameBegins(played.getSpeccy());
     for (int frame = 0; frame < RECORDED; frame++) played.playFrame();
     assertReplaysTheSame(recorder, seen);
@@ -69,7 +66,7 @@ class ARecordingOfAMachineReplaysTheSameTest {
     Speccy speccy = played.getSpeccy();
     speccy.speed.setEmulation(com.fpetrola.oozx.speccy.modules.timer.Speed.UNLIMITED);
     played.release();
-    RzxRecorder recorder = RzxRecorder.of(speccy);
+    RzxRecorder recorder = new RzxRecorder(speccy);
     java.util.List<byte[]> seen = screensAsEachFrameBegins(speccy);
     for (int frame = 0; frame < RECORDED; frame++) {
       long frames = speccy.machine.current.frameCount();
@@ -89,10 +86,7 @@ class ARecordingOfAMachineReplaysTheSameTest {
   void a_session_following_the_recorder_catches_up_and_waits_for_it() throws Exception {
     played = RzxSession.open(recording()).quiet();
     for (int frame = 0; frame < SKIPPED; frame++) played.playFrame();
-    RzxRecorder recorder = new RzxRecorder(played.getSpeccy(), answer -> {
-      played.whenRead((port, value) -> answer.accept(value));
-      return () -> { };
-    });
+    RzxRecorder recorder = new RzxRecorder(played.getSpeccy());
     for (int frame = 0; frame < 200; frame++) played.playFrame();
     RzxSession twin = RzxSession.follow(recorder).quiet();
     java.util.List<byte[]> seen = new java.util.ArrayList<>();

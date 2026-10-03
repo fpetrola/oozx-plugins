@@ -17,8 +17,6 @@
 
 package com.fpetrola.oozx.speccy.tools.map;
 
-import com.fpetrola.oozx.Speccy;
-import com.fpetrola.oozx.rzx.RzxRecorder;
 import com.fpetrola.oozx.rzx.RzxSession;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -27,58 +25,52 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * What the window does while the game is played, done to a recording standing in for the player:
- * mapped as it goes while recorded, then mapped again from the start on a twin machine once the
- * player is believed, and once more when up and down become known. The twin's map is held to the
- * game's own screen number, as the second pass over the recording is.
+ * the window's own live map, its twin stepped here so the map is graded against the game's own
+ * screen number, as the second pass over the recording is.
  */
 class AMapMadeAgainWhileThePlayerPlaysTest {
-
   @Test
   @Timeout(value = 25, unit = TimeUnit.MINUTES)
   void theTwinsMapIsTheSecondPassesMap() throws Exception {
     RzxSession live = Mapping.open(DynamiteDanIsMappedTest.RECORDING);
-    Speccy speccy = live.getSpeccy();
-    InputsSeen inputs = new InputsSeen(speccy);
-    RoomVariable roomVariable = new RoomVariable(speccy.memory::peek);
-    PlayerVariable playerVariable = new PlayerVariable(speccy.memory::peek);
-    Mapper mapper = new Mapper(roomVariable, playerVariable, new Rooms(), new Mapper.Listener() {
-    });
-    RzxRecorder recorder = new RzxRecorder(speccy, answer -> {
-      live.whenRead((port, value) -> answer.accept(value));
-      return () -> { };
-    });
-    Twin[] twin = {null};
     DynamiteDanIsMappedTest.Grading[] grading = {null};
-    int[] startedAt = new int[4];
-    int starts = 0, frames = 0;
-    try {
-      for (; frames < 200_000 && live.playFrame(); frames++) {
-        mapper.frame(Screens.of(speccy.memory::peek), inputs.frame());
-        if (recorder.started() && playerVariable.trusted() && (twin[0] == null || twin[0].rowByte != playerVariable.rowByte())) {
-          if (twin[0] != null) twin[0].stop();
-          grading[0] = new DynamiteDanIsMappedTest.Grading();
-          twin[0] = new Twin(recorder, roomVariable, playerVariable, new Mapper.Listener() {
-            @Override
-            public void arrived(PlayerVariable.Side leftBy) {
-              grading[0].arrived(twin[0].machine(), twin[0].frame(), twin[0].rooms, twin[0].playerVariable, twin[0].roomVariable, leftBy);
-            }
+    LiveMap[] map = {null};
+    int[] startedAt = new int[4], starts = {0}, frames = {0};
+    map[0] = new LiveMap(live.getSpeccy(), new LiveMap.Twins() {
+      @Override
+      public Mapper.Listener listener() {
+        grading[0] = new DynamiteDanIsMappedTest.Grading();
+        return new Mapper.Listener() {
+          @Override
+          public void arrived(PlayerVariable.Side leftBy) {
+            Twin twin = map[0].twin();
+            grading[0].arrived(twin.machine(), twin.frame(), twin.rooms, twin.playerVariable, twin.roomVariable, leftBy);
+          }
 
-            @Override
-            public void wayToldLate(PlayerVariable.Side side) {
-              grading[0].wayToldLate(side);
-            }
-          });
-          startedAt[Math.min(starts, 3)] = frames;
-          starts++;
-        }
-        if (twin[0] != null) while (twin[0].step()) ;
+          @Override
+          public void wayToldLate(PlayerVariable.Side side) {
+            grading[0].wayToldLate(side);
+          }
+        };
+      }
+
+      @Override
+      public void started(Twin twin) {
+        startedAt[Math.min(starts[0], 3)] = frames[0];
+        starts[0]++;
+      }
+    });
+    try {
+      for (; frames[0] < 200_000 && live.playFrame(); frames[0]++) {
+        Twin twin = map[0].twin();
+        if (twin != null) while (twin.step()) ;
       }
     } finally {
-      inputs.off();
       live.release();
     }
-    System.out.printf("TWIN: started %d times, at frames %s; followed to frame %d of %d, %d behind%n", starts, java.util.Arrays.toString(startedAt), twin[0].frame(), frames, twin[0].behind());
-    grading[0].report(twin[0].rooms);
-    twin[0].stop();
+    Twin twin = map[0].twin();
+    System.out.printf("TWIN: started %d times, at frames %s; followed to frame %d of %d, %d behind%n", starts[0], java.util.Arrays.toString(startedAt), twin.frame(), frames[0], twin.behind());
+    grading[0].report(twin.rooms);
+    map[0].stop();
   }
 }

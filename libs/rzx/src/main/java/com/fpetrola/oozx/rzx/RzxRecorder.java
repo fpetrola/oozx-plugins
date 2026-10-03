@@ -18,6 +18,7 @@
 package com.fpetrola.oozx.rzx;
 
 import com.fpetrola.oozx.Speccy;
+import com.fpetrola.oozx.speccy.modules.z80.Processors;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.z80.PcTraps;
 import com.fpetrola.z80.ide.rzx.CreatorInfo;
@@ -35,7 +36,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.IntConsumer;
 
 /**
  * A machine being played, kept from a moment on so that a {@link RzxSession} can play the same
@@ -49,11 +49,6 @@ import java.util.function.IntConsumer;
  */
 public final class RzxRecorder {
 
-  /** Where the port reads' answers come from: the machine's bus when it is played, the recording when it is replayed. */
-  public interface Reads {
-    Runnable listen(IntConsumer answer);
-  }
-
   private static final String SNAPSHOT = "z80";
 
   private final Speccy speccy;
@@ -61,26 +56,20 @@ public final class RzxRecorder {
   private final List<InputRecordingBlock.Frame> frames = java.util.Collections.synchronizedList(new ArrayList<>());
   private final ByteArrayOutputStream answers = new ByteArrayOutputStream();
   private final PcTraps.Watch fetching, executed;
-  private final Runnable taken, stopListening;
+  private final Runnable taken;
+  private final Processors.ReadListener reading;
   private byte[] snapshot;
   private int fetches, previousR;
   private boolean acknowledged, started;
   private long frameSeen;
 
-  /** Recording the machine's own ports from here on. */
-  public static RzxRecorder of(Speccy speccy) {
-    return new RzxRecorder(speccy, answer -> {
-      com.fpetrola.oozx.speccy.modules.ports.MachinePortBus.ReadListener listener = (port, value) -> answer.accept(value);
-      speccy.ports.whenRead(listener);
-      return () -> speccy.ports.stopTellingAboutReads(listener);
-    });
-  }
-
-  public RzxRecorder(Speccy speccy, Reads reads) {
+  /** Recording the machine from here on: what its port reads answer, whoever answers them. */
+  public RzxRecorder(Speccy speccy) {
     this.speccy = speccy;
     this.registerR = speccy.cpu.getOoz80().getState().getRegisterR();
     this.frameSeen = speccy.machine.current.frameCount();
-    this.stopListening = reads.listen(value -> { if (started) answers.write(value & 0xff); });
+    this.reading = (port, value) -> { if (started) answers.write(value & 0xff); };
+    speccy.processors.whenRead(reading);
     this.taken = () -> acknowledged = true;
     speccy.cpu.whenAnInterruptIsTaken(taken);
     this.fetching = speccy.cpu.beforeFetch().watch(0x0000, 0xffff, this::aboutToFetch);
@@ -176,6 +165,6 @@ public final class RzxRecorder {
     fetching.off();
     executed.off();
     speccy.cpu.stopTellingAboutInterrupts(taken);
-    stopListening.run();
+    speccy.processors.stopTellingAboutReads(reading);
   }
 }

@@ -29,6 +29,7 @@ import com.fpetrola.oozx.rzx.RzxSession;
  * player goes on playing.
  */
 final class Twin {
+  private static final int CAUGHT_UP = 50;
   private final RzxRecorder recorder;
   private final RzxSession session;
   private final InputsSeen inputs;
@@ -39,6 +40,7 @@ final class Twin {
   /** The row byte it was taught, or -1: worth starting over once the game being played says another. */
   final int rowByte;
   private volatile boolean alive = true;
+  private Thread thread;
 
   Twin(RzxRecorder recorder, RoomVariable learntRoom, PlayerVariable learntPlayer, Mapper.Listener listener) {
     this.recorder = recorder;
@@ -65,6 +67,11 @@ final class Twin {
     return recorder.frames() - frame();
   }
 
+  /** Close enough behind the game for its map to be the one worth showing. */
+  boolean caughtUp() {
+    return behind() <= CAUGHT_UP;
+  }
+
   /** Plays and maps one frame; false when there is none to play yet. */
   boolean step() {
     if (!alive || !session.playFrame()) return false;
@@ -72,27 +79,27 @@ final class Twin {
     return true;
   }
 
-  /** Keeps up with the game on a thread of its own, as fast as the frames come. */
-  Thread follow() {
-    Thread thread = new Thread(() -> {
+  /** Keeps up with the game on a thread of its own, as fast as the frames come, and lets the machine go once stopped. */
+  void follow() {
+    thread = new Thread(() -> {
       while (alive) {
         if (!step()) {
           try {
             Thread.sleep(4);
           } catch (InterruptedException e) {
-            return;
+            break;
           }
         }
       }
+      machine().end();
     }, "map-twin");
     thread.setDaemon(true);
     thread.start();
-    return thread;
   }
 
+  /** From any thread: a twin following the game lets the machine go itself, once it is out of the frame it is in. */
   void stop() {
     alive = false;
-    inputs.off();
-    session.release();
+    if (thread == null) machine().end();
   }
 }
