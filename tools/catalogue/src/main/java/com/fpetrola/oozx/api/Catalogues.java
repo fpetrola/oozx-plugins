@@ -52,9 +52,15 @@ public final class Catalogues {
     return asking;
   }
 
-  public static List<Hit> search(String query, String machineType, String genreType) {
-    List<Hit> found = ask(who -> who.search(query, machineType, genreType));
+  public static List<Hit> search(String query, KnowsTheGames.Slice slice) {
+    List<Hit> found = ask(who -> who.search(query, slice));
     return found == null ? List.of() : found;
+  }
+
+  /** Called by the released Game Browser; drop once its release passes a slice. */
+  @Deprecated
+  public static List<Hit> search(String query, String machineType, String genreType) {
+    return search(query, new KnowsTheGames.Slice(null, genreType, machineType));
   }
 
   /**
@@ -62,9 +68,15 @@ public final class Catalogues {
    * Asked of ZXDB, which keeps the votes and can order by them - the web service cannot, and pages
    * alphabetically - and which ships in this build with the most voted games in it.
    */
-  public static List<Hit> mostVoted(String query, String machineType, String genreType) {
+  public static List<Hit> mostVoted(String query, KnowsTheGames.Slice slice) {
     Zxdb zxdb = new Zxdb();
-    return zxdb.canAnswer() ? zxdb.search(query, machineType, genreType) : List.of();
+    return zxdb.canAnswer() ? zxdb.search(query, slice) : List.of();
+  }
+
+  /** Called by the released Game Browser; drop once its release passes a slice. */
+  @Deprecated
+  public static List<Hit> mostVoted(String query, String machineType, String genreType) {
+    return mostVoted(query, new KnowsTheGames.Slice(null, genreType, machineType));
   }
 
   public static GameEntry game(String id) {

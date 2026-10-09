@@ -77,6 +77,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   private String onlyInFolder;
   private JComboBox<String> machineFilter;
   private JComboBox<String> genreFilter;
+  private JComboBox<String> yearFilter;
   private JCheckBox rzxFilter;
   private JCheckBox mapFilter;
   private JCheckBox loadableFilter;
@@ -102,6 +103,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   /** Everything the last search found and filtered, of which the gallery has built the first tiles. */
   private List<GameSearchResult> showing = List.of();
   private static final String ANY_GENRE = "Any genre";
+  private static final String ANY_YEAR = "Any year";
   public static Gson gson = new Gson();
   private final RzxArchive archive = new RzxArchive();
   private final com.fpetrola.oozx.speccy.config.OOZxConfiguration config =
@@ -263,9 +265,12 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
 
     machineFilter = new JComboBox<>(new String[]{ANY_MACHINE});
     genreFilter = new JComboBox<>(new String[]{ANY_GENRE});
+    yearFilter = new JComboBox<>(java.util.stream.Stream.concat(java.util.stream.Stream.of(ANY_YEAR),
+        KnowsTheGames.Slice.years().mapToObj(String::valueOf)).toArray(String[]::new));
 
     machineFilter.setToolTipText("Narrow to one machine, applied by the server");
     genreFilter.setToolTipText("Narrow to one genre, applied by the server");
+    yearFilter.setToolTipText("Narrow to the year of first release, applied by the server");
 
     rzxFilter = new JCheckBox("RZX");
     rzxFilter.setToolTipText("Only games with a recorded playthrough to replay");
@@ -282,6 +287,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     bar.add(labelled("Machine", machineFilter));
     bar.add(Box.createVerticalStrut(6));
     bar.add(labelled("Genre", genreFilter));
+    bar.add(Box.createVerticalStrut(6));
+    bar.add(labelled("Year", yearFilter));
     bar.add(Box.createVerticalStrut(8));
     bar.add(row(rzxFilter));
     bar.add(row(mapFilter));
@@ -291,12 +298,13 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     bar.add(Box.createVerticalStrut(12));
     bar.add(createLibraryPanel());
 
-    // Machine and genre change the query, so they need the server asked again. The rest only
+    // Machine, genre and year change the query, so they need the server asked again. The rest only
     // narrow what came back, but the results are not kept, so a search is the simplest honest
     // way to reapply them.
     ActionListener research = e -> performSearch();
     machineFilter.addActionListener(research);
     genreFilter.addActionListener(research);
+    yearFilter.addActionListener(research);
     rzxFilter.addActionListener(research);
     mapFilter.addActionListener(research);
     loadableFilter.addActionListener(research);
@@ -646,11 +654,12 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
    * What this machine has, one result per file; putting the copies of one game together is done
    * afterwards, by the same merge that joins them to what the net has.
    */
-  private List<GameSearchResult> gamesOnThisMachine(String query, boolean onlyUnknown) {
+  private List<GameSearchResult> gamesOnThisMachine(String query, boolean onlyUnknown, String year) {
     return LocalGames.library().games().stream()
         .filter(copy -> onlyInFolder == null || copy.path().startsWith(onlyInFolder))
         .filter(this::takenIntoAccount)
         .filter(copy -> !onlyUnknown || !copy.identified())
+        .filter(copy -> year == null || copy.identified() && year.equals(copy.game().yearOfRelease))
         .filter(copy -> query.isEmpty() || copy.title().toLowerCase().contains(query.toLowerCase()))
         .map(this::asResult)
         .collect(java.util.stream.Collectors.toList());
@@ -774,7 +783,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
 
   private String selected(JComboBox<String> combo) {
     Object value = combo.getSelectedItem();
-    if (value == null || ANY_MACHINE.equals(value) || ANY_GENRE.equals(value)) {
+    if (value == null || ANY_MACHINE.equals(value) || ANY_GENRE.equals(value) || ANY_YEAR.equals(value)) {
       return null;
     }
     return value.toString();
@@ -795,8 +804,9 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
       runningSearch.cancel(true);
     }
 
-    String machineType = selected(machineFilter);
-    String genre = selected(genreFilter);
+    String year = selected(yearFilter);
+    KnowsTheGames.Slice slice = new KnowsTheGames.Slice(year == null ? null : Integer.valueOf(year),
+        selected(genreFilter), selected(machineFilter));
     boolean onTheNet = net;
     boolean onThisMachine = machine;
     boolean onlyRzx = rzxFilter.isSelected();
@@ -816,7 +826,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         // so that both sources arrive by the same door.
         List<GameSearchResult> found = new ArrayList<>();
         if (onThisMachine) {
-          found.addAll(gamesOnThisMachine(query, onlyUnknown));
+          found.addAll(gamesOnThisMachine(query, onlyUnknown, year));
         }
         if (onTheNet) {
           // In an order that is not the catalogue's own: the web service answers with its first
@@ -824,9 +834,9 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
           // that match are asked for too, from all of it.
           List<Hit> hits = new ArrayList<>();
           if (!AS_FOUND.equals(sortedBy))
-            hits.addAll(Catalogues.mostVoted(query, machineType, genre));
+            hits.addAll(Catalogues.mostVoted(query, slice));
           if (!query.isEmpty() || AS_FOUND.equals(sortedBy))
-            hits.addAll(Catalogues.search(query, machineType, genre));
+            hits.addAll(Catalogues.search(query, slice));
           // Once each, or a game both answered would count as two copies.
           Set<String> seen = new java.util.HashSet<>();
           hits.removeIf(hit -> hit._id != null && !seen.add(hit._id));

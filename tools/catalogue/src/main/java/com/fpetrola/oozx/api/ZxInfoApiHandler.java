@@ -27,7 +27,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class ZxInfoApiHandler implements KnowsTheGames {
-  private static final int FIRST_YEAR = 1980, MOST_AT_ONCE = 1000, RETRIES = 5, AT_ONCE = 4;
+  private static final int MOST_AT_ONCE = 1000, RETRIES = 5, AT_ONCE = 4;
   private static final long BACKOFF = 2000, BETWEEN_PAGES = 150;
   private static final int CONNECT_SECONDS = 20, READ_SECONDS = 60;
   private static final String TOSEC = "TOSEC", TOSEC_SET = "/download/zx_spectrum_tosec_set_september_2023/";
@@ -50,16 +50,16 @@ public class ZxInfoApiHandler implements KnowsTheGames {
    * leave it out; the ones the server cannot do, like whether an entry has an RZX recording,
    * have to be applied to the results.
    */
-  public List<Hit> search(String query, String machineType, String genreType) {
+  public List<Hit> search(String query, Slice slice) {
     SearchResponse response = withClient(zxClient -> zxClient.searchGames(query, 150, "0",
-        ZxInfoClient.MODE_COMPACT, null, null, null, null, null, genreType, null, machineType,
+        ZxInfoClient.MODE_COMPACT, null, null, null, slice.year(), null, slice.genre(), null, slice.machine(),
         null, null, null, null, null, null, null, null));
     return response.hits.hits;
   }
 
   /** The same search with no filter on it, which is what a plain box of text asks for. */
   public List<Hit> search(String query) {
-    return search(query, null, null);
+    return search(query, Slice.EVERYTHING);
   }
 
   /** The whole entry, which is where the files it can be downloaded from are listed. */
@@ -101,13 +101,6 @@ public class ZxInfoApiHandler implements KnowsTheGames {
         .toList();
   }
 
-  /** One narrowing of the catalogue: a year, and the genre and machine it had to be cut down by. */
-  public record Slice(int year, String genre, String machine) {
-    public String key() {
-      return year + "|" + (genre == null ? "" : genre) + "|" + (machine == null ? "" : machine);
-    }
-  }
-
   /**
    * Every entry of the catalogue, handed over a slice at a time. The slice comes with them so that
    * a walk of forty thousand entries can be written down as it goes and taken up where it stopped:
@@ -125,10 +118,7 @@ public class ZxInfoApiHandler implements KnowsTheGames {
         java.util.concurrent.Executors.newFixedThreadPool(AT_ONCE);
     try {
       List<java.util.concurrent.Future<?>> years = new ArrayList<>();
-      for (int year = FIRST_YEAR; year <= java.time.Year.now().getValue(); year++) {
-        int reading = year;
-        years.add(pool.submit(() -> collect(new Slice(reading, null, null), skip, found)));
-      }
+      Slice.years().forEach(year -> years.add(pool.submit(() -> collect(new Slice(year, null, null), skip, found))));
       for (java.util.concurrent.Future<?> year : years) {
         year.get();
       }

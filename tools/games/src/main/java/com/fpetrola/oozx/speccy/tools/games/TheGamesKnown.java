@@ -22,6 +22,7 @@ import com.fpetrola.oozx.api.Catalogues;
 import com.fpetrola.oozx.api.GameDetail;
 import com.fpetrola.oozx.api.GameSummary;
 import com.fpetrola.oozx.api.Hit;
+import com.fpetrola.oozx.api.KnowsTheGames;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.WhatGameThisIs;
 import com.fpetrola.oozx.speccy.media.LocalGames;
@@ -94,7 +95,7 @@ public class TheGamesKnown implements WhatGameThisIs {
     }
     String name = nameOf(game);
     if (name == null || name.isEmpty()) return null;
-    List<Hit> found = Catalogues.search(name, null, null);
+    List<Hit> found = Catalogues.search(name, KnowsTheGames.Slice.EVERYTHING);
     return found == null || found.isEmpty() ? null
         : withSomethingToShow(Catalogues.details(found.get(0)._id), game);
   }

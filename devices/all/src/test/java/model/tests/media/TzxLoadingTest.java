@@ -24,6 +24,7 @@ import model.tags.NeedsNetwork;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.api.GameEntry;
 import com.fpetrola.oozx.api.Hit;
+import com.fpetrola.oozx.api.KnowsTheGames;
 import com.fpetrola.oozx.api.Catalogues;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.media.DownloadAndUnzip;
@@ -156,7 +157,7 @@ public class TzxLoadingTest {
     try {
       // The browser only builds a row for a hit that actually has a downloadable file,
       // so scan the hits the same way instead of stopping at the first one.
-      for (Hit hit : Catalogues.search(query, null, null)) {
+      for (Hit hit : Catalogues.search(query, KnowsTheGames.Slice.EVERYTHING)) {
         GameEntry game = hit._source;
         if (game == null || !"SOFTWARE".equals(game.contentType)) {
           continue;

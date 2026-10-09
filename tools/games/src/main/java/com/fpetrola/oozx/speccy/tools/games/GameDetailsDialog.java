@@ -156,7 +156,7 @@ public class GameDetailsDialog extends JDialog {
           protected GameDetail doInBackground() throws Exception {
             try {
               List<com.fpetrola.oozx.api.Hit> results =
-                  com.fpetrola.oozx.api.Catalogues.search(gameName, null, null);
+                  com.fpetrola.oozx.api.Catalogues.search(gameName, com.fpetrola.oozx.api.KnowsTheGames.Slice.EVERYTHING);
 
               if (results == null || results.isEmpty()) {
                 return null;

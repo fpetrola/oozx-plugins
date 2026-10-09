@@ -184,10 +184,11 @@ public class Zxdb implements KnowsTheGames {
    * instead of the web service's scoring.
    */
   @Override
-  public List<Hit> search(String query, String machineType, String genreType) {
+  public List<Hit> search(String query, Slice slice) {
     String asked = query == null ? "" : query.trim();
     List<String> words = asked.isEmpty() ? List.of() : List.of(asked.split("\\s+"));
-    List<Object> parameters = new ArrayList<>(Arrays.asList(machineType, machineType, genreType, genreType));
+    List<Object> parameters = new ArrayList<>(Arrays.asList(slice.machine(), slice.machine(),
+        slice.genre(), slice.genre(), slice.year(), slice.year()));
     words.forEach(word -> parameters.add("%" + word + "%"));
     parameters.add(asked + "%");
     String named = words.isEmpty() ? "" : " AND e.id IN (SELECT id FROM (SELECT id, title FROM entries"
@@ -198,10 +199,12 @@ public class Zxdb implements KnowsTheGames {
     String order = " ORDER BY e.title LIKE ? DESC, s.votes DESC, e.title";
     String chosen = "SELECT e.id FROM entries e LEFT JOIN machinetypes m ON m.id = e.machinetype_id"
         + " LEFT JOIN scores s ON s.entry_id = e.id LEFT JOIN " + GENRES + " g ON g.id = e.genretype_id"
-        + " WHERE (? IS NULL OR m.text = ?) AND (? IS NULL OR g.type = ?)" + named + order + " LIMIT " + MOST_AT_ONCE;
+        + " LEFT JOIN releases r ON r.entry_id = e.id AND r.release_seq = 0"
+        + " WHERE (? IS NULL OR m.text = ?) AND (? IS NULL OR g.type = ?) AND (? IS NULL OR r.release_year = ?)" + named + order + " LIMIT " + MOST_AT_ONCE;
     parameters.add(asked + "%");
     return answers(Hit.class, ENTRY + " WHERE e.id IN (" + chosen + ")" + order, parameters.toArray());
   }
+
 
   @Override
   public GameEntry game(String id) {

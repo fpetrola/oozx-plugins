@@ -42,8 +42,22 @@ public interface KnowsTheGames {
     return true;
   }
 
-  /** What is known about the games whose title says this. A filter left null is not applied. */
-  List<Hit> search(String query, String machineType, String genreType);
+  /** What is known about the games whose title says this, within the slice. */
+  List<Hit> search(String query, Slice slice);
+
+  /** One narrowing of the catalogue: a year, a genre and a machine, each left out when null. */
+  record Slice(Integer year, String genre, String machine) {
+    public static final Slice EVERYTHING = new Slice(null, null, null);
+
+    /** The years the catalogue has games of, from the first to this one. */
+    public static java.util.stream.IntStream years() {
+      return java.util.stream.IntStream.rangeClosed(1980, java.time.Year.now().getValue());
+    }
+
+    public String key() {
+      return year + "|" + (genre == null ? "" : genre) + "|" + (machine == null ? "" : machine);
+    }
+  }
 
   /** Everything about one entry, which is where the files it can be downloaded from are listed. */
   GameEntry game(String id);

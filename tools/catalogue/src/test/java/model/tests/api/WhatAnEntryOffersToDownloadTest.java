@@ -20,6 +20,7 @@ package model.tests.api;
 import com.fpetrola.oozx.api.Catalogues;
 import com.fpetrola.oozx.api.GameEntry;
 import com.fpetrola.oozx.api.GameFile;
+import com.fpetrola.oozx.api.KnowsTheGames;
 import com.fpetrola.oozx.api.Release;
 import com.fpetrola.oozx.api.ZxInfoApiHandler;
 import com.fpetrola.oozx.api.Zxdb;
@@ -127,7 +128,7 @@ class WhatAnEntryOffersToDownloadTest {
     assertEquals("Bug-Byte Software Ltd", manicMiner.publishers.get(0).name);
     assertTrue(manicMiner.additionalDownloads.stream()
         .anyMatch(download -> ZxInfoApiHandler.GAME_MAP_TYPE.equals(download.type)), "its map went missing");
-    assertEquals("0003012", here.search("manic miner", null, null).get(0)._id);
+    assertEquals("0003012", here.search("manic miner", KnowsTheGames.Slice.EVERYTHING).get(0)._id);
   }
 
   @Test
