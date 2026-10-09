@@ -149,21 +149,16 @@ public class RzxPlayback {
   }
 
   private void step() {
+    int pc = state.getPc().read();
+    // LD R,A writes R instead of bumping it, so the difference across its step counts nothing: it is its own two
+    // fetches. Everything else is what R says, including an accepted interrupt, whose step is the acknowledge plus
+    // the handler's first instruction: three when that one is prefixed (Batman The Movie starts its handler with
+    // PUSH IX, and capped at two every frame ran one fetch long).
+    boolean writesR = state.getMemory().peek(pc) == 0xED && state.getMemory().peek(pc + 1 & 0xFFFF) == 0x4F;
     stepper.run();
     instructions++;
     int now = registerR.read() & 0x7F;
-    int stepped = (now - previousR) & 0x7F;
-    // ONE INSTRUCTION WRITES R RATHER THAN BUMPING IT: LD R,A, and after it R is whatever A
-    // held, so the difference across that step is not a count of anything. Left alone it went
-    // into the frame's budget as fetches that never happened - measured at 25 for a single step
-    // - and the frame was then cut early by that much. A tight polling loop shows it plainly:
-    // Ping Pong waits on IN A,($FE) at five fetches a turn and came up 21 turns short of the
-    // 1011 the recording holds, which is those fetches to within one turn.
-    //
-    // Nothing else can add more than two, so more than two means R was written, and LD R,A is
-    // two fetches. It can still land within two of where R was - three values out of 128 - and
-    // then this counts one or two instead; that is the whole of what is left of it.
-    fetchCounter += stepped > 2 ? 2 : stepped;
+    fetchCounter += writesR ? 2 : (now - previousR) & 0x7F;
     previousR = now;
   }
 
