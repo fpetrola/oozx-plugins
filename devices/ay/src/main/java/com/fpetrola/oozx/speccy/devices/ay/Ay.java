@@ -31,7 +31,7 @@ import java.util.Arrays;
  * clocks to build samples. One shared synth buffer is enough because all three channels mix
  * to mono here; stereo panning would need per-channel synths instead.
  */
-class Ay implements AudioSource {
+public class Ay implements AudioSource {
 
   public static final int AMPL_AY_TONE = 24 * 256;
 

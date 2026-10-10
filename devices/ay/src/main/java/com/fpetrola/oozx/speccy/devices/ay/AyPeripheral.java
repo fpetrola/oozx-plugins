@@ -46,10 +46,11 @@ public class AyPeripheral extends AbstractPeripheral {
     this(sound, clock, false);
   }
 
+  /** 0xFFFD selects the register (bits 14-15 both high); 0xBFFD writes its value (bit 14 high, bit 15 low). */
+  public static final int PORT_MASK = 0xC002, SELECT_PORT = 0xC000, DATA_PORT = 0x8000;
+
   protected AyPeripheral(Sound sound, Z80Clock clock, boolean dataPortAnswers) {
-    // 0xFFFD selects the register (bits 14-15 both high); 0xBFFD writes its value (bit 14
-    // high, bit 15 low).
-    this(sound, clock, 0xC002, 0xC000, 0xC002, 0x8000, dataPortAnswers);
+    this(sound, clock, PORT_MASK, SELECT_PORT, PORT_MASK, DATA_PORT, dataPortAnswers);
   }
 
   /** Lets a clone board expose this chip through its own port addresses. */

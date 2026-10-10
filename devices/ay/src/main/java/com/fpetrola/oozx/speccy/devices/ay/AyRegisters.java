@@ -22,7 +22,7 @@ package com.fpetrola.oozx.speccy.devices.ay;
  * (select and data). Kept separate from synthesis because programs read registers back - often
  * as a presence check (write then read, falling back to beeper music if it fails).
  */
-class AyRegisters {
+public class AyRegisters {
 
   /** Masks each register to its real bit width, so unused bits always read back as zero. */
   private static final int[] MASK = {
