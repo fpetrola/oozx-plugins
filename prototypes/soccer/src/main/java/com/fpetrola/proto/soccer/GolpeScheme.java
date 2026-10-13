@@ -13,7 +13,13 @@ import com.badlogic.gdx.math.Vector3;
  *       rasante, con efecto para adelante) a abajo de todo (sale bien alta, con efecto para atrás).</li>
  *   <li><b>Mientras X o C están apretados:</b> el jugador no gira, y la flecha a la izquierda o a la
  *       derecha de hacia donde apunta le va sumando comba para ese lado (para el otro, se la saca).</li>
- *   <li>El golpe sale cuando se sueltan los dos. No hay tiempo máximo.</li>
+ *   <li>El golpe sale al soltar la potencia (si C sigue apretado, al soltar los dos). Se puede
+ *       apretar primero C, soltarlo y después X: soltado C hay un momento para apretar X y seguir
+ *       armándolo; si no se aprieta, sale con la potencia más floja. No hay tiempo máximo.</li>
+ *   <li>También se puede armar antes de tener la pelota (suelta, o que viene): el jugador va solo a
+ *       buscarla y, apenas la toca, le pega de primera con lo armado (aunque los botones sigan
+ *       apretados). Si la agarra un rival, o pasan unos segundos sin llegar después de soltar, se
+ *       cancela.</li>
  * </ul>
  * La flecha del tiro muestra el recorrido que haría la pelota si se soltara ahora: la altura y la
  * curva en la forma, la potencia en el color (de amarillo a rojo).
@@ -33,6 +39,13 @@ final class GolpeScheme implements ControlScheme {
      * por segundo la flecha de costado (rad/s²).
      */
     float fill = 0.6f, sweep = 1f, bend = 350f;
+    /** Cuánto espera, soltado C sin haber usado la potencia, a que se apriete X para seguir armándolo (s); también se ajusta en vivo. */
+    float grace = 0.4f;
+    /** Cuánto espera, armado antes de tener la pelota y ya soltado, a llegar a tocarla (s). */
+    private static final float READY = 2f;
+    /** Si en este golpe ya se usó la potencia, si se empezó a armar sin la pelota (de primera), y cuánto lleva sin ningún botón apretado. */
+    private boolean powered, early;
+    private float idle;
 
     /** Cuánto se cargó la potencia (0 a 1), cuánto bajó el punto (0 arriba de todo, 1 abajo de todo) y la comba. */
     float power, lowered, curl;
@@ -95,21 +108,43 @@ final class GolpeScheme implements ControlScheme {
         dead = sp != null && sp.taker == p || m.holder == p;
         boolean pressing = pad.down || pad.cDown;
 
-        if (!arming && pressing && (dead || m.owner == p)) {
-            // empieza a armar el golpe: queda fijo para dónde sale
+        boolean theirs = m.owner != null && m.owner.team != p.team;
+        if (!arming && pressing && (dead || m.owner == p || m.owner == null && m.setPiece == null)) {
+            // empieza a armar el golpe: queda fijo para dónde sale; sin la pelota, es para pegarle de primera
             arming = true;
+            early = !dead && m.owner != p;
+            powered = false;
+            idle = 0;
             aim.set(dead ? aim : p.facing);
         }
 
         if (arming) {
-            if (pad.down) power = Math.min(1, power + dt / fill);
+            if (pad.down) {
+                power = Math.min(1, power + dt / fill);
+                powered = true;
+            }
             if (pad.cDown) lowered = Math.min(1, lowered + dt / sweep);
-            float side = pad.dir.x * -aim.y + pad.dir.y * aim.x;  // la flecha, de costado respecto de para dónde sale
-            curl = MathUtils.clamp(curl + side * bend * dt, -MAX_CURL, MAX_CURL);
+            if (pressing) {
+                // la flecha, de costado respecto de para dónde sale: comba mientras algún botón está apretado
+                float side = pad.dir.x * -aim.y + pad.dir.y * aim.x;
+                curl = MathUtils.clamp(curl + side * bend * dt, -MAX_CURL, MAX_CURL);
+                idle = 0;
+            } else {
+                idle += dt;
+            }
             p.facingHeld = true;
-            if (dead) p.stop();
-            else p.steer(tmp.set(p.vel).scl(1 - 2f * dt));  // armándolo no corre: sigue con el envión y frena
-            if (!pressing) strike(m, p);
+            if (early) {
+                // de primera: va solo a buscarla y le pega apenas la toca; si se la lleva un rival o no llega, nada
+                m.intercept(p, Player.RUN, tmp);
+                p.moveTo(tmp.x, tmp.y, Player.RUN);
+                if (theirs || m.setPiece != null || !pressing && idle > READY) cancel();
+                else if (m.canKick(p)) strike(m, p);
+            } else {
+                if (dead) p.stop();
+                else p.steer(tmp.set(p.vel).scl(1 - 2f * dt));  // armándolo no corre: sigue con el envión y frena
+                // sale al soltar la potencia; si sólo se usó C, espera un momento por si se aprieta X
+                if (!pressing && (powered || idle > grace)) strike(m, p);
+            }
         } else if (dead) {
             // parado con la pelota: las flechas apuntan
             p.stop();
@@ -147,14 +182,20 @@ final class GolpeScheme implements ControlScheme {
 
     /** Los valores que se ajustan en vivo, para la pantalla. */
     String settings() {
-        return String.format("potencia llena en %.1f s (F1 / F2) · altura de arriba a abajo en %.1f s (F3 / F4) · comba %.0f por s (F5 / F6)",
-                fill, sweep, bend);
+        return String.format("potencia llena en %.1f s (F1 / F2) · altura de arriba a abajo en %.1f s (F3 / F4) · comba %.0f por s (F5 / F6)"
+                + " · espera entre C y X %.1f s (F7 / F8)", fill, sweep, bend, grace);
     }
 
-    /** Suelta los dos: le pega con lo armado, si la tiene al pie (o es una pelota parada suya). */
+    /** Se deja de armar sin pegarle. */
+    private void cancel() {
+        arming = false;
+        reset();
+    }
+
+    /** Le pega con lo armado, si la tiene al pie, la está tocando de primera, o es una pelota parada suya. */
     private void strike(Match m, Player p) {
         arming = false;
-        if (dead || m.owner == p) {
+        if (dead || m.owner == p || early && m.canKick(p)) {
             plan();
             float hs = (float) Math.sqrt(vel.x * vel.x + vel.z * vel.z);
             tmp.set(vel.x, vel.z).scl(1 / Math.max(hs, 0.001f));

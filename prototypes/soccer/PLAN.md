@@ -439,6 +439,14 @@ aunque haya flechas apretadas; mantenido 3 s no sale, y sale recién al soltar l
 - Con el control nuevo, F1 / F2 hacen más lenta o más rápida la potencia (cuánto tarda en
   llenarse), F3 / F4 la altura (cuánto tarda el punto en bajar de arriba a abajo) y F5 / F6 la comba
   (cuánta suma por segundo). Los valores se ven arriba a la izquierda.
+- Se puede apretar C, soltarlo y después X: soltado C hay un momento (0,4 s, F7 / F8) para apretar X
+  y seguir armando el mismo tiro; si no se aprieta, sale con la potencia más floja.
+- De primera: con la pelota suelta o viniendo, apretar X o C empieza a armar el tiro sin tenerla; el
+  jugador va solo a donde la alcanza y, apenas la toca, le pega con lo armado, sin agarrarla (con los
+  botones todavía apretados o ya soltados). Si la agarra un rival, o pasan 2 s soltado sin llegar, se
+  cancela. Ojo: manteniendo los botones todo el camino, la potencia y la altura siguen subiendo.
+- El vidrio de la arena rebota más (antes la pelota quedaba pegada): una que llega rodando a 10 m/s
+  vuelve a 5,7 m/s.
 
 ### Lo que midieron las pruebas
 

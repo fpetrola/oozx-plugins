@@ -132,6 +132,78 @@ class GolpeTest {
         }
     }
 
+    /** C primero, se suelta, enseguida X: sigue armándose el mismo tiro, alto y fuerte, y sale recién al soltar X. */
+    @Test
+    void sePuedeApretarCSoltarloYDespuesX() {
+        try (Guion g = new Guion(127)) {
+            listo(g);
+            Player yo = g.local(6);
+            mantener(g, 0.6f, NADA, false, true);
+            mantener(g, 0.2f, NADA, false, false);  // suelto: menos que la espera
+            assertSame(yo, g.m.owner, "salió al soltar C");
+            mantener(g, 0.5f, NADA, true, false);
+            assertSame(yo, g.m.owner, "salió antes de soltar X");
+            Tiro t = soltar(g);
+            System.out.printf("C, suelto, X: sube %.2f m y pica a %.1f m%n", t.alto(), t.pica());
+            assertTrue(t.alto() > 2.5f, "no salió alta: " + t.alto());
+            assertTrue(t.pica() > 15f, "no salió fuerte: " + t.pica());
+        }
+    }
+
+    /** Sólo C: soltado, espera un momento por X; si no llega, sale floja. */
+    @Test
+    void conSoloCSaleDespuesDeLaEspera() {
+        try (Guion g = new Guion(128)) {
+            listo(g);
+            Player yo = g.local(6);
+            mantener(g, 0.5f, NADA, false, true);
+            mantener(g, 0.2f, NADA, false, false);
+            assertSame(yo, g.m.owner, "no esperó");
+            mantener(g, 0.4f, NADA, false, false);
+            assertNotSame(yo, g.m.owner, "no salió después de la espera");
+        }
+    }
+
+    /**
+     * De primera: la pelota suelta 8 m adelante; se arma el tiro antes de llegar ({@code soltarAntes}:
+     * soltando los botones enseguida, o manteniéndolos), el jugador va solo y le pega apenas la toca.
+     */
+    private static Tiro dePrimera(long semilla, boolean soltarAntes) {
+        try (Guion g = new Guion(semilla)) {
+            GolpeScheme s = new GolpeScheme();
+            g.m.scheme = s;
+            Player yo = g.local(6);
+            g.despejar(yo);
+            g.m.physics.place(yo, -30, 0);
+            yo.facing.set(1, 0);
+            g.m.controlled = yo;
+            g.m.physics.placeBall(-22, Ball.RADIUS, 0);
+            g.paso(NADA, false);
+            mantener(g, 0.3f, NADA, true, true);
+            float x0 = -22, alto = 0, pica = Float.NaN;
+            boolean laTuvo = false, salio = false;
+            for (int i = 0; i < 300; i++) {
+                boolean botones = !soltarAntes && !salio;
+                g.paso(NADA, botones, false, botones);
+                if (g.m.owner == yo) laTuvo = true;
+                if (g.m.ball.vel.len() > 8) salio = true;
+                alto = Math.max(alto, g.m.ball.pos.y);
+                if (salio && Float.isNaN(pica) && alto > 0.5f && g.m.ball.pos.y < Ball.RADIUS + 0.05f) pica = g.m.ball.pos.x - x0;
+            }
+            assertFalse(laTuvo, "la agarró en vez de pegarle de primera");
+            assertTrue(salio, "no le pegó");
+            return new Tiro(alto, pica, 0);
+        }
+    }
+
+    @Test
+    void sePuedeArmarAntesDeLlegarYLePegaDePrimera() {
+        Tiro manteniendo = dePrimera(129, false), soltado = dePrimera(129, true);
+        System.out.printf("de primera: manteniendo los botones sube %.2f m y pica a %.1f m; soltados antes de llegar, %.2f m y %.1f m%n",
+                manteniendo.alto(), manteniendo.pica(), soltado.alto(), soltado.pica());
+        assertTrue(manteniendo.alto() > 1f && soltado.alto() > 1f, "no salió con la altura armada");
+    }
+
     @Test
     void laFlechaMuestraLoQueSaleYDiceLaVerdad() {
         try (Guion g = new Guion(126)) {

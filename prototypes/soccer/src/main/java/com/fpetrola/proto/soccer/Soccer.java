@@ -351,7 +351,8 @@ public final class Soccer extends ApplicationAdapter {
 
     /**
      * Ajustes en vivo del golpe, para probar qué se siente mejor: F1 y F2 hacen más lenta o más rápida
-     * la potencia, F3 y F4 la altura, F5 y F6 la comba.
+     * la potencia, F3 y F4 la altura, F5 y F6 la comba, y F7 y F8 acortan o alargan la espera entre
+     * soltar C y apretar X.
      */
     private void tune(GolpeScheme g) {
         if (Gdx.input.isKeyJustPressed(Keys.F1)) g.fill = Math.min(3f, g.fill + 0.1f);
@@ -360,6 +361,8 @@ public final class Soccer extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Keys.F4)) g.sweep = Math.max(0.1f, g.sweep - 0.1f);
         if (Gdx.input.isKeyJustPressed(Keys.F5)) g.bend = Math.max(25f, g.bend - 25f);
         if (Gdx.input.isKeyJustPressed(Keys.F6)) g.bend = Math.min(1000f, g.bend + 25f);
+        if (Gdx.input.isKeyJustPressed(Keys.F7)) g.grace = Math.max(0.1f, g.grace - 0.1f);
+        if (Gdx.input.isKeyJustPressed(Keys.F8)) g.grace = Math.min(2f, g.grace + 0.1f);
     }
 
     private void readPad() {

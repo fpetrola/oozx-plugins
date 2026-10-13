@@ -100,6 +100,22 @@ class PracticaTest {
         }
     }
 
+    /** El vidrio rebota: una pelota que llega rodando a 10 m/s vuelve rápido, no se queda pegada. */
+    @Test
+    void elVidrioRebota() {
+        try (Guion g = arena(138)) {
+            g.m.physics.placeBall(0, Ball.RADIUS, Match.HALF_W - 2);
+            g.m.kick(g.visita(0), new Vector2(0, 1), 10, 0, 0);
+            float vuelta = 0;
+            for (int i = 0; i < 120; i++) {
+                g.paso(NADA, false);
+                vuelta = Math.max(vuelta, -g.m.ball.vel.z);
+            }
+            System.out.printf("contra el vidrio a 10 m/s: vuelve a %.1f m/s%n", vuelta);
+            assertTrue(vuelta > 5f, "volvió a " + vuelta);
+        }
+    }
+
     @Test
     void elGolCuentaYLaPelotaVuelveALosPies() {
         try (Guion g = arena(132)) {

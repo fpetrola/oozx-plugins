@@ -251,7 +251,8 @@ final class Physics implements Disposable {
     }
 
     private void wall(float x, float y, float z, float hx, float hy, float hz) {
-        walls.add(fixed(keep(new btBoxShape(v.set(hx, hy, hz))), t.setToTranslation(x, y, z), ID_BOARD, 0.5f, 0.6f));
+        // vidrio: rebota bastante (con la de la pelota, sale con tres cuartos de la velocidad) y casi no frena de costado
+        walls.add(fixed(keep(new btBoxShape(v.set(hx, hy, hz))), t.setToTranslation(x, y, z), ID_BOARD, 0.1f, 0.75f / (Ball.BOUNCE / 0.8f)));
         wallBoxes.add(new float[]{x, y, z, hx, hy, hz});
     }
 
