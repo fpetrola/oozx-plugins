@@ -36,6 +36,7 @@
         <module>devices</module>
         <module>tools</module>
         <module>prototypes/sprite-inflate</module>
+        <module>prototypes/soccer</module>
     </modules>
 
     <properties>
