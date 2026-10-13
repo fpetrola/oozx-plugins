@@ -11,8 +11,11 @@ import com.badlogic.gdx.math.Vector3;
  *   <li><b>X, mantenido:</b> la potencia, que sube mientras se lo mantiene.</li>
  *   <li><b>C, mantenido:</b> baja el punto donde se le pega, de arriba de todo de la pelota (sale
  *       rasante, con efecto para adelante) a abajo de todo (sale bien alta, con efecto para atrás).</li>
- *   <li><b>Mientras X o C están apretados:</b> el jugador no gira, y la flecha a la izquierda o a la
- *       derecha de hacia donde apunta le va sumando comba para ese lado (para el otro, se la saca).</li>
+ *   <li><b>Mientras X o C están apretados:</b> las flechas mueven hacia dónde va la pelota: la flecha
+ *       del piso gira hacia la tecla apretada, a cualquiera de los 360 grados. El jugador va girando
+ *       detrás, más despacio, pisando alrededor de la pelota. Si se le pega antes de que llegue a
+ *       ponerse de frente, el pie no alcanza a sacarla derecho para ahí: sale abierta y con la comba
+ *       que haga falta para llegar (y si ni con toda la comba llega, se queda corta de ángulo).</li>
  *   <li>El golpe sale al soltar la potencia (si C sigue apretado, al soltar los dos). Se puede
  *       apretar primero C, soltarlo y después X: soltado C hay un momento para apretar X y seguir
  *       armándolo; si no se aprieta, sale con la potencia más floja. No hay tiempo máximo.</li>
@@ -31,14 +34,16 @@ final class GolpeScheme implements ControlScheme {
     private static final float LOW = 6f, HIGH = 75f;
     /** Efecto sobre el eje horizontal en las puntas (rad/s): para adelante pegándole arriba, para atrás pegándole abajo. */
     private static final float SPIN = 30f;
-    /** Comba: hasta cuánto (rad/s, positivo curva a la derecha). */
-    private static final float MAX_CURL = 70f;
+    /** Comba: hasta cuánto (rad/s, positivo curva a la derecha); más que en el juego de verdad, para que alcance a cerrar lo que el pie no llega. */
+    private static final float MAX_CURL = 150f;
+    /** Hasta cuántos grados de para donde mira el pie la saca derecha; más abierto, tiene que darle comba. */
+    private static final float CONE = 30f;
     /**
      * Lo que se ajusta en vivo para probar qué se siente mejor: cuánto tarda en llenarse la potencia
-     * (s), cuánto tarda el punto en bajar de arriba de todo a abajo de todo (s), y cuánta comba suma
-     * por segundo la flecha de costado (rad/s²).
+     * (s), cuánto tarda el punto en bajar de arriba de todo a abajo de todo (s), y qué tan rápido
+     * giran la flecha y el jugador detrás (grados por segundo).
      */
-    float fill = 0.6f, sweep = 1f, bend = 350f;
+    float fill = 0.6f, sweep = 1f, turn = 180f, body = 120f;
     /** Cuánto espera, soltado C sin haber usado la potencia, a que se apriete X para seguir armándolo (s); también se ajusta en vivo. */
     float grace = 0.4f;
     /** Cuánto espera, armado antes de tener la pelota y ya soltado, a llegar a tocarla (s). */
@@ -51,9 +56,11 @@ final class GolpeScheme implements ControlScheme {
     float power, lowered, curl;
     /** Si se está armando un golpe: desde que se apretó X o C hasta que se sueltan los dos. */
     private boolean arming;
-    /** Hacia dónde sale: queda fijo al empezar a armarlo. */
-    private final Vector2 aim = new Vector2(1, 0);
-    private final Vector2 tmp = new Vector2();
+    /** Hacia dónde se quiere mandar la pelota (la flecha del piso), y hacia dónde sale del pie. */
+    private final Vector2 aim = new Vector2(1, 0), launch = new Vector2(1, 0);
+    private final Vector2 tmp = new Vector2(), tmp2 = new Vector2();
+    /** Para probar combas sin tocar la flecha que se muestra. */
+    private final ShotPreview trial = new ShotPreview();
     private final Vector3 vel = new Vector3(), spin = new Vector3(), contact = new Vector3();
     private final ShotPreview shot = new ShotPreview();
     private boolean showShot, showContact, dead;
@@ -67,7 +74,7 @@ final class GolpeScheme implements ControlScheme {
     @Override
     public String help() {
         return "Flechas: mover · X mantenido: potencia · C mantenido: le pega más abajo (sale más alta)\n"
-                + "Con X o C apretado, flecha a la izquierda o derecha: comba para ese lado · el golpe sale al soltar los dos · Z: el compañero que llega primero";
+                + "Con X o C apretado, las flechas eligen para dónde va (la comba sale sola si no está de frente) · el golpe sale al soltar los dos · Z: el compañero que llega primero";
     }
 
     @Override
@@ -82,7 +89,7 @@ final class GolpeScheme implements ControlScheme {
 
     @Override
     public Vector2 aim() {
-        return dead ? aim : null;
+        return dead || arming ? aim : null;
     }
 
     @Override
@@ -93,8 +100,8 @@ final class GolpeScheme implements ControlScheme {
     @Override
     public String hint() {
         if (!arming) return null;
-        return String.format("Potencia %.0f%% · altura %.0f grados · comba %.0f%s · soltá X y C para pegarle", power * 100, elevation(),
-                Math.abs(curl), curl > 1 ? " a la derecha" : curl < -1 ? " a la izquierda" : "");
+        return String.format("Potencia %.0f%% · altura %.0f grados · %s · soltá X y C para pegarle", power * 100, elevation(),
+                Math.abs(curl) < 1 ? "de frente, sin comba" : String.format("de costado: comba %.0f%s", Math.abs(curl), Math.abs(curl) >= MAX_CURL ? ", no llega" : ""));
     }
 
     @Override
@@ -125,14 +132,22 @@ final class GolpeScheme implements ControlScheme {
             }
             if (pad.cDown) lowered = Math.min(1, lowered + dt / sweep);
             if (pressing) {
-                // la flecha, de costado respecto de para dónde sale: comba mientras algún botón está apretado
-                float side = pad.dir.x * -aim.y + pad.dir.y * aim.x;
-                curl = MathUtils.clamp(curl + side * bend * dt, -MAX_CURL, MAX_CURL);
+                // las flechas llevan la flecha del piso hacia ellas, a cualquier lado
+                if (!pad.dir.isZero()) {
+                    turnTowards(aim, tmp.set(pad.dir).nor(), turn * dt);
+                    if (sp != null && sp.taker == p) {
+                        sp.aim.set(aim);
+                        sp.clampAim(sp.aim);
+                        aim.set(sp.aim);
+                    }
+                }
                 idle = 0;
             } else {
                 idle += dt;
             }
-            p.facingHeld = true;
+            // el cuerpo va detrás, más despacio; corriendo a buscarla, mira para donde corre
+            p.facingHeld = !early;
+            if (!early) turnTowards(p.facing, aim, body * dt);
             if (early) {
                 // de primera: va solo a buscarla y le pega apenas la toca; si se la lleva un rival o no llega, nada
                 m.intercept(p, Player.RUN, tmp);
@@ -166,7 +181,7 @@ final class GolpeScheme implements ControlScheme {
 
         showShot = arming;
         if (arming) {
-            plan();
+            plan(m, p);
             m.path(m.ball.pos, vel, spin, shot);
             shot.pass = false;
             shot.receiver = null;
@@ -177,13 +192,13 @@ final class GolpeScheme implements ControlScheme {
             shot.curl = curl;
         }
         showContact = (arming || m.owner == p || dead) && m.ball.dist2D(p.pos) < 2.5f;
-        if (showContact) placeContact(m, arming || dead ? aim : p.facing);
+        if (showContact) placeContact(m, arming ? launch : dead ? aim : p.facing);
     }
 
     /** Los valores que se ajustan en vivo, para la pantalla. */
     String settings() {
-        return String.format("potencia llena en %.1f s (F1 / F2) · altura de arriba a abajo en %.1f s (F3 / F4) · comba %.0f por s (F5 / F6)"
-                + " · espera entre C y X %.1f s (F7 / F8)", fill, sweep, bend, grace);
+        return String.format("potencia llena en %.1f s (F1 / F2) · altura de arriba a abajo en %.1f s (F3 / F4) · la flecha gira %.0f grados por s (F5 / F6)"
+                + " · espera entre C y X %.1f s (F7 / F8) · el jugador gira %.0f grados por s (F9 / F10)", fill, sweep, turn, grace, body);
     }
 
     /** Se deja de armar sin pegarle. */
@@ -196,7 +211,7 @@ final class GolpeScheme implements ControlScheme {
     private void strike(Match m, Player p) {
         arming = false;
         if (dead || m.owner == p || early && m.canKick(p)) {
-            plan();
+            plan(m, p);
             float hs = (float) Math.sqrt(vel.x * vel.x + vel.z * vel.z);
             tmp.set(vel.x, vel.z).scl(1 / Math.max(hs, 0.001f));
             m.kick(p, tmp, hs, vel.y, curl, backspin());
@@ -219,12 +234,64 @@ final class GolpeScheme implements ControlScheme {
         return (2 * lowered - 1) * SPIN;
     }
 
-    /** Cómo saldría la pelota si se soltara ahora: deja la velocidad en {@link #vel} y el giro en {@link #spin}. */
-    private void plan() {
+    /**
+     * Cómo saldría la pelota si se soltara ahora: deja la velocidad en {@link #vel} y el giro en
+     * {@link #spin}. Si la flecha está a más de {@link #CONE} de para donde mira, sale por el borde de
+     * lo que alcanza el pie, con la comba que la lleva a pasar por la flecha donde termina el recorrido.
+     */
+    private void plan(Match m, Player p) {
+        float a = angle(p.facing, aim);
+        if (Math.abs(a) <= CONE) {
+            launch.set(aim);
+            curl = 0;
+        } else {
+            launch.set(p.facing).nor().rotateDeg(Math.signum(a) * CONE);
+            float lo = -MAX_CURL, hi = MAX_CURL, mlo = miss(m, lo), mhi = miss(m, hi);
+            if (Math.signum(mlo) == Math.signum(mhi)) {
+                curl = Math.abs(mlo) < Math.abs(mhi) ? lo : hi;  // ni con toda la comba llega: lo más que se pueda
+            } else {
+                for (int i = 0; i < 12; i++) {
+                    float mid = (lo + hi) / 2, mm = miss(m, mid);
+                    if (Math.signum(mm) == Math.signum(mlo)) {
+                        lo = mid;
+                        mlo = mm;
+                    } else {
+                        hi = mid;
+                    }
+                }
+                curl = (lo + hi) / 2;
+            }
+        }
+        setUp(curl);
+    }
+
+    /** La velocidad y el giro saliendo por {@link #launch} con esa comba. */
+    private void setUp(float c) {
         float speed = SOFT + (HARD - SOFT) * power * (float) Math.sqrt(power);
         float e = elevation() * MathUtils.degRad, hs = speed * MathUtils.cos(e), back = backspin();
-        vel.set(aim.x * hs, speed * MathUtils.sin(e), aim.y * hs);
-        spin.set(-aim.y * back, -curl, aim.x * back);
+        vel.set(launch.x * hs, speed * MathUtils.sin(e), launch.y * hs);
+        spin.set(-launch.y * back, -c, launch.x * back);
+    }
+
+    /** Con esa comba, cuántos grados de la flecha termina el recorrido (con signo). */
+    private float miss(Match m, float c) {
+        setUp(c);
+        m.path(m.ball.pos, vel, spin, trial);
+        int last = trial.count - 1;
+        tmp2.set(trial.xyz[last * 3] - m.ball.pos.x, trial.xyz[last * 3 + 2] - m.ball.pos.z);
+        return angle(aim, tmp2);
+    }
+
+    /** Cuántos grados hay que girar {@code from} para llegar a {@code to} (positivo, contra el reloj). */
+    private static float angle(Vector2 from, Vector2 to) {
+        return MathUtils.atan2(from.crs(to), from.dot(to)) * MathUtils.radDeg;
+    }
+
+    /** Gira {@code v} hacia {@code to}, a lo sumo {@code max} grados; justo al revés, siempre para el mismo lado. */
+    private static void turnTowards(Vector2 v, Vector2 to, float max) {
+        float a = angle(v, to);
+        if (Math.abs(a) > 179.5f) a = 179.5f;
+        v.rotateDeg(MathUtils.clamp(a, -max, max)).nor();
     }
 
     /** El punto rojo sobre la pelota: en la cara de atrás, más abajo cuanto más se bajó, y al costado contrario de la comba. */

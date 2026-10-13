@@ -1,5 +1,6 @@
 package com.fpetrola.proto.soccer;
 
+import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import org.junit.jupiter.api.Test;
 
@@ -72,24 +73,54 @@ class GolpeTest {
         assertTrue(altos[2] > 3f, "con todo C subió a " + altos[2]);
     }
 
+    /** Para dónde sale (grados, 0 es para adelante) y para dónde terminó yendo (donde termina la flecha del tiro), con la comba que llevaba. */
+    record Rumbo(float sale, float llega, float comba) {
+    }
+
+    /** Arma con X, gira la flecha con {@code flechas} durante {@code segundos}, con el cuerpo girando a {@code cuerpo} grados por s, y suelta. */
+    private static Rumbo apuntar(Vector2 flechas, float segundos, float cuerpo) {
+        try (Guion g = new Guion(122)) {
+            GolpeScheme s = listo(g);
+            s.body = cuerpo;
+            mantener(g, 0.3f, NADA, true, false);
+            mantener(g, segundos, flechas, true, false);
+            float comba = s.curl;
+            // hasta dónde llega la flecha del tiro: ahí se mide para dónde terminó yendo
+            ShotPreview vista = g.m.scheme.shot();
+            int u = vista.count - 1;
+            float x0 = g.m.ball.pos.x, z0 = g.m.ball.pos.z, sale = Float.NaN, llega = Float.NaN;
+            float lejos = Vector2.dst(x0, z0, vista.xyz[u * 3], vista.xyz[u * 3 + 2]);
+            for (int i = 0; i < 240 && Float.isNaN(llega); i++) {
+                g.paso(NADA, false, false, false);
+                if (Float.isNaN(sale) && g.m.ball.vel.len() > 8) sale = MathUtils.atan2(g.m.ball.vel.z, g.m.ball.vel.x) * MathUtils.radDeg;
+                if (Vector2.dst(x0, z0, g.m.ball.pos.x, g.m.ball.pos.z) >= lejos)
+                    llega = MathUtils.atan2(g.m.ball.pos.z - z0, g.m.ball.pos.x - x0) * MathUtils.radDeg;
+            }
+            return new Rumbo(sale, llega, comba);
+        }
+    }
+
     @Test
-    void laCombaVaParaElLadoDeLaFlechaYEsSimetrica() {
-        float der, izq;
-        try (Guion g = new Guion(122)) {
-            listo(g);
-            mantener(g, 0.4f, NADA, true, false);
-            mantener(g, 0.3f, DERECHA, true, false);
-            der = soltar(g).lado15();
-        }
-        try (Guion g = new Guion(122)) {
-            listo(g);
-            mantener(g, 0.4f, NADA, true, false);
-            mantener(g, 0.3f, IZQUIERDA, true, false);
-            izq = soltar(g).lado15();
-        }
-        System.out.printf("comba: con la flecha a la derecha va %.2f m, a la izquierda %.2f m%n", der, izq);
-        assertTrue(der > 2f, "a la derecha " + der);
-        assertEquals(-der, izq, 0.05f);
+    void laFlechaVaACualquierLadoYConTiempoSaleDerecha() {
+        Rumbo atras = apuntar(ABAJO, 2f, 120f);
+        System.out.printf("flecha para atrás 2 s: sale a %.0f grados, termina a %.0f, comba %.1f%n", atras.sale(), atras.llega(), atras.comba());
+        assertTrue(Math.abs(atras.llega()) > 170f, "no fue para atrás: " + atras.llega());
+        assertEquals(0, atras.comba(), 1e-3f, "con tiempo para girar tiene que salir derecha");
+    }
+
+    /** De costado sin tiempo para ponerse de frente: sale abierta, con comba, y termina para donde apuntaba la flecha; para el otro lado, lo mismo al revés. */
+    @Test
+    void deCostadoSinTiempoLaCombaSaleSolaYEsSimetrica() {
+        Rumbo der = apuntar(DERECHA, 0.5f, 90f), izq = apuntar(IZQUIERDA, 0.5f, 90f), rapido = apuntar(DERECHA, 0.5f, 900f);
+        System.out.printf("de costado: el cuerpo lento sale a %.0f grados y termina a %.0f (comba %.1f); al otro lado %.0f y %.0f (%.1f);"
+                + " el cuerpo rápido sale a %.0f y termina a %.0f (comba %.1f)%n",
+                der.sale(), der.llega(), der.comba(), izq.sale(), izq.llega(), izq.comba(), rapido.sale(), rapido.llega(), rapido.comba());
+        assertTrue(Math.abs(der.comba()) > 5f, "sin tiempo de ponerse de frente tiene que llevar comba");
+        assertEquals(-der.comba(), izq.comba(), 0.5f);
+        assertEquals(-der.llega(), izq.llega(), 1f);
+        assertTrue(Math.abs(der.llega() - rapido.llega()) < 5f, "con comba no llegó adonde apuntaba: " + der.llega() + " contra " + rapido.llega());
+        assertTrue(Math.abs(der.sale() - der.llega()) > 10f, "no salió abierta");
+        assertEquals(0, rapido.comba(), 1e-3f);
     }
 
     /** Lo que antes fallaba: lo mismo apretado en otro orden sale igual, y la potencia llega al máximo aunque haya flechas. */
@@ -207,12 +238,12 @@ class GolpeTest {
     @Test
     void laFlechaMuestraLoQueSaleYDiceLaVerdad() {
         try (Guion g = new Guion(126)) {
-            listo(g);
+            listo(g).body = 30f;
             mantener(g, 0.3f, NADA, true, true);
-            mantener(g, 0.2f, IZQUIERDA, true, false);
+            mantener(g, 0.4f, IZQUIERDA, true, false);
             ShotPreview s = g.m.scheme.shot();
             assertNotNull(s, "armando el golpe se tiene que ver la flecha");
-            assertTrue(s.power > 0.3f && s.elevation > 10 && s.curl < -10, "la flecha no muestra potencia, altura y comba");
+            assertTrue(s.power > 0.3f && s.elevation > 10 && Math.abs(s.curl) > 5, "la flecha no muestra potencia, altura y comba: " + s.curl);
             float[] puntos = s.xyz.clone();
             int n = s.count;
             g.paso(NADA, false, false, false);
