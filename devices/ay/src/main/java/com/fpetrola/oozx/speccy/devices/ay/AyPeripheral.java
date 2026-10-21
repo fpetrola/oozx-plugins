@@ -24,7 +24,9 @@ import com.fpetrola.oozx.speccy.peripherals.AbstractPeripheral;
 import com.fpetrola.oozx.speccy.modules.sound.Sound;
 import com.fpetrola.z80.cpu.Z80Clock;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntConsumer;
 import com.fpetrola.oozx.speccy.machine.SpectrumMachine;
 import com.google.inject.Inject;
 
@@ -39,6 +41,7 @@ public class AyPeripheral extends AbstractPeripheral {
   private final Sound sound;
   private final Z80Clock clock;
   private final AyRegisters registers = new AyRegisters();
+  private final List<IntConsumer> portA = new ArrayList<>();
   private Ay chip;
 
   @Inject
@@ -83,6 +86,21 @@ public class AyPeripheral extends AbstractPeripheral {
     if (chip != null) {
       chip.write(register, value, tstates);
     }
+  }
+
+  /** What is wired to the pins of the I/O port A hears every byte a program writes there; a 128 has its RS232 socket on them. */
+  public void onPortA(IntConsumer pins) {
+    portA.add(pins);
+  }
+
+  public void offPortA(IntConsumer pins) {
+    portA.remove(pins);
+  }
+
+  /** A write to the data port: the chip hears it, and the pins of the I/O port A put it out when that is the register. */
+  void written(int register, int value, long tstates) {
+    heard(register, value, tstates);
+    if (register == AyRegisters.PORT_A) portA.forEach(pins -> pins.accept(value));
   }
 
   /** The register the select port last chose. */

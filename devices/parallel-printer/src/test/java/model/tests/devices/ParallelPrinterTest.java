@@ -53,4 +53,30 @@ class ParallelPrinterTest {
     printer.strobe(true);
     assertEquals("y", printer.text());
   }
+
+  @Test
+  void aSerialLineIsReadOneBitAWriteFromTheStartBitToTheStopBit() {
+    ParallelPrinter printer = new ParallelPrinter(() -> 0);
+    send(printer, 'O', true);
+    send(printer, 'K', true);
+    assertEquals("OK", printer.text());
+  }
+
+  @Test
+  void aByteWhoseStopBitIsLowIsNotPrinted() {
+    ParallelPrinter printer = new ParallelPrinter(() -> 0);
+    send(printer, 'x', false);
+    send(printer, 'y', true);
+    assertEquals("y", printer.text());
+  }
+
+  /** The line idle high, the start bit low, eight data bits from the lowest, then the stop bit. */
+  static void send(ParallelPrinter printer, int character, boolean stop) {
+    printer.serial(true);
+    printer.serial(false);
+    for (int bit = 0; bit < 8; bit++) {
+      printer.serial((character >> bit & 1) != 0);
+    }
+    printer.serial(stop);
+  }
 }

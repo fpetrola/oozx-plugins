@@ -60,7 +60,7 @@ class AyPortHandler extends DefaultPortHandler {
     } else {
       registers.write(value);
       // The T-state timestamp matters: without it every queued write plays at frame start.
-      owner.heard(registers.current(), value & 0xFF, clock.getTStates());
+      owner.written(registers.current(), value & 0xFF, clock.getTStates());
     }
   }
 

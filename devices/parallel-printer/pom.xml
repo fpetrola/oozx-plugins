@@ -23,5 +23,11 @@
             <artifactId>devices-kit</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- A 128's RS232 socket is on the AY's I/O port A. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-ay</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

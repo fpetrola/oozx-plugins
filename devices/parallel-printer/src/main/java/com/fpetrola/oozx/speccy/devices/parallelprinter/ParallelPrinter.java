@@ -28,6 +28,8 @@ import java.util.function.LongSupplier;
  * programs write it the right way, so no one edge can be trusted as "print now". Two edges
  * within ten thousand T-states of each other are one character; a lone edge is remembered and
  * forgotten if the next is too far off.
+ * <p>
+ * The same paper takes what comes down a serial line, which is how a 128 prints.
  */
 public class ParallelPrinter {
 
@@ -39,6 +41,8 @@ public class ParallelPrinter {
   private int data;
   private int lastData;
   private long lastStrobeAt = -1;
+  private int serialBits;
+  private int serialByte;
 
   /** @param ticks a monotonically increasing T-state count, not reset each frame */
   public ParallelPrinter(LongSupplier ticks) {
@@ -59,6 +63,20 @@ public class ParallelPrinter {
       lastData = data;
       lastStrobeAt = now;
     }
+  }
+
+  /**
+   * The level of a serial line, given once per bit - which is what a 128's ROM does, so the speed
+   * does not matter: a start bit low, eight data bits from the lowest, and a stop bit high
+   * without which the byte is dropped.
+   */
+  public void serial(boolean high) {
+    if (serialBits == 0) {
+      if (!high) serialBits = 9;
+      return;
+    }
+    serialByte = serialByte >> 1 | (high ? 0x100 : 0);
+    if (--serialBits == 0 && (serialByte & 0x100) != 0) print(serialByte & 0xff);
   }
 
   /** Appends one character, whether from a serial line or decoded ZX Printer output. */

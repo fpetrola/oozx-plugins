@@ -32,7 +32,8 @@ import java.nio.file.Files;
 
 /**
  * A dot-matrix printer on the desk: continuous paper with whatever the machine sent, which is
- * text - LPRINT on a +3, or the +D's port. Tear it off, or save it as a text file.
+ * text - LPRINT on a +3 or down a 128's RS232, or the +D's port. Tear it off, or save it as a
+ * text file.
  */
 public class ParallelPrinterFrame extends DeviceFrame<ParallelPrinterPeripheral> {
 

@@ -31,7 +31,7 @@ public class AyRegisters {
   };
 
   private static final int MIXER = 7;
-  private static final int PORT_A = 14;
+  static final int PORT_A = 14;
   private static final int PORT_B = 15;
   /** External pin state per I/O register; writes to it are always accepted. */
   private static final int PORT_INPUT = 0xbf;

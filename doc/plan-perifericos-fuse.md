@@ -5,7 +5,7 @@ Relevado el 27 de septiembre de 2026, comparando `oozx/fuse-emulator-fuse` (`mac
 Retoma las secciones 15 a 19 del `plan-perifericos.md` de la otra línea de historia (hay copia en
 `versions/oozx_2/oozx/doc/`), que ya no está en `main`, puestas al día con lo que el emulador tiene hoy.
 
-**Estado: nada empezado.**
+**Estado (21 de octubre de 2026):** hecho el 1.
 
 ## Lo que hay
 
@@ -92,6 +92,12 @@ que se reusó.
   escucha y entrega cada byte a `ParallelPrinter.print`. Es la misma impresora de texto; lo que
   cambia es por dónde entra el byte.
 - Test: `LPRINT` en un 128 y el texto sale en la impresora.
+- **Hecho.** El aviso quedó en `AyPeripheral.onPortA`, no en `AyRegisters`: avisa solo lo que llega
+  por el puerto de datos (`written`), como el `ay_dataport_write` de Fuse, así que restaurar un
+  snapshot no imprime. La impresora entra en toda máquina con AY a bordo; el puerto Centronics
+  se enchufa solo en las que paginan por 0x1ffd, porque en un 128 sus máscaras se comen puertos
+  ajenos. `PrinterOnA128Test` corre la ROM real del 128: elige 128 BASIC en el menú, escribe
+  `LPRINT "hi"` y la impresora recibe `hi` y el fin de línea.
 
 ### 2. Currah µSource — `devices/usource`
 
