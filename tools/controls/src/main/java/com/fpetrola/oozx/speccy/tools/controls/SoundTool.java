@@ -20,26 +20,22 @@ package com.fpetrola.oozx.speccy.tools.controls;
 import dev.crystal.plugins.api.Offers;
 
 import com.fpetrola.oozx.EmulatorControl;
-import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
 import javax.swing.AbstractButton;
+import javax.swing.Icon;
 import javax.swing.JButton;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JSlider;
-import java.util.Map;
-import java.util.WeakHashMap;
+import javax.swing.ToolTipManager;
 
 /** El sonido: silencio con el boton, volumen con la regla del clic derecho. */
 @Offers("Change the volume")
 public class SoundTool implements MachineTool {
-
-  /** El boton de cada ventana, para que al reabrirla muestre si quedo en silencio. */
-  private final Map<EmulatorWindow, JButton> buttons = new WeakHashMap<>();
 
   public javax.swing.Icon icon() {
     return Widgets.loadIcon("1F507.svg");
@@ -62,19 +58,35 @@ public class SoundTool implements MachineTool {
   public void use(EmulatorWindow window) {
     EmulatorControl machine = TheMachine.of(window);
     machine.setGeneralOption("mute", !machine.isMuted());
-    shows(window);
+    if (window instanceof java.awt.Component shown) shown.repaint();
   }
 
+  /**
+   * Dice lo que la maquina esta haciendo cada vez que se dibuja, y la regla el volumen cada vez que
+   * aparece: nadie tiene que avisarles, ni al volver la ventana ni cuando otro cambia el sonido.
+   */
   public AbstractButton button(EmulatorWindow window) {
     EmulatorControl machine = TheMachine.of(window);
-    JButton button = new JButton();
-    buttons.put(window, button);
+    Icon muted = Widgets.loadIcon("1F509.svg");
+    Icon sounding = Widgets.loadIcon("1F507.svg");
+    JButton button = new JButton() {
+      public Icon getIcon() {
+        return machine.isMuted() ? muted : sounding;
+      }
+
+      public String getToolTipText() {
+        return machine.isMuted() ? "Unmute Sound" : "Mute Sound";
+      }
+    };
+    ToolTipManager.sharedInstance().registerComponent(button);
     button.addActionListener(pressed -> use(window));
     JSlider volume = new JSlider(0, 100, machine.getVolume());
     Widgets.upright(volume, 24, 160);
     volume.addChangeListener(moved -> machine.setAudioOption("volume", volume.getValue()));
+    volume.addHierarchyListener(changed -> {
+      if (volume.isShowing()) volume.setValue(machine.getVolume());
+    });
     Widgets.popUpOnRightClick(button, volume);
-    shows(window);
     return button;
   }
 
@@ -92,23 +104,5 @@ public class SoundTool implements MachineTool {
     menu.addSeparator();
     menu.add(mute);
     return menu;
-  }
-
-  /** La ventana vuelve en silencio si asi quedo: la maquina ya lo sabe, el boton se entera. */
-  public void restore(EmulatorWindow window, OOZxConfiguration.WindowState from) {
-    shows(window);
-  }
-
-  private void shows(EmulatorWindow window) {
-    JButton button = buttons.get(window);
-    if (button == null) return;
-    boolean muted = TheMachine.of(window).isMuted();
-    button.setIcon(Widgets.loadIcon(muted ? "1F509.svg" : "1F507.svg"));
-    button.setToolTipText(muted ? "Unmute Sound" : "Mute Sound");
-  }
-
-  @Override
-  public void closed(EmulatorWindow window) {
-    buttons.remove(window);
   }
 }

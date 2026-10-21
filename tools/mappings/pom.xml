@@ -39,6 +39,11 @@
             <artifactId>device-memory</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>tool-pokes</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- The fixtures the formats are held to, and the machines they land on. -->
         <dependency>
             <groupId>com.fpetrola</groupId>

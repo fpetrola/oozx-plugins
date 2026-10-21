@@ -20,7 +20,6 @@ package com.fpetrola.oozx.speccy.pokes;
 import dev.crystal.plugins.api.Offers;
 
 import com.fpetrola.oozx.Speccy;
-import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
@@ -126,38 +125,14 @@ public class PokesTool implements MachineTool {
     };
   }
 
-  public void remember(EmulatorWindow window, OOZxConfiguration.WindowState into) {
-    List<OOZxConfiguration.PokModState> kept = new ArrayList<>();
-    for (PokFile.PokeMod mod : applied.getOrDefault(window, List.of())) {
-      PokInstruction instruction = mod.getParsedInstruction();
-      kept.add(new OOZxConfiguration.PokModState(mod.getName(), mod.getRawInstruction(),
-          mod.getPokFileName(), mod.getGameName(), mod.getInstructionType(), mod.getDescription(),
-          instruction.getPreviousValue(), instruction.getPreviousBank(), instruction.getPreviousAddress()));
-    }
-    into.setAppliedPokes(kept);
+  /** Lo aplicado en esa ventana, en el orden en que se aplico. */
+  public List<PokFile.PokeMod> applied(EmulatorWindow window) {
+    return List.copyOf(applied.getOrDefault(window, List.of()));
   }
 
-  /**
-   * Lo que estaba aplicado, anotado de vuelta. No se escribe en la memoria: la ventana se reabre
-   * con su snapshot, que ya los trae puestos.
-   */
-  public void restore(EmulatorWindow window, OOZxConfiguration.WindowState from) {
-    if (from.getAppliedPokes() == null || from.getAppliedPokes().isEmpty()) {
-      return;
-    }
-    List<PokFile.PokeMod> here = applied.computeIfAbsent(window, nobody -> new ArrayList<>());
-    here.clear();
-    for (OOZxConfiguration.PokModState kept : from.getAppliedPokes()) {
-      PokFile.PokeMod mod = new PokFile.PokeMod(kept.getName(), kept.getRawInstruction(),
-          kept.getPokFileName(), kept.getGameName());
-      PokInstruction instruction = mod.getParsedInstruction();
-      if (instruction != null) {
-        instruction.setPreviousValue(kept.getPreviousValue());
-        instruction.setPreviousBank(kept.getPreviousBank());
-        instruction.setPreviousAddress(kept.getPreviousAddress());
-      }
-      here.add(mod);
-    }
+  /** Lo que ya esta puesto en la memoria de esa ventana, anotado como aplicado: para poder deshacerlo. */
+  public void applied(EmulatorWindow window, List<PokFile.PokeMod> mods) {
+    applied.put(window, new ArrayList<>(mods));
   }
 
   @Override

@@ -27,12 +27,16 @@ import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
 import com.fpetrola.oozx.speccy.peripherals.MockEmulatorCore;
+import com.fpetrola.oozx.speccy.pokes.PokFile;
+import com.fpetrola.oozx.speccy.pokes.PokesTool;
 import org.junit.jupiter.api.Test;
 
 import javax.swing.JComponent;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import java.awt.Rectangle;
+import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -41,8 +45,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * A machine's window kept as a file of the session and opened again: the machine from the file as
- * any file opens, and then where its window was, whether it was paused, the file it came from, and
- * the settings of the machine and its devices. Another emulator reads the same file.
+ * any file opens, and then where its window was, whether it was paused, the file it came from, the
+ * settings of the machine and its devices, and the pokes applied to it. Another emulator reads the
+ * same file.
  */
 class AMachineComesBackWithItsWindowTest {
 
@@ -131,6 +136,29 @@ class AMachineComesBackWithItsWindowTest {
     assertEquals("/games/banks.tap", opened.control.getFilename());
     assertEquals(37, settings(opened, "sound.volume").values().get("volume"));
     assertEquals(false, settings(opened, "sound").values().get("enabled"), "muted");
+  }
+
+  @Test
+  void thePokesItHadAppliedCanStillBeUndone() throws Exception {
+    PokesTool pokes = new PokesTool();
+    Window kept = kept();
+    PokFile.PokeMod lives = new PokFile.PokeMod("Infinite lives", "M 8 35136 0 53", "game.pok", "Game");
+    lives.getParsedInstruction().setPreviousValue(53);
+    lives.getParsedInstruction().setPreviousBank(8);
+    lives.getParsedInstruction().setPreviousAddress(35136);
+    pokes.applied(kept, List.of(lives));
+    byte[] file = new SzxSession(Set.of(pokes)).write(kept);
+
+    Speccy opened = machine();
+    new SzxFormat().read(file, opened, note -> { });
+    Window window = new Window(opened);
+    new SzxSession(Set.of(pokes)).bringBack(file, window);
+
+    PokFile.PokeMod back = pokes.applied(window).get(0);
+    assertEquals(List.of("Infinite lives", "M 8 35136 0 53", "game.pok", "Game"),
+        List.of(back.getName(), back.getRawInstruction(), back.getPokFileName(), back.getGameName()));
+    assertEquals(List.of(53, 8, 35136), List.of(back.getParsedInstruction().getPreviousValue(),
+        back.getParsedInstruction().getPreviousBank(), back.getParsedInstruction().getPreviousAddress()));
   }
 
   @Test
