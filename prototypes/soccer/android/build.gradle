@@ -1,0 +1,88 @@
+// El fútbol en Android. El juego es el mismo de ../src/main/java (lo que se corre con Maven en la
+// compu); acá sólo están el arranque y el mando de Android. Para armar el APK:
+//
+//   ./gradlew assembleDebug        ->  build/outputs/apk/debug/soccer-android-debug.apk
+//   ./gradlew installDebug         ->  lo instala en el teléfono conectado por USB (con adb)
+//
+// Hace falta el Android SDK (ANDROID_HOME o sdk.dir en local.properties) y un JDK 17 o 21.
+
+plugins {
+    id 'com.android.application' version '8.5.2'
+}
+
+def gdxVersion = '1.12.1'
+def controllersVersion = '2.2.3'
+def abis = ['armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64']
+
+configurations {
+    natives
+}
+
+android {
+    namespace 'com.fpetrola.proto.soccer'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId 'com.fpetrola.proto.soccer'
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName '0.0.1'
+    }
+
+    sourceSets {
+        main {
+            // el juego compartido, menos lo que es sólo de la compu (LWJGL y GLFW)
+            java.srcDirs = ['src/main/java', '../src/main/java']
+            java.filter.exclude '**/Escritorio.java', '**/MandoGlfw.java'
+            jniLibs.srcDirs = ['build/natives']
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            // firmado con la clave de depuración: alcanza para instalarlo a mano, no para la tienda
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+dependencies {
+    implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-bullet:$gdxVersion"
+    implementation "com.badlogicgames.gdx-controllers:gdx-controllers-core:$controllersVersion"
+    implementation "com.badlogicgames.gdx-controllers:gdx-controllers-android:$controllersVersion"
+    abis.each { abi ->
+        natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-$abi"
+        natives "com.badlogicgames.gdx:gdx-bullet-platform:$gdxVersion:natives-$abi"
+    }
+}
+
+// Las bibliotecas nativas de libGDX y de Bullet vienen en jars, una por arquitectura: se sacan los .so
+// a build/natives/<arquitectura>, que es de donde Android los mete en el APK.
+tasks.register('copyAndroidNatives') {
+    inputs.files configurations.natives
+    outputs.dir layout.buildDirectory.dir('natives')
+    doLast {
+        configurations.natives.files.each { jar ->
+            def abi = abis.find { jar.name.endsWith("natives-${it}.jar") }
+            if (abi == null) return
+            copy {
+                from zipTree(jar)
+                into layout.buildDirectory.dir("natives/$abi")
+                include '*.so'
+            }
+        }
+    }
+}
+
+tasks.matching { it.name.contains('merge') && it.name.contains('JniLibFolders') }.configureEach {
+    dependsOn 'copyAndroidNatives'
+}

@@ -94,9 +94,9 @@ class PracticaTest {
             s.fill = 0.3f;
             for (int i = 0; i < 20; i++) g.paso(NADA, true, false, false);  // 0,33 s
             assertEquals(1, s.power, 1e-4f, "con la potencia en 0,3 s no se llenó");
-            s.sweep = 2f;
-            for (int i = 0; i < 60; i++) g.paso(NADA, true, false, true);  // 1 s de C
-            assertEquals(0.5f, s.lowered, 0.02f, "con la altura en 2 s, en 1 s tiene que ir por la mitad");
+            s.under = 60f;
+            for (int i = 0; i < 5; i++) g.paso(NADA, true, false, true);
+            assertEquals(60f, g.m.scheme.shot().elevation, 1e-3f, "pegándole abajo no salió con la altura ajustada");
         }
     }
 

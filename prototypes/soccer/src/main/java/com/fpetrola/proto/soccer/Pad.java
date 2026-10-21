@@ -18,6 +18,10 @@ final class Pad {
     boolean zDown, zPressed, zReleased;
     /** C: sólo si está apretado (la variante con botón de elevación: mantenido, le pega más abajo). */
     boolean cDown;
+    /** Si la dirección viene de un stick analógico (dice exactamente para dónde, no es una de ocho teclas). */
+    boolean analog;
+    /** Si va corriendo a fondo: con el teclado siempre; con el joystick, mientras se mantiene R1. */
+    boolean sprint = true;
 
     void set(Vector2 worldDir, boolean button) {
         set(worldDir, button, false);

@@ -10,6 +10,9 @@
   Las capturas del juego de verdad se sacan a mano:
 
     mvn test-compile exec:java -Dexec.classpathScope=test -Dexec.mainClass=com.fpetrola.proto.soccer.Capturas
+
+  Con -Dtactil=true salen los botones de la pantalla del teléfono, para tocarlos con el ratón. El
+  APK para Android se arma con Gradle desde android/ (ver android/build.gradle), con el mismo código.
 -->
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -24,7 +27,7 @@
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <gdx.version>1.12.1</gdx.version>
-    <exec.mainClass>com.fpetrola.proto.soccer.Soccer</exec.mainClass>
+    <exec.mainClass>com.fpetrola.proto.soccer.Escritorio</exec.mainClass>
   </properties>
 
   <dependencies>

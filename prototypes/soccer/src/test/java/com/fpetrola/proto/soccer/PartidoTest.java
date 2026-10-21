@@ -39,7 +39,8 @@ class PartidoTest {
                     assertTrue(Math.abs(p.pos.x) < 70 && Math.abs(p.pos.y) < 50, "jugador " + p.number + " afuera del estadio: " + p.pos);
                 }
                 assertFalse(Float.isNaN(m.ball.pos.x), "pelota sin posición en el cuadro " + cuadro);
-                assertTrue(Math.abs(m.ball.pos.x) < 70 && Math.abs(m.ball.pos.z) < 50 && m.ball.pos.y > -0.01f, "pelota afuera del estadio: " + m.ball.pos);
+                // un tiro fuerte puede pasar por arriba de los carteles y caer en la tribuna: lo que no tiene que haber es una pelota disparada
+                assertTrue(Math.abs(m.ball.pos.x) < 100 && Math.abs(m.ball.pos.z) < 80 && m.ball.pos.y > -0.01f, "pelota afuera del estadio: " + m.ball.pos);
                 assertTrue(m.ball.vel.len() < 45, "pelota demasiado rápida: " + m.ball.vel.len());
             }
             assertTrue(vistas.size() >= 4, "pelotas paradas vistas: " + vistas);

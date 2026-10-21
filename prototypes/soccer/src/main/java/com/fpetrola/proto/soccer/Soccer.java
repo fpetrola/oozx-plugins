@@ -1,12 +1,11 @@
 package com.fpetrola.proto.soccer;
 
+import com.badlogic.gdx.Application.ApplicationType;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Buttons;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.InputAdapter;
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
@@ -54,6 +53,10 @@ public final class Soccer extends ApplicationAdapter {
 
     private Match match;
     private final Pad pad = new Pad();
+    /** El joystick o los botones de la pantalla, si hay. */
+    private final Mando mando;
+    /** Si en este cuadro hay un joystick conectado. */
+    private boolean joy;
     private PerspectiveCamera cam;
     private ModelBatch batch, shadowBatch;
     private Environment env;
@@ -101,14 +104,13 @@ public final class Soccer extends ApplicationAdapter {
     private final Quaternion q = new Quaternion();
     private final Vector2 tmp = new Vector2(), fwd = new Vector2();
 
-    public static void main(String[] args) {
-        Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
-        config.setTitle("Soccer");
-        config.setWindowedMode(1280, 720);
-        config.useVsync(true);
-        config.setForegroundFPS(60);
-        config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4);
-        new Lwjgl3Application(new Soccer(), config);
+    /** Sin mando: sólo el teclado y el ratón. */
+    public Soccer() {
+        this(Mando.NINGUNO);
+    }
+
+    Soccer(Mando mando) {
+        this.mando = mando;
     }
 
     @Override
@@ -118,7 +120,9 @@ public final class Soccer extends ApplicationAdapter {
         match.ears = ruidos;
         batch = new ModelBatch();
         shadowBatch = new ModelBatch(new DepthShaderProvider());
-        sun = new DirectionalShadowLight(4096, 4096, 110f, 110f, 1f, 300f);
+        // en el teléfono, un mapa de sombras más chico: el de 4096 es mucha memoria para la placa de video
+        int shadow = Gdx.app.getType() == ApplicationType.Android ? 2048 : 4096;
+        sun = new DirectionalShadowLight(shadow, shadow, 110f, 110f, 1f, 300f);
         sun.set(0.85f, 0.85f, 0.8f, -0.3f, -1f, -0.4f);
         env = new Environment();
         env.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.46f, 0.47f, 0.5f, 1f));
@@ -165,7 +169,7 @@ public final class Soccer extends ApplicationAdapter {
                 new Material(ColorAttribute.createDiffuse(new Color(1f, 0.55f, 0.1f, 1))), ATTR)));
         arrowHead = new ModelInstance(keep(new ModelBuilder().createCone(0.6f, 0.9f, 0.6f, 12,
                 new Material(ColorAttribute.createDiffuse(Color.YELLOW)), ATTR)));
-        Gdx.input.setInputProcessor(new Mouse());
+        if (!mando.touch()) Gdx.input.setInputProcessor(new Mouse());
 
         hud = new SpriteBatch();
         font = new BitmapFont();
@@ -180,14 +184,17 @@ public final class Soccer extends ApplicationAdapter {
     @Override
     public void render() {
         float dt = fixedDt > 0 ? fixedDt : Math.min(Gdx.graphics.getDeltaTime(), 1 / 20f);
+        joy = mando.read();
         if (Gdx.input.isKeyJustPressed(Keys.ESCAPE)) Gdx.app.exit();
         if (Gdx.input.isKeyJustPressed(Keys.I)) match.aiEnabled = !match.aiEnabled;
-        if (Gdx.input.isKeyJustPressed(Keys.P)) match.setPractice(!match.practice);
+        if (Gdx.input.isKeyJustPressed(Keys.P) || joy && mando.practice) match.setPractice(!match.practice);
+        if (joy && mando.difficulty) match.difficulty = Difficulty.values()[(match.difficulty.ordinal() + 1) % Difficulty.values().length];
         if (match.scheme instanceof GolpeScheme g) tune(g);
         if (Gdx.input.isKeyJustPressed(Keys.NUM_1)) match.difficulty = Difficulty.EASY;
         if (Gdx.input.isKeyJustPressed(Keys.NUM_2)) match.difficulty = Difficulty.NORMAL;
         if (Gdx.input.isKeyJustPressed(Keys.NUM_3)) match.difficulty = Difficulty.HARD;
-        if (Gdx.input.isKeyJustPressed(Keys.TAB)) {
+        if (joy && mando.resetView) freeCam = true;  // con lo de abajo, vuelve a la cámara que estaba, sin cambiarla
+        if (Gdx.input.isKeyJustPressed(Keys.TAB) || joy && (mando.nextView || mando.resetView)) {
             // Si estaba movida a mano vuelve a seguir la pelota; si ya la seguía, cambia de cámara.
             if (!freeCam) view = View.values()[(view.ordinal() + 1) % View.values().length];
             freeCam = false;
@@ -196,6 +203,12 @@ public final class Soccer extends ApplicationAdapter {
             distance = view.distance;
         }
 
+        if (joy) {
+            // el stick derecho gira la cámara alrededor de lo que mira; los gatillos la acercan y la alejan
+            yaw += mando.look.x * 120f * dt;
+            camPitch = MathUtils.clamp(camPitch + mando.look.y * 60f * dt, 8f, 88f);
+            distance = MathUtils.clamp(distance * (1 - mando.zoom * 1.5f * dt), 6f, 160f);
+        }
         readPad();
         match.update(pad, dt);
         updateCamera(dt);
@@ -259,6 +272,7 @@ public final class Soccer extends ApplicationAdapter {
         batch.end();
 
         drawHud();
+        mando.draw();
     }
 
     /**
@@ -351,20 +365,20 @@ public final class Soccer extends ApplicationAdapter {
 
     /**
      * Ajustes en vivo del golpe, para probar qué se siente mejor: F1 y F2 hacen más lenta o más rápida
-     * la potencia, F3 y F4 la altura, F5 y F6 lo que gira la flecha, F7 y F8 acortan o alargan la
-     * espera entre soltar C y apretar X, y F9 y F10 lo que gira el jugador detrás de la flecha.
+     * la potencia, F3 y F4 bajan o suben la altura pegándole abajo, F5 y F6 lo que gira la flecha, F7 y
+     * F8 la altura pegándole en el medio, y F9 y F10 lo que gira el jugador detrás de la flecha.
      */
     private void tune(GolpeScheme g) {
         if (Gdx.input.isKeyJustPressed(Keys.F1)) g.fill = Math.min(3f, g.fill + 0.1f);
         if (Gdx.input.isKeyJustPressed(Keys.F2)) g.fill = Math.max(0.1f, g.fill - 0.1f);
-        if (Gdx.input.isKeyJustPressed(Keys.F3)) g.sweep = Math.min(3f, g.sweep + 0.1f);
-        if (Gdx.input.isKeyJustPressed(Keys.F4)) g.sweep = Math.max(0.1f, g.sweep - 0.1f);
+        if (Gdx.input.isKeyJustPressed(Keys.F3)) g.under = Math.max(15f, g.under - 5f);
+        if (Gdx.input.isKeyJustPressed(Keys.F4)) g.under = Math.min(75f, g.under + 5f);
         if (Gdx.input.isKeyJustPressed(Keys.F5)) g.turn = Math.max(30f, g.turn - 30f);
         if (Gdx.input.isKeyJustPressed(Keys.F6)) g.turn = Math.min(900f, g.turn + 30f);
         if (Gdx.input.isKeyJustPressed(Keys.F9)) g.body = Math.max(30f, g.body - 30f);
         if (Gdx.input.isKeyJustPressed(Keys.F10)) g.body = Math.min(900f, g.body + 30f);
-        if (Gdx.input.isKeyJustPressed(Keys.F7)) g.grace = Math.max(0.1f, g.grace - 0.1f);
-        if (Gdx.input.isKeyJustPressed(Keys.F8)) g.grace = Math.min(2f, g.grace + 0.1f);
+        if (Gdx.input.isKeyJustPressed(Keys.F7)) g.middle = Math.max(0f, g.middle - 2f);
+        if (Gdx.input.isKeyJustPressed(Keys.F8)) g.middle = Math.min(30f, g.middle + 2f);
     }
 
     private void readPad() {
@@ -373,11 +387,26 @@ public final class Soccer extends ApplicationAdapter {
         if (Gdx.input.isKeyPressed(Keys.RIGHT)) sx += 1;
         if (Gdx.input.isKeyPressed(Keys.UP)) sy += 1;
         if (Gdx.input.isKeyPressed(Keys.DOWN)) sy -= 1;
-        boolean button = Gdx.input.isKeyPressed(Keys.X), switching = Gdx.input.isKeyPressed(Keys.Z);
+        boolean button = Gdx.input.isKeyPressed(Keys.X), switching = Gdx.input.isKeyPressed(Keys.Z), lift = Gdx.input.isKeyPressed(Keys.C);
+        boolean analog = false, sprint = true;
+        if (joy) {
+            // el joystick, además del teclado: si se mueve, manda él, y corre a fondo sólo con R1
+            if (!mando.dir.isZero()) {
+                sx = mando.dir.x;
+                sy = mando.dir.y;
+                analog = mando.stick;
+                sprint = mando.sprint;
+            }
+            button |= mando.x;
+            switching |= mando.z;
+            lift |= mando.c;
+        }
         // De pantalla a cancha: "arriba" es hacia donde mira la cámara, aplastado sobre el piso.
         fwd.set(cam.direction.x, cam.direction.z).nor();
         tmp.set(fwd).scl(sy).add(-fwd.y * sx, fwd.x * sx);
-        pad.set(tmp, button, switching, Gdx.input.isKeyPressed(Keys.C));
+        pad.set(tmp, button, switching, lift);
+        pad.analog = analog;
+        pad.sprint = sprint;
     }
 
     private void updateCamera(float dt) {
@@ -400,36 +429,44 @@ public final class Soccer extends ApplicationAdapter {
 
     private void drawHud() {
         int w = Gdx.graphics.getWidth(), h = Gdx.graphics.getHeight();
+        // las letras, del mismo tamaño en la pantalla que en una ventana de 720 de alto
+        float k = Math.max(1, h / 720f), big = 1.6f * k, small = 1.1f * k;
+        font.getData().setScale(big);
         hud.getProjectionMatrix().setToOrtho2D(0, 0, w, h);
         hud.begin();
         int t = (int) match.clock;
         font.draw(hud, String.format("%s %d - %d %s     %02d:%02d", match.home.name, match.home.goals,
-                match.away.goals, match.away.name, t / 60, t % 60), 20, h - 20);
-        font.draw(hud, match.aiEnabled ? "Rival: " + match.difficulty.label : "IA apagada", w - 260, h - 20);
-        if (match.scheme instanceof GolpeScheme g) {
-            font.getData().setScale(1.1f);
-            font.draw(hud, "Ajustes: " + g.settings(), 20, h - 50);
-            font.getData().setScale(1.6f);
+                match.away.goals, match.away.name, t / 60, t % 60), 20 * k, h - 20 * k);
+        font.draw(hud, match.aiEnabled ? "Rival: " + match.difficulty.label : "IA apagada", w - 260 * k, h - 20 * k);
+        if (match.scheme instanceof GolpeScheme g && !mando.touch()) {  // se ajustan con F1 a F10
+            font.getData().setScale(small);
+            font.draw(hud, "Ajustes: " + g.settings(), 20 * k, h - 50 * k);
+            font.getData().setScale(big);
         }
-        if (match.messageTime > 0) font.draw(hud, match.message, w / 2f - 80, h / 2f + 120);
+        if (match.messageTime > 0) font.draw(hud, match.message, w / 2f - 80 * k, h / 2f + 120 * k);
         ShotPreview shot = match.scheme.shot();
         if (shot != null && shot.pass) {
             String what = shot.receiver != null ? "Pase a #" + shot.receiver.number : shot.label != null ? shot.label : "Pase al espacio";
-            font.draw(hud, what, w / 2f - 90, h - 70);
+            font.draw(hud, what, w / 2f - 90 * k, h - 70 * k);
         } else if (shot != null) {
             String side = shot.curl > 1 ? " a la derecha" : shot.curl < -1 ? " a la izquierda" : "";
             font.draw(hud, String.format("Fuerza %d%%%s   Altura %d grados   Comba %d%s", Math.round(shot.power * 100), shot.powerFixed ? " (fija)" : "",
-                    Math.round(shot.elevation), Math.round(Math.abs(shot.curl)), side), w / 2f - 260, h - 70);
+                    Math.round(shot.elevation), Math.round(Math.abs(shot.curl)), side), w / 2f - 260 * k, h - 70 * k);
         }
-        font.getData().setScale(1.1f);
+        font.getData().setScale(small);
         String hint = match.scheme.hint();
-        if (hint != null) font.draw(hud, hint, 20, 134);
-        font.draw(hud, match.scheme.name() + "  ·  " + (freeCam ? "cámara a mano" : view.label)
-                + "  ·  P: práctica " + (match.practice ? "sí" : "no") + "  ·  I: IA " + (match.aiEnabled ? "sí" : "no")
-                + "  ·  1 2 3: rival fácil, normal, difícil", 20, 108);
-        font.draw(hud, match.scheme.help(), 20, 82);
-        font.draw(hud, "Ratón: arrastrar = mover la cámara, botón derecho o del medio (o Shift) = girarla, rueda = zoom · Tab = seguir la pelota / otra cámara", 20, 30);
-        font.getData().setScale(1.6f);
+        if (hint != null) font.draw(hud, hint, 20 * k, 134 * k);
+        if (mando.touch()) {
+            // en el teléfono no hay teclado ni ratón: lo demás está en los botones
+            font.draw(hud, match.scheme.name() + "  ·  " + view.label + (match.practice ? "  ·  práctica" : ""), 20 * k, 108 * k);
+        } else {
+            font.draw(hud, match.scheme.name() + "  ·  " + (freeCam ? "cámara a mano" : view.label)
+                    + "  ·  P: práctica " + (match.practice ? "sí" : "no") + "  ·  I: IA " + (match.aiEnabled ? "sí" : "no")
+                    + "  ·  1 2 3: rival fácil, normal, difícil", 20, 108);
+            font.draw(hud, match.scheme.help(), 20, 82);
+            font.draw(hud, "Ratón: arrastrar = mover la cámara, botón derecho o del medio (o Shift) = girarla, rueda = zoom · Tab = seguir la pelota / otra cámara", 20, 30);
+        }
+        font.getData().setScale(big);
         hud.end();
     }
 
@@ -501,5 +538,6 @@ public final class Soccer extends ApplicationAdapter {
         font.dispose();
         match.dispose();
         ruidos.dispose();
+        mando.dispose();
     }
 }

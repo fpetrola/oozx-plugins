@@ -8,17 +8,18 @@ import com.badlogic.gdx.math.Vector3;
  * El control, empezado de nuevo y chico: un golpe a la pelota armado con dos botones y las flechas.
  * <ul>
  *   <li><b>Flechas:</b> mover; la pelota va pegada al pie.</li>
- *   <li><b>X, mantenido:</b> la potencia, que sube mientras se lo mantiene.</li>
- *   <li><b>C, mantenido:</b> baja el punto donde se le pega, de arriba de todo de la pelota (sale
- *       rasante, con efecto para adelante) a abajo de todo (sale bien alta, con efecto para atrás).</li>
+ *   <li><b>X (la cruz del joystick):</b> le pega en el medio de la pelota: sale baja, sin efecto. Lo
+ *       que dura apretado es la potencia.</li>
+ *   <li><b>C (el cuadrado):</b> le pega abajo: sale alta, con efecto para atrás. También lo que dura
+ *       apretado es la potencia.</li>
  *   <li><b>Mientras X o C están apretados:</b> las flechas mueven hacia dónde va la pelota: la flecha
- *       del piso gira hacia la tecla apretada, a cualquiera de los 360 grados. El jugador va girando
+ *       del piso gira hacia la tecla apretada, a cualquiera de los 360 grados (con el stick de un
+ *       joystick, va directo para donde apunta el stick). El jugador va girando
  *       detrás, más despacio, pisando alrededor de la pelota. Si se le pega antes de que llegue a
  *       ponerse de frente, el pie no alcanza a sacarla derecho para ahí: sale abierta y con la comba
  *       que haga falta para llegar (y si ni con toda la comba llega, se queda corta de ángulo).</li>
- *   <li>El golpe sale al soltar la potencia (si C sigue apretado, al soltar los dos). Se puede
- *       apretar primero C, soltarlo y después X: soltado C hay un momento para apretar X y seguir
- *       armándolo; si no se aprieta, sale con la potencia más floja. No hay tiempo máximo.</li>
+ *   <li>El golpe sale al soltar (si se apretaron los dos, al soltar los dos; si en algún momento se
+ *       apretó C, le pega abajo). No hay tiempo máximo.</li>
  *   <li>También se puede armar antes de tener la pelota (suelta, o que viene): el jugador va solo a
  *       buscarla y, apenas la toca, le pega de primera con lo armado (aunque los botones sigan
  *       apretados). Si la agarra un rival, o pasan unos segundos sin llegar después de soltar, se
@@ -30,9 +31,7 @@ import com.badlogic.gdx.math.Vector3;
 final class GolpeScheme implements ControlScheme {
     /** Velocidad de salida: la más floja y la más fuerte (m/s). */
     private static final float SOFT = 4f, HARD = 32f;
-    /** La altura de salida (grados) pegándole arriba de todo y abajo de todo. */
-    private static final float LOW = 6f, HIGH = 75f;
-    /** Efecto sobre el eje horizontal en las puntas (rad/s): para adelante pegándole arriba, para atrás pegándole abajo. */
+    /** Efecto para atrás pegándole abajo (rad/s). */
     private static final float SPIN = 30f;
     /** Comba: hasta cuánto (rad/s, positivo curva a la derecha); más que en el juego de verdad, para que alcance a cerrar lo que el pie no llega. */
     private static final float MAX_CURL = 150f;
@@ -40,19 +39,21 @@ final class GolpeScheme implements ControlScheme {
     private static final float CONE = 30f;
     /**
      * Lo que se ajusta en vivo para probar qué se siente mejor: cuánto tarda en llenarse la potencia
-     * (s), cuánto tarda el punto en bajar de arriba de todo a abajo de todo (s), y qué tan rápido
-     * giran la flecha y el jugador detrás (grados por segundo).
+     * (s), con qué altura sale (grados) pegándole en el medio y abajo, y qué tan rápido giran la flecha
+     * y el jugador detrás (grados por segundo).
      */
-    float fill = 0.6f, sweep = 1f, turn = 180f, body = 120f;
-    /** Cuánto espera, soltado C sin haber usado la potencia, a que se apriete X para seguir armándolo (s); también se ajusta en vivo. */
-    float grace = 0.4f;
+    float fill = 0.6f, middle = 10f, under = 40f, turn = 180f, body = 120f;
+    /** Si en este golpe se apretó C: le pega abajo. */
+    private boolean low;
+    /** Sin correr (con el joystick, R1 suelto), a qué parte de la velocidad va. */
+    private static final float JOG = 0.7f;
     /** Cuánto espera, armado antes de tener la pelota y ya soltado, a llegar a tocarla (s). */
     private static final float READY = 2f;
-    /** Si en este golpe ya se usó la potencia, si se empezó a armar sin la pelota (de primera), y cuánto lleva sin ningún botón apretado. */
-    private boolean powered, early;
+    /** Si se empezó a armar sin la pelota (de primera), y cuánto lleva sin ningún botón apretado. */
+    private boolean early;
     private float idle;
 
-    /** Cuánto se cargó la potencia (0 a 1), cuánto bajó el punto (0 arriba de todo, 1 abajo de todo) y la comba. */
+    /** Cuánto se cargó la potencia (0 a 1), dónde le pega (0 arriba de todo, 0,5 en el medio, 1 abajo de todo; para el punto rojo) y la comba. */
     float power, lowered, curl;
     /** Si se está armando un golpe: desde que se apretó X o C hasta que se sueltan los dos. */
     private boolean arming;
@@ -73,8 +74,9 @@ final class GolpeScheme implements ControlScheme {
 
     @Override
     public String help() {
-        return "Flechas: mover · X mantenido: potencia · C mantenido: le pega más abajo (sale más alta)\n"
-                + "Con X o C apretado, las flechas eligen para dónde va (la comba sale sola si no está de frente) · el golpe sale al soltar los dos · Z: el compañero que llega primero";
+        return "Flechas: mover · X: le pega al medio (baja) · C: le pega abajo (alta) · lo que dura apretado es la potencia\n"
+                + "Con X o C apretado, las flechas eligen para dónde va (la comba sale sola si no está de frente) · el golpe sale al soltar los dos · Z: el compañero que llega primero\n"
+                + "Joystick: stick izq. mover y apuntar · cruz: al medio · cuadrado: abajo · R1: correr · L1: cambiar · stick der.: cámara · L2/R2: zoom · triángulo: otra cámara";
     }
 
     @Override
@@ -100,7 +102,7 @@ final class GolpeScheme implements ControlScheme {
     @Override
     public String hint() {
         if (!arming) return null;
-        return String.format("Potencia %.0f%% · altura %.0f grados · %s · soltá X y C para pegarle", power * 100, elevation(),
+        return String.format("%s · potencia %.0f%% · altura %.0f grados · %s · soltá para pegarle", low ? "Abajo" : "Al medio", power * 100, elevation(),
                 Math.abs(curl) < 1 ? "de frente, sin comba" : String.format("de costado: comba %.0f%s", Math.abs(curl), Math.abs(curl) >= MAX_CURL ? ", no llega" : ""));
     }
 
@@ -120,21 +122,23 @@ final class GolpeScheme implements ControlScheme {
             // empieza a armar el golpe: queda fijo para dónde sale; sin la pelota, es para pegarle de primera
             arming = true;
             early = !dead && m.owner != p;
-            powered = false;
+            low = false;
             idle = 0;
             aim.set(dead ? aim : p.facing);
         }
 
         if (arming) {
-            if (pad.down) {
-                power = Math.min(1, power + dt / fill);
-                powered = true;
-            }
-            if (pad.cDown) lowered = Math.min(1, lowered + dt / sweep);
+            if (pressing) power = Math.min(1, power + dt / fill);
+            if (pad.cDown) low = true;
+            lowered = low ? 0.85f : 0.5f;
             if (pressing) {
                 // las flechas llevan la flecha del piso hacia ellas, a cualquier lado
-                if (!pad.dir.isZero()) {
+                if (pad.analog && pad.dir.len2() > 0.25f) {
+                    aim.set(pad.dir).nor();  // con el stick, la flecha va justo para donde apunta
+                } else if (!pad.dir.isZero()) {
                     turnTowards(aim, tmp.set(pad.dir).nor(), turn * dt);
+                }
+                if (!pad.dir.isZero()) {
                     if (sp != null && sp.taker == p) {
                         sp.aim.set(aim);
                         sp.clampAim(sp.aim);
@@ -157,8 +161,7 @@ final class GolpeScheme implements ControlScheme {
             } else {
                 if (dead) p.stop();
                 else p.steer(tmp.set(p.vel).scl(1 - 2f * dt));  // armándolo no corre: sigue con el envión y frena
-                // sale al soltar la potencia; si sólo se usó C, espera un momento por si se aprieta X
-                if (!pressing && (powered || idle > grace)) strike(m, p);
+                if (!pressing) strike(m, p);  // sale al soltar
             }
         } else if (dead) {
             // parado con la pelota: las flechas apuntan
@@ -174,7 +177,7 @@ final class GolpeScheme implements ControlScheme {
             }
             p.facing.set(aim);
         } else {
-            p.steer(tmp.set(pad.dir).scl(Player.RUN));
+            p.steer(tmp.set(pad.dir).scl(pad.sprint ? Player.RUN : Player.RUN * JOG));
             // la agarra si le llega al pie (baja): desde ahí la lleva pegada
             if (m.owner != p && m.ball.pos.y < 0.5f && m.canTouch(p)) m.control(p);
         }
@@ -197,8 +200,8 @@ final class GolpeScheme implements ControlScheme {
 
     /** Los valores que se ajustan en vivo, para la pantalla. */
     String settings() {
-        return String.format("potencia llena en %.1f s (F1 / F2) · altura de arriba a abajo en %.1f s (F3 / F4) · la flecha gira %.0f grados por s (F5 / F6)"
-                + " · espera entre C y X %.1f s (F7 / F8) · el jugador gira %.0f grados por s (F9 / F10)", fill, sweep, turn, grace, body);
+        return String.format("potencia llena en %.1f s (F1 / F2) · abajo sale a %.0f grados (F3 / F4) · la flecha gira %.0f grados por s (F5 / F6)"
+                + " · al medio sale a %.0f grados (F7 / F8) · el jugador gira %.0f grados por s (F9 / F10)", fill, under, turn, middle, body);
     }
 
     /** Se deja de armar sin pegarle. */
@@ -222,16 +225,18 @@ final class GolpeScheme implements ControlScheme {
 
     /** El próximo golpe empieza de cero: sin potencia, pegándole arriba de todo, sin comba. */
     private void reset() {
-        power = lowered = curl = 0;
+        power = curl = 0;
+        lowered = 0.5f;
+        low = false;
     }
 
     private float elevation() {
-        return MathUtils.lerp(LOW, HIGH, lowered);
+        return low ? under : middle;
     }
 
-    /** Efecto sobre el eje horizontal: positivo la levanta (le pega abajo), negativo la baja (le pega arriba). */
+    /** Efecto sobre el eje horizontal: pegándole abajo, para atrás (la levanta); en el medio, nada. */
     private float backspin() {
-        return (2 * lowered - 1) * SPIN;
+        return low ? SPIN : 0;
     }
 
     /**

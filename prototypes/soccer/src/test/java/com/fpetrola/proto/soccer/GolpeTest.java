@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import static com.fpetrola.proto.soccer.Guion.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-/** El control nuevo: X potencia, C más abajo (más alta), flechas de costado mientras se arma = comba; sale al soltar los dos. */
+/** El control nuevo: X le pega al medio, C abajo (más alta), lo que duran apretados es la potencia; las flechas eligen para dónde va; sale al soltar. */
 class GolpeTest {
     /** Lo que hizo la pelota: lo más alto, dónde picó, y cuánto se fue de costado a los 15 m. */
     record Tiro(float alto, float pica, float lado15) {
@@ -44,33 +44,30 @@ class GolpeTest {
         return new Tiro(alto, pica, lado);
     }
 
-    @Test
-    void conXSolaSaleRasanteYFuerte() {
+    /** Un golpe con X (al medio) o C (abajo), apretado tanto tiempo. */
+    private static Tiro golpe(boolean abajo, float segundos) {
         try (Guion g = new Guion(120)) {
             listo(g);
-            mantener(g, 0.5f, NADA, true, false);
-            Tiro t = soltar(g);
-            System.out.printf("X sola: sube %.2f m, a los 15 m va %.2f de costado%n", t.alto(), t.lado15());
-            assertTrue(t.alto() < 0.6f, "subió a " + t.alto());
-            assertEquals(0, t.lado15(), 0.05f);
+            mantener(g, segundos, NADA, !abajo, abajo);
+            return soltar(g);
         }
     }
 
     @Test
-    void cuantoMasCMasAlta() {
-        float[] altos = new float[3];
-        float[] c = {0.2f, 0.5f, 1f};
-        for (int i = 0; i < 3; i++) {
-            try (Guion g = new Guion(121)) {
-                listo(g);
-                mantener(g, c[i], NADA, false, true);
-                mantener(g, 0.3f, NADA, true, false);
-                altos[i] = soltar(g).alto();
-            }
-        }
-        System.out.printf("C 0,2 s: sube %.2f m; 0,5 s: %.2f m; 1 s: %.2f m%n", altos[0], altos[1], altos[2]);
-        assertTrue(altos[0] < altos[1] && altos[1] < altos[2], "no sube más con más C");
-        assertTrue(altos[2] > 3f, "con todo C subió a " + altos[2]);
+    void conXSaleBajaYDerecha() {
+        Tiro t = golpe(false, 0.5f);
+        System.out.printf("X 0,5 s: sube %.2f m, pica a %.1f m, a los 15 m va %.2f de costado%n", t.alto(), t.pica(), t.lado15());
+        assertTrue(t.alto() < 2f, "subió a " + t.alto());
+        assertEquals(0, t.lado15(), 0.05f);
+    }
+
+    @Test
+    void conCSaleAltaYCuantoMasDuraMasLejos() {
+        Tiro x = golpe(false, 0.4f), corto = golpe(true, 0.2f), largo = golpe(true, 0.4f);
+        System.out.printf("C 0,2 s: sube %.2f m y pica a %.1f m; C 0,4 s: %.2f m y %.1f m; X 0,4 s: %.2f m%n",
+                corto.alto(), corto.pica(), largo.alto(), largo.pica(), x.alto());
+        assertTrue(largo.alto() > x.alto() + 2f, "con C no salió más alta");
+        assertTrue(largo.pica() > corto.pica() + 5f, "más tiempo no la mandó más lejos");
     }
 
     /** Para dónde sale (grados, 0 es para adelante) y para dónde terminó yendo (donde termina la flecha del tiro), con la comba que llevaba. */
@@ -81,8 +78,12 @@ class GolpeTest {
     private static Rumbo apuntar(Vector2 flechas, float segundos, float cuerpo) {
         try (Guion g = new Guion(122)) {
             GolpeScheme s = listo(g);
+            // en el medio y flojo, para que no se vaya de la cancha antes de terminar la flecha
+            g.conPelota(g.local(6), 0, 0, ARRIBA);
+            g.durante(0.3f, NADA, false);
             s.body = cuerpo;
-            mantener(g, 0.3f, NADA, true, false);
+            s.fill = 1.5f;  // la potencia se sigue cargando mientras gira la flecha
+            mantener(g, 0.2f, NADA, true, false);
             mantener(g, segundos, flechas, true, false);
             float comba = s.curl;
             // hasta dónde llega la flecha del tiro: ahí se mide para dónde terminó yendo
@@ -97,6 +98,26 @@ class GolpeTest {
                     llega = MathUtils.atan2(g.m.ball.pos.z - z0, g.m.ball.pos.x - x0) * MathUtils.radDeg;
             }
             return new Rumbo(sale, llega, comba);
+        }
+    }
+
+    /** Con un stick, la flecha va enseguida para donde apunta: con el cuerpo que gira rápido, sale para ahí. */
+    @Test
+    void conElStickLaFlechaVaDirectoParaDondeApunta() {
+        Vector2 stick = new Vector2(-0.5f, 0.866f);  // 120 grados
+        try (Guion g = new Guion(122)) {
+            GolpeScheme s = listo(g);
+            s.body = 900f;
+            g.pad.analog = true;
+            mantener(g, 0.3f, NADA, true, false);
+            mantener(g, 0.1f, stick, true, false);
+            float sale = Float.NaN;
+            for (int i = 0; i < 30 && Float.isNaN(sale); i++) {
+                g.paso(stick, false, false, false);
+                if (g.m.ball.vel.len() > 8) sale = MathUtils.atan2(g.m.ball.vel.z, g.m.ball.vel.x) * MathUtils.radDeg;
+            }
+            System.out.printf("con el stick a 120 grados, 0,1 s: sale a %.0f grados%n", sale);
+            assertEquals(120, sale, 3f);
         }
     }
 
@@ -160,38 +181,6 @@ class GolpeTest {
             g.paso(NADA, false, false, false);
             assertNotSame(yo, g.m.owner, "no salió al soltar los dos");
             assertTrue(g.m.ball.vel.len() > 10, "salió floja: " + g.m.ball.vel.len());
-        }
-    }
-
-    /** C primero, se suelta, enseguida X: sigue armándose el mismo tiro, alto y fuerte, y sale recién al soltar X. */
-    @Test
-    void sePuedeApretarCSoltarloYDespuesX() {
-        try (Guion g = new Guion(127)) {
-            listo(g);
-            Player yo = g.local(6);
-            mantener(g, 0.6f, NADA, false, true);
-            mantener(g, 0.2f, NADA, false, false);  // suelto: menos que la espera
-            assertSame(yo, g.m.owner, "salió al soltar C");
-            mantener(g, 0.5f, NADA, true, false);
-            assertSame(yo, g.m.owner, "salió antes de soltar X");
-            Tiro t = soltar(g);
-            System.out.printf("C, suelto, X: sube %.2f m y pica a %.1f m%n", t.alto(), t.pica());
-            assertTrue(t.alto() > 2.5f, "no salió alta: " + t.alto());
-            assertTrue(t.pica() > 15f, "no salió fuerte: " + t.pica());
-        }
-    }
-
-    /** Sólo C: soltado, espera un momento por X; si no llega, sale floja. */
-    @Test
-    void conSoloCSaleDespuesDeLaEspera() {
-        try (Guion g = new Guion(128)) {
-            listo(g);
-            Player yo = g.local(6);
-            mantener(g, 0.5f, NADA, false, true);
-            mantener(g, 0.2f, NADA, false, false);
-            assertSame(yo, g.m.owner, "no esperó");
-            mantener(g, 0.4f, NADA, false, false);
-            assertNotSame(yo, g.m.owner, "no salió después de la espera");
         }
     }
 
