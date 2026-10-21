@@ -97,13 +97,29 @@ public abstract class DeclaredFormat implements SnapshotFormat {
     }
   }
 
+  /** What the file carries beside the machine, understood without one; nothing from a file it refuses. */
+  @Override
+  public java.util.Map<String, byte[]> carried(byte[] bytes) {
+    try {
+      return understood(bytes).carried();
+    } catch (SnapshotException unreadable) {
+      return java.util.Map.of();
+    }
+  }
+
   @Override
   public final byte[] write(Speccy speccy, Consumer<String> notes) throws SnapshotException {
+    return write(speccy, java.util.Map.of(), notes);
+  }
+
+  @Override
+  public final byte[] write(Speccy speccy, java.util.Map<String, byte[]> carrying, Consumer<String> notes) throws SnapshotException {
     if (!writesFiles()) {
       return SnapshotFormat.super.write(speccy, notes);
     }
     Shape shape = shapeFor(speccy.machine.current);
     SnapshotFile file = shape.empty();
+    carrying.forEach(file::carry);
     if (speccy.machine.current.snapshotModel() != shape.machine()) {
       file.note("written as: " + shape.machine().getLongModelName());
     }

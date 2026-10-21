@@ -64,6 +64,7 @@ final class SzxBlocks implements Region {
           into.stretch(known, payload);
         } else {
           into.note("skipped: the block " + id.trim() + " (" + length + " bytes)");
+          into.carry(id, payload);
         }
       }
     }
@@ -135,6 +136,15 @@ final class SzxBlocks implements Region {
       Sink page = new Sink().u16(COMPRESSED).u8(bank).bytes(packed);
       block(out, "RAMP", page.toBytes());
     }
+    from.carried().forEach((name, payload) -> block(out, fourLetters(name), payload));
+  }
+
+  /** A block's name is four bytes: a shorter one is filled with NULs, as "AY\0\0" is. */
+  private static String fourLetters(String name) {
+    if (name.isEmpty() || name.length() > 4) {
+      throw new IllegalArgumentException("an SZX block is named in one to four letters, and not '" + name + "'");
+    }
+    return (name + "\0\0\0").substring(0, 4);
   }
 
   /** "OOZX", and its version: who wrote it (decision 1). */

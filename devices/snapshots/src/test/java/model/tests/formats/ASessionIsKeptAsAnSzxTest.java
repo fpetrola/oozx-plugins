@@ -19,6 +19,8 @@ package model.tests.formats;
 
 import com.fpetrola.emulation.helpers.snapshots.SnapshotSaver;
 import com.fpetrola.oozx.Speccy;
+import com.fpetrola.oozx.formats.SnapshotFormat;
+import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
@@ -27,9 +29,13 @@ import com.fpetrola.z80.bytecode.RegistersBase;
 import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
+import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * A session the desktop keeps in its settings is an SZX now, which keeps the banks, the paging and
@@ -54,6 +60,28 @@ class ASessionIsKeptAsAnSzxTest {
     Speccy opened = machine();
     Snapshots.of(opened).loadPacked(session);
     assertEquals(MachineDescription.of(kept), MachineDescription.of(opened));
+  }
+
+  @Test
+  void whatTheEnvironmentCarriesBesideAMachineComesBackFromItsFile() throws Exception {
+    Speccy kept = machine();
+    Snapshots.of(kept).load(Path.of("src/test/resources/snapshots/banks.z80").toString());
+    SnapshotFormat szx = new SzxFormat();
+    byte[] file = szx.write(kept, Map.of("OOZX", new byte[]{1, 2, 3}), note -> { });
+    assertArrayEquals(new byte[]{1, 2, 3}, szx.carried(file).get("OOZX"));
+
+    Speccy opened = machine();
+    szx.read(file, opened, note -> { });
+    assertEquals(MachineDescription.of(kept), MachineDescription.of(opened), "what it carries changes nothing of the machine");
+  }
+
+  @Test
+  void anotherEmulatorReadsTheFilePassingOverWhatTheEnvironmentCarries() throws Exception {
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Speccy kept = machine();
+    Snapshots.of(kept).load(Path.of("src/test/resources/snapshots/banks.z80").toString());
+    byte[] file = new SzxFormat().write(kept, Map.of("OOZX", new byte[]{1, 2, 3}), note -> { });
+    assertFalse(Reference.read(file, "szx").isRefused(), "libspectrum refused it");
   }
 
   @Test

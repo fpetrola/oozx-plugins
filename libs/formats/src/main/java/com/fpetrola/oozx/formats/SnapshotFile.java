@@ -40,6 +40,7 @@ public final class SnapshotFile {
   private final Map<Integer, byte[]> pages = new TreeMap<>();
   private final Set<Integer> placedOrWritten = new LinkedHashSet<>();
   private final List<String> notes = new ArrayList<>();
+  private final Map<String, byte[]> carried = new java.util.LinkedHashMap<>();
   private Pages.AtTheTop pendingAt;
   private byte[] pending;
 
@@ -135,6 +136,15 @@ public final class SnapshotFile {
 
   public List<String> notes() {
     return List.copyOf(notes);
+  }
+
+  /** Something the file carries beside the machine, which no part reads: under the name it has in the file. */
+  public void carry(String name, byte[] bytes) {
+    carried.put(name, bytes);
+  }
+
+  public Map<String, byte[]> carried() {
+    return java.util.Collections.unmodifiableMap(carried);
   }
 
   void placed(int bank, byte[] bytes) {
