@@ -5,7 +5,7 @@ Relevado el 27 de septiembre de 2026, comparando `oozx/fuse-emulator-fuse` (`mac
 Retoma las secciones 15 a 19 del `plan-perifericos.md` de la otra línea de historia (hay copia en
 `versions/oozx_2/oozx/doc/`), que ya no está en `main`, puestas al día con lo que el emulador tiene hoy.
 
-**Estado (21 de octubre de 2026):** hecho el 1.
+**Estado (21 de octubre de 2026):** hechos el 1 y el 2.
 
 ## Lo que hay
 
@@ -107,6 +107,12 @@ que se reusó.
   ROM. Ventana: la ROM a elegir y un LED de paginado.
 - Snapshot: activo, paginado y ROM propia (bloque SZX pendiente del plan de snapshots).
 - Test: sin ROM (`assumeTrue`), el conmutador con una ROM sintética de 8K.
+- **Hecho.** Faltaba algo arriba: Fuse también lo conmuta cuando el PC llega a 0x2bae
+  (`z80_ops.c`), que es como `RANDOMIZE USR 11182` lo trae; va con `Cpu.beforeFetch()`. La
+  lectura del puerto conmuta sin manejar el bus (`BusAnswer.NONE`), como `usource_toggle_read`.
+  Ningún formato guarda su estado (libspectrum lo dice en `.z80` y en `.szx`): no hay bloque que
+  deber. La elección de ROM de la ventana quedó en el kit (`DeviceFrame.chooseRoms`), con el
+  ícono del chip: la Multiface, la DivMMC y la DivIDE la tenían copiada.
 
 ### 3. Cartuchos DOCK de Timex — en `devices/timex`
 

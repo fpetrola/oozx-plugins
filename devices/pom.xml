@@ -55,6 +55,7 @@
         <module>melodik</module>
         <module>interface2</module>
         <module>multiface</module>
+        <module>usource</module>
         <module>parallel-printer</module>
         <module>plusd</module>
         <module>disciple</module>

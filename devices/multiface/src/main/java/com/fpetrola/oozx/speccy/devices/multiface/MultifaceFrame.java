@@ -21,7 +21,6 @@ import com.fpetrola.oozx.speccy.windows.Widgets;
 
 import javax.swing.Box;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
@@ -31,7 +30,6 @@ import javax.swing.event.InternalFrameAdapter;
 import javax.swing.event.InternalFrameEvent;
 import java.awt.Color;
 import java.awt.Font;
-import java.io.File;
 
 /**
  * A Multiface on the desk: the red button, and next to it whether the ROM is paged in, which is
@@ -44,7 +42,7 @@ public class MultifaceFrame extends DeviceFrame<MultifacePeripheral> {
   private final MultifaceModel model;
   private final JButton button = Widgets.iconButton("multiface-button.svg", "NMI",
       "The red button: stops whatever is running and takes it to the Multiface");
-  private final JButton rom = Widgets.iconButton("multiface-rom.svg", "ROM...",
+  private final JButton rom = Widgets.iconButton("rom.svg", "ROM...",
       "Choose the Multiface's ROM, which is not something this emulator can ship");
   private final JToggleButton stealth = new JToggleButton("Stealth");
   private final JLabel led = new JLabel("●");
@@ -58,7 +56,7 @@ public class MultifaceFrame extends DeviceFrame<MultifacePeripheral> {
     setSize(420, 300);
 
     button.addActionListener(e -> press());
-    rom.addActionListener(e -> chooseRom());
+    rom.addActionListener(e -> chooseRoms("The " + model.title + "'s ROM (8K)"));
     stealth.setToolTipText("The One's switch: off, the port cannot page it in and the button does nothing"
         + " - a program looking for a Multiface finds none");
     stealth.addActionListener(e -> {
@@ -106,19 +104,6 @@ public class MultifaceFrame extends DeviceFrame<MultifacePeripheral> {
     MultifacePeripheral pressed = device();
     if (pressed != null) {
       machine().loop.later(pressed::redButton);
-    }
-  }
-
-  private void chooseRom() {
-    if (machine() == null) {
-      return;
-    }
-    JFileChooser chooser = new JFileChooser();
-    chooser.setDialogTitle("The " + model.title + "'s ROM (8K)");
-    if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-      File chosen = chooser.getSelectedFile();
-      machine().roms.choose(device(), chosen.getPath());
-      resetHard();
     }
   }
 

@@ -20,9 +20,7 @@ import com.fpetrola.oozx.speccy.devices.IdeBayFrame;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JToggleButton;
-import java.io.File;
 
 /**
  * The DivMMC on the desk: its card, the EPROM esxDOS is read from at a hard reset, the
@@ -30,7 +28,7 @@ import java.io.File;
  */
 public class DivMmcFrame extends IdeBayFrame<DivMmcPeripheral> {
 
-  private final JButton eprom = Widgets.iconButton("multiface-rom.svg", "EPROM...",
+  private final JButton eprom = Widgets.iconButton("rom.svg", "EPROM...",
       "Choose the firmware the EPROM is filled with at the next hard reset");
   private final JToggleButton jumper = Widgets.iconToggle("slot-lock.svg", "Protect",
       "The write-protect jumper: closed, the EPROM cannot be written and the automapper works");
@@ -39,7 +37,7 @@ public class DivMmcFrame extends IdeBayFrame<DivMmcPeripheral> {
 
   public DivMmcFrame() {
     super("DivMMC", DivMmcPeripheral.class, "card", "mmc", "card");
-    eprom.addActionListener(e -> chooseEprom());
+    eprom.addActionListener(e -> chooseRoms("The DivMMC's EPROM (8K)"));
     jumper.addActionListener(e -> onEmulator(d -> {
       d.setWriteProtect(jumper.isSelected());
       d.refresh();
@@ -64,19 +62,6 @@ public class DivMmcFrame extends IdeBayFrame<DivMmcPeripheral> {
     button.setEnabled(in);
     if (in) {
       jumper.setSelected(device().writeProtect());
-    }
-  }
-
-  private void chooseEprom() {
-    if (machine() == null) {
-      return;
-    }
-    JFileChooser chooser = new JFileChooser();
-    chooser.setDialogTitle("The DivMMC's EPROM (8K)");
-    if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-      File chosen = chooser.getSelectedFile();
-      machine().roms.choose(device(), chosen.getPath());
-      machine().loop.later(() -> machine().machine.reset(true));
     }
   }
 }

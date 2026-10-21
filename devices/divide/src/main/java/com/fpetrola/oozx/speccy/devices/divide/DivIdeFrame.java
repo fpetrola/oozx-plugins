@@ -20,9 +20,7 @@ import com.fpetrola.oozx.speccy.devices.IdeBayFrame;
 import com.fpetrola.oozx.speccy.windows.Widgets;
 
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JToggleButton;
-import java.io.File;
 
 /**
  * The DivIDE on the desk: its two drives, and what the board itself has - the EPROM, which is
@@ -30,7 +28,7 @@ import java.io.File;
  */
 public class DivIdeFrame extends IdeBayFrame<DivIdePeripheral> {
 
-  private final JButton eprom = Widgets.iconButton("multiface-rom.svg", "EPROM...",
+  private final JButton eprom = Widgets.iconButton("rom.svg", "EPROM...",
       "Choose the firmware the EPROM is filled with at the next hard reset");
   private final JToggleButton jumper = Widgets.iconToggle("slot-lock.svg", "Protect",
       "The write-protect jumper: closed, the EPROM cannot be written and the automapper works");
@@ -39,7 +37,7 @@ public class DivIdeFrame extends IdeBayFrame<DivIdePeripheral> {
 
   public DivIdeFrame() {
     super("DivIDE", DivIdePeripheral.class, "disk", "hdf", "master", "slave");
-    eprom.addActionListener(e -> chooseEprom());
+    eprom.addActionListener(e -> chooseRoms("The DivIDE's EPROM (8K)"));
     jumper.addActionListener(e -> onEmulator(d -> {
       d.setWriteProtect(jumper.isSelected());
       d.refresh();
@@ -63,19 +61,6 @@ public class DivIdeFrame extends IdeBayFrame<DivIdePeripheral> {
       if (in) {
         jumper.setSelected(device().writeProtect());
       }
-    }
-  }
-
-  private void chooseEprom() {
-    if (machine() == null) {
-      return;
-    }
-    JFileChooser chooser = new JFileChooser();
-    chooser.setDialogTitle("The DivIDE's EPROM (8K)");
-    if (chooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
-      File chosen = chooser.getSelectedFile();
-      machine().roms.choose(device(), chosen.getPath());
-      machine().loop.later(() -> machine().machine.reset(true));
     }
   }
 }

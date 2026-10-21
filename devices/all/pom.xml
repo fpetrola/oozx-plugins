@@ -105,6 +105,11 @@
         </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
+            <artifactId>device-usource</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
             <artifactId>device-parallel-printer</artifactId>
             <version>${project.version}</version>
         </dependency>
