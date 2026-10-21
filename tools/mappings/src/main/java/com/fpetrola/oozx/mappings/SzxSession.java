@@ -19,20 +19,29 @@ package com.fpetrola.oozx.mappings;
 
 import com.fpetrola.emulation.helpers.snapshots.SnapshotException;
 import com.fpetrola.oozx.EmulatorControl;
+import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.config.Settings;
+import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.snapshots.SzxFormat;
+import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
+import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.devices.Session;
+import com.fpetrola.oozx.speccy.machine.RomNotLoadedException;
 import com.fpetrola.oozx.speccy.machine.Spectrum;
+import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import com.fpetrola.oozx.speccy.pokes.PokFile;
 import com.fpetrola.oozx.speccy.pokes.PokInstruction;
 import com.fpetrola.oozx.speccy.pokes.PokesTool;
+import com.fpetrola.oozx.speccy.windows.AttachedFrame;
 import com.google.inject.Inject;
 
+import javax.swing.JInternalFrame;
 import java.awt.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,12 +51,14 @@ import java.util.stream.Collectors;
 /**
  * A machine's window as an SZX: the machine in the format's blocks, and what is around it in one of
  * its own, OOZX, which another emulator passes over. What is around it is text, a key a line: which
- * machine it is exactly and on which ROMs, where the window is, whether it is paused, the file the
- * machine came from, its processor and its turbo, every setting of the machine and of its devices by
- * the name it is declared under, and the pokes applied to it.
+ * machine it is exactly and on which ROMs, every setting of the machine and of its devices by the
+ * name it is declared under, which devices are plugged into it, where the window is, whether it is
+ * paused, the file the machine came from, its processor and its turbo, the pokes applied to it, and
+ * the equipment clipped onto the window.
  * <p>
- * The machine and its ROMs are chosen as the file is read, before the machine is walked ({@link
- * SzxMapping}): choosing them once it is read starts it from cold.
+ * The first four are put back as the file is read, before the machine is walked ({@link #plug},
+ * asked by {@link SzxMapping}): choosing a machine starts it from cold, and plugging some devices
+ * in resets it. The rest needs the window, and comes back once there is one.
  */
 public final class SzxSession implements Session {
 
@@ -74,40 +85,47 @@ public final class SzxSession implements Session {
   @Override
   public byte[] write(EmulatorWindow window) throws SnapshotException {
     Map<String, String> around = new TreeMap<>();
+    Speccy speccy = window.machine();
     Component place = placeOf(window);
     around.put("window.x", String.valueOf(place.getX()));
     around.put("window.y", String.valueOf(place.getY()));
     around.put("window.width", String.valueOf(place.getWidth()));
     around.put("window.height", String.valueOf(place.getHeight()));
-    Spectrum machine = window.machine().machine.current;
+    Spectrum machine = speccy.machine.current;
     around.put("machine", machine.shortName());
-    String roms = window.machine().roms.chosenSet(machine);
+    String roms = speccy.roms.chosenSet(machine);
     if (roms != null) around.put("roms", roms);
-    EmulatorControl control = window.machine().control;
+    EmulatorControl control = speccy.control;
     if (control != null) {
       around.put("paused", String.valueOf(control.isPaused()));
       around.put("turbo", String.valueOf(control.isTurboMode()));
       if (control.getProcessor() != null) around.put("processor", control.getProcessor());
       if (control.getFilename() != null && !control.getFilename().isEmpty()) around.put("file", control.getFilename());
     }
-    for (Settings.Configurable settings : window.machine().settings().devices()) {
+    for (Settings.Configurable settings : speccy.settings().devices()) {
       for (String property : settings.device().properties()) {
         Object value = settings.values().get(property);
         if (value != null) around.put(settings.device().name() + "." + property, value instanceof Enum<?> named ? named.name() : String.valueOf(value));
       }
     }
+    List<Pluggable> plugged = speccy.peripheralRegistry.allThatAre(Pluggable.class).stream().filter(Pluggable::isPluggedIn).toList();
+    for (int at = 0; at < plugged.size(); at++) around.put("plugged." + at, plugged.get(at).getClass().getName());
     PokesTool pokes = pokes();
     if (pokes != null) keep(pokes.applied(window), around);
+    keep(Desk.theOne().equipmentOn(window), around);
     String text = around.entrySet().stream().map(line -> line.getKey() + "=" + line.getValue()).collect(Collectors.joining("\n"));
     return szx.write(window.machine(), Map.of(BLOCK, text.getBytes(StandardCharsets.UTF_8)), note -> { });
   }
 
-  @Override
-  public void bringBack(byte[] file, EmulatorWindow window) {
-    byte[] block = szx.carried(file).get(BLOCK);
-    if (block == null) return;
+  /**
+   * What has to be in place before the machine is walked, from the block a session wrote: the
+   * machine and its ROMs, its settings, and what is plugged into it, with the reset that plugging
+   * some devices in asks for, as it did when they were plugged in the first place.
+   */
+  static void plug(byte[] block, Speccy speccy, SnapshotFile file) {
     Map<String, String> around = around(block);
-    for (Settings.Configurable settings : window.machine().settings().devices()) {
+    becomes(around, speccy, file);
+    for (Settings.Configurable settings : speccy.settings().devices()) {
       for (String property : settings.device().properties()) {
         String value = around.get(settings.device().name() + "." + property);
         if (value == null) continue;
@@ -118,6 +136,53 @@ public final class SzxSession implements Session {
         }
       }
     }
+    List<Pluggable> here = speccy.peripheralRegistry.allThatAre(Pluggable.class);
+    for (int at = 0; around.containsKey("plugged." + at); at++) {
+      String named = around.get("plugged." + at);
+      here.stream().filter(device -> device.getClass().getName().equals(named)).findFirst()
+          .ifPresentOrElse(device -> device.plugIn(true), () -> file.note("this build has no " + named + " to plug in"));
+    }
+    if (speccy.peripheralRegistry.update()) speccy.machine.reset(true);
+  }
+
+  private static void becomes(Map<String, String> around, Speccy speccy, SnapshotFile file) {
+    Spectrum was = speccy.machine.current;
+    String named = around.get("machine");
+    Spectrum machine = named == null ? was : speccy.machine.forShortName(named).orElse(null);
+    if (machine == null) {
+      file.note("this build has no " + named + ": loaded into the " + was.getName());
+      machine = was;
+    }
+    boolean otherRoms = runsOn(around.get("roms"), machine, speccy, file);
+    if (machine == was && !otherRoms) return;
+    try {
+      speccy.machine.select(machine);
+    } catch (RomNotLoadedException noRoms) {
+      file.note("the " + machine.getName() + " cannot be switched on here (" + noRoms.getMessage() + "): loaded into the " + was.getName());
+      speccy.machine.select(was);
+    }
+  }
+
+  /** Whether the machine is to run on other ROMs than it does: a set it has, and whose ROMs are here. */
+  private static boolean runsOn(String roms, Spectrum machine, Speccy speccy, SnapshotFile file) {
+    if (roms == null || roms.equals(speccy.roms.chosenSet(machine))) return false;
+    if (!speccy.roms.setsFor(machine).containsKey(roms)) {
+      file.note("the " + machine.getName() + " has no ROMs called " + roms + " here");
+      return false;
+    }
+    List<String> before = speccy.roms.running(machine);
+    speccy.roms.chooseSet(machine, roms);
+    if (speccy.roms.missingFor(machine).isEmpty()) return true;
+    file.note("the ROMs " + roms + " are not here: the " + machine.getName() + " runs on its own");
+    speccy.roms.runOn(machine, before);
+    return false;
+  }
+
+  @Override
+  public void bringBack(byte[] file, EmulatorWindow window) {
+    byte[] block = szx.carried(file).get(BLOCK);
+    if (block == null) return;
+    Map<String, String> around = around(block);
     EmulatorControl control = window.machine().control;
     if (control != null) {
       if (around.containsKey("processor")) control.setProcessor(around.get("processor"));
@@ -131,6 +196,7 @@ public final class SzxSession implements Session {
     }
     PokesTool pokes = pokes();
     if (pokes != null) pokes.applied(window, appliedIn(around));
+    if (window instanceof JInternalFrame onto) clip(around, onto);
   }
 
   private PokesTool pokes() {
@@ -169,12 +235,45 @@ public final class SzxSession implements Session {
     return applied;
   }
 
+  /** The equipment clipped onto the window, in the order each sits along its side: which, where, how big, and folded or not. */
+  private static void keep(Map<MachineFrame, String> clipped, Map<String, String> around) {
+    List<MachineFrame> windows = clipped.keySet().stream().sorted(Comparator.comparingInt(SzxSession::along)).toList();
+    for (int at = 0; at < windows.size(); at++) {
+      MachineFrame window = windows.get(at);
+      String key = "equipment." + at + ".";
+      around.put(key + "kind", clipped.get(window));
+      around.put(key + "side", window.dockedTo().name());
+      around.put(key + "width", String.valueOf(window.getWidth()));
+      around.put(key + "height", String.valueOf(window.getHeight()));
+      around.put(key + "compact", String.valueOf(window.isCompact()));
+      around.put(key + "expanded", String.valueOf(window.expandedHeight()));
+    }
+  }
+
+  /** The same back, each kind this build still offers, in the same order so that a shared side is shared the same way. */
+  private static void clip(Map<String, String> around, JInternalFrame onto) {
+    for (int at = 0; around.containsKey("equipment." + at + ".kind"); at++) {
+      String key = "equipment." + at + ".";
+      MachineFrame window = Desk.theOne().equipment(around.get(key + "kind"));
+      if (window == null) continue;
+      window.setCompact(Boolean.parseBoolean(around.get(key + "compact")), Integer.parseInt(around.get(key + "expanded")));
+      window.setSize(Integer.parseInt(around.get(key + "width")), Integer.parseInt(around.get(key + "height")));
+      window.attachTo(onto, AttachedFrame.Dock.valueOf(around.get(key + "side")));
+    }
+  }
+
+  /** How far along its side a window sits, which is the order of the windows sharing it. */
+  private static int along(AttachedFrame window) {
+    AttachedFrame.Dock side = window.dockedTo();
+    return side == AttachedFrame.Dock.TOP || side == AttachedFrame.Dock.BOTTOM ? window.getX() : window.getY();
+  }
+
   private static Integer number(String text) {
     return text.equals("null") ? null : Integer.valueOf(text);
   }
 
   /** What is around a machine, from its block: a key a line. */
-  static Map<String, String> around(byte[] block) {
+  private static Map<String, String> around(byte[] block) {
     Map<String, String> around = new TreeMap<>();
     for (String line : new String(block, StandardCharsets.UTF_8).split("\n")) {
       int equals = line.indexOf('=');

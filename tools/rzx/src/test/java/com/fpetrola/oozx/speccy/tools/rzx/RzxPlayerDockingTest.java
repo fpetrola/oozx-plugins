@@ -291,36 +291,6 @@ class RzxPlayerDockingTest {
       asking.takeMachine(window);
       return window;
     }
-
-    public java.io.File choose(String what) {
-      return null;
-    }
-
-    public void openMachineFor(java.io.File file, com.fpetrola.oozx.speccy.devices.MachineFrame asking) {
-    }
-
-    public void open(Game game, Runnable whenDone) {
-      whenDone.run();
-    }
-
-    public void play(String url, String label) {
-    }
-
-    public void openRecording(com.fpetrola.oozx.speccy.devices.MachineFrame asking) {
-    }
-
-    public void keepRecording(String url, String entry, String title) {
-    }
-
-    public void keep(Game game) {
-    }
-
-    public void showDetails(Game game) {
-    }
-
-    public List<String> machines() {
-      return List.of();
-    }
   }
 
   @Test
