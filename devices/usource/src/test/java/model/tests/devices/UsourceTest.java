@@ -54,7 +54,8 @@ class UsourceTest extends MachineTest {
   }
 
   private UsourcePeripheral pluggedIn(Speccy speccy, String rom) {
-    if (rom != null) speccy.roms.choose("UsourcePeripheral", rom);
+    // The choice is kept for every machine this test makes, so the one without a ROM takes it back.
+    speccy.roms.choose("UsourcePeripheral", rom);
     UsourcePeripheral usource = (UsourcePeripheral) speccy.peripheralRegistry.find(UsourcePeripheral.class);
     usource.plugIn(true);
     assertTrue(speccy.peripheralRegistry.update(), "its ROM goes over the machine's, so it arrives with a hard reset");

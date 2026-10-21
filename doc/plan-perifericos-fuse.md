@@ -5,11 +5,11 @@ Relevado el 27 de septiembre de 2026, comparando `oozx/fuse-emulator-fuse` (`mac
 Retoma las secciones 15 a 19 del `plan-perifericos.md` de la otra línea de historia (hay copia en
 `versions/oozx_2/oozx/doc/`), que ya no está en `main`, puestas al día con lo que el emulador tiene hoy.
 
-**Estado (21 de octubre de 2026):** hechos el 1, el 2 y el 3.
+**Estado (21 de octubre de 2026):** hechos del 1 al 4. Faltan los tres de red (5, 6 y 7).
 
 ## Lo que hay
 
-**Máquinas: están las diecisiete de Fuse.** 16K, 48K, 48K NTSC, 128, +2, +2A, +3, +3e, SE, TC2048,
+**Máquinas: están las dieciséis de Fuse.** 16K, 48K, 48K NTSC, 128, +2, +2A, +3, +3e, SE, TC2048,
 TC2068, TS2068, Pentagon 128/512/1024 y Scorpion. Además hay clones que Fuse no tiene: Inves, TK90X,
 CZ Spectrum, Chloe 280SE y Chrome.
 
@@ -32,10 +32,11 @@ Fuller), ZX Printer, la impresora paralela del +2A/+3, SCLD y ULAplus.
 De esos siete, la wiki (`Limits-and-what-is-not-there.md`) nombra cinco (2, 4, 5, 6 y 7). Los otros
 dos (1 y 3) salieron de este relevamiento.
 
-**Un faltante que no es un dispositivo: el estado en el snapshot.** `SnapshotSZX` descarta sin leer
-los bloques de periféricos que sí existen: `B128`, `BDSK`, `PLSD`, `PDSK`, `OPUS`, `ODSK`, `ZXAT`,
-`ATRP`, `ZXCF`, `CFRP`, `COVX`, `DRUM`, `AMXM`, `ZXPR`, `SIDE`, `SCLD`, `+3DK`, `DSKF`, `ROM`, `DOCK`,
-`USPE` y `SNET`. Eso no es de este plan: `plan-snapshots.md` (paso 4 y después del paso 6) ya dice
+**Un faltante que no es un dispositivo: el estado en el snapshot.** El SZX (`SzxBlocks`, en
+`devices/snapshots`) lee solo Z80R, SPCR, KEYB, AY y PLTT, y saltea con una nota los bloques de
+periféricos que sí existen: `B128`, `BDSK`, `PLSD`, `PDSK`, `OPUS`, `ODSK`, `ZXAT`, `ATRP`, `ZXCF`,
+`CFRP`, `COVX`, `DRUM`, `AMXM`, `ZXPR`, `SIDE`, `SCLD`, `+3DK`, `DSKF`, `ROM`, `DOCK`, `USPE` y
+`SNET`. Eso no es de este plan: `plan-snapshots.md` (paso 4 y después del paso 6) ya dice
 que cada plugin trae su bloque cuando tiene su concepto. La regla acá es que cada periférico nuevo
 nace con su bloque SZX cuando la base de ese plan exista. Hasta entonces, el bloque va anotado como
 deuda en su sección.
@@ -54,9 +55,9 @@ Todo lo que el plan viejo le pedía al núcleo ya está, salvo lo marcado:
 | una tarjeta que habla SPI | `MmcCard` en `devices/ide` | 7 (el protocolo de bits; el chip es otro) |
 | un cartucho como medio | `Cartridge` en `devices/interface2` | 3 |
 | el texto que sale de una impresora | `ParallelPrinter.print` | 1 |
-| **falta:** escrituras al puerto A del AY | el AY no avisa hoy quién escribe el registro 14 | 1 |
+| escrituras al puerto A del AY | `AyPeripheral.onPortA` (hecho en el 1) | 1 |
 | **falta:** evento de RETN | `Cpu` tiene `onNmi` pero no un aviso de RETN | 6 |
-| **falta:** trampa de acceso a memoria (no de PC) | Fuse conmuta el µSpeech con cualquier lectura o escritura de 0x0038 | 4 (se decide en su paso) |
+| ver los accesos a una dirección que el dispositivo no contesta | un rango propio enchufado encima que deja ver lo de abajo: `MemoryBus.peekBeneath`/`pokeBeneath` (hecho en el 4) | 4 |
 | **falta:** red del host | sockets de Java para 5 y 6; una interfaz TAP por JNA para 7 | 5, 6, 7 |
 
 Cada costura que falta va en su dueño y no en el plugin que la pide. El aviso del puerto A es del
@@ -162,6 +163,32 @@ que se reusó.
   con sus nombres.
 - Test: el SP0256 contra muestras de Fuse para una secuencia fija de alófonos (se generan una vez
   con Fuse y quedan como golden). Sin las ROMs, `assumeTrue`.
+- **Hecho.** La trampa no quedó en el camino caliente de `MemoryBus`: el µSpeech, afuera, se
+  enchufa como un rango de 2K sobre 0x0000 (una página del bus decodificado) que ve todo acceso
+  -el fetch, las lecturas y las escrituras- y deja contestar a lo que tapa, con
+  `MemoryBus.peekBeneath`/`pokeBeneath`, que son lo único nuevo en el núcleo; paginar sigue siendo
+  enchufar. No hace falta la trampa de PC de Fuse, porque el fetch pasa por la misma lectura. Cada
+  acceso a 0x0038 lee lo que hay después de conmutar, como el `readbyte` de Fuse. Puertos 0x0038,
+  0x1000 y 0x3000/0x3001 como en Fuse.
+- El SP0256 es el `sp0256.c` de Fuse línea por línea. `Sp0256AsFuseHasItTest` pasa 16 ROMs
+  sintéticas y un guion de 150 frames por el C de Fuse (compilado con `src/test/fuse/harness.c`) y
+  por el port: las mismas muestras y las mismas respuestas de ocupado (el sha-256 de 30.909 líneas
+  por ROM); cada uno de los 16 códigos del microsecuenciador corre más de 30 veces.
+  `make-goldens.sh` los regenera.
+- El chip escribe en un `Dac` y se pone al día en su `endFrame`, que `Sound` llama en cada frame
+  aunque la salida esté apagada. Fuse solo lo avanza con el sonido prendido: con el sonido
+  apagado, el bit de ocupado no baja nunca.
+- Las dos ROMs: `Roms.of(dispositivo, página, largo)` (nuevo en el núcleo; el de un argumento
+  quedó como default) y la ventana pide las dos con `DeviceFrame.chooseRoms`. La ventana es un
+  `DacFrame` (medidor y volumen) con una línea propia (`DacFrame.said`): adentro o afuera, el
+  último alófono con su nombre del AL2 y la entonación. La cola de alófonos no está: el chip tiene
+  un FIFO de uno y se muestra el último.
+- Diferencias con Fuse: un `peek` del depurador en 0x0038 también lo conmuta (como ya pasa con
+  los registros de la Opus), y un fetch con prefijo en 0x0038 también; Fuse conmuta solo al
+  empezar la instrucción.
+- Probado una vez también en el núcleo generado, con una prueba temporal que no quedó.
+- No probado con las ROMs reales (no hay ninguna en este disco): no se oyó hablar.
+- Deuda: el bloque SZX `USPE`, por lo mismo que el `DOCK`.
 
 ### 5. TTX2000S — `devices/ttx2000s`
 
@@ -216,8 +243,10 @@ que se reusó.
 
 - Cada periférico, contra el comportamiento de Fuse leído en su fuente. Donde hay datos (muestras
   del SP0256, campos de teletexto), el golden se genera una vez con Fuse y se guarda.
-- **A verificar:** si el núcleo de Fuse del bridge (`machine/bridge`, libretro) deja enchufar estos
-  periféricos. Si lo deja, el test de oráculo compara frame por frame igual que con la máquina.
+- El bridge no sirve de oráculo: `LibretroCore.INSTANCE` es null y el `fuse_libretro.so` de la
+  ruta comentada no existe. Fuse instalado es el 1.6.0 de Debian, sin µSpeech. Lo que sirvió fue
+  compilar el fuente de Fuse del repo (1.9.2) con un arnés en C, como el del SP0256 en
+  `devices/uspeech/src/test/fuse`.
 - Las ROMs que no se pueden distribuir no entran al repo. Los tests que las necesitan hacen
   `assumeTrue(file.isFile())`, como Multiface e Interface 1.
 - Las pruebas de red usan un servidor en el mismo test (loopback): ningún test sale a internet.
