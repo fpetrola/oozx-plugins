@@ -65,6 +65,15 @@ public final class Bindings {
     return new Bindings(bindings, more);
   }
 
+  /** These and those together: a format's own, and what a mapping gives it. */
+  public Bindings and(Bindings more) {
+    List<Binding<?>> all = new ArrayList<>(bindings);
+    all.addAll(more.bindings);
+    List<Class<?>> quieter = new ArrayList<>(quiet);
+    quieter.addAll(more.quiet);
+    return new Bindings(all, quieter);
+  }
+
   public void apply(Visitable part, Direction way) {
     boolean taken = false;
     for (Binding<?> binding : bindings) {

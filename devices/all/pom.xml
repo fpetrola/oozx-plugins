@@ -334,6 +334,11 @@
             <artifactId>tool-poke-finder</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>tool-mappings</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     <!--
       The emulator these plug into, and the two harnesses that live with it: what stands a reader
       against libspectrum, and the desk a window is clipped onto. Both are needed by tests that

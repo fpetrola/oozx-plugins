@@ -176,9 +176,16 @@ escribe. Más el contrato de tests que heredan los formatos. Depende de oozx; no
 dispositivo.
 
 **En oozx-plugins, `devices/snapshots` (`device-snapshots`), los cuatro formatos, Z80 incluido.**
-Los campos y las tablas de los dispositivos (el AY, la Multiface, ULAplus…) viven acá, compartidos
-por los formatos que los llevan, y este módulo depende de los plugins de esos dispositivos: una
-dependencia de Maven común, como hoy depende de `device-spectrum128`.
+Cada formato lleva la máquina base (procesador, memoria, paginado, borde, reloj, teclado), cuyas
+clases son de oozx, y no depende de ningún dispositivo.
+
+**En oozx-plugins, `tools/mappings` (`tool-mappings`), desde el 21 de octubre de 2026.** Los
+campos y las tablas de los dispositivos (el AY, ULAplus…) viven acá, compartidos por los formatos
+que los llevan. El módulo depende de los formatos y de los plugins de esos dispositivos, y le da a
+cada formato lo suyo por el rol `Mapping` del motor: tablas, bloques y lo que el archivo enchufa.
+Ni el formato conoce al dispositivo ni el dispositivo al formato. Sin el módulo, un snapshot se lee
+sin el estado de lo enchufado. La red sobre la máquina (los goldens `*.machine.txt` y la
+comparación con libspectrum) vive con el módulo, sobre los mismos archivos de `devices/snapshots`.
 
 ## Lo que hay hoy
 

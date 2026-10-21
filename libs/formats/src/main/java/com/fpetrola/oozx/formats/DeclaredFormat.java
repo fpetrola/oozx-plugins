@@ -31,7 +31,8 @@ import java.util.function.Consumer;
 
 /**
  * A snapshot format as a declaration: the extensions it answers to, the shape of a file and of a
- * machine, and its bindings. Reading and writing are the same for every format, and are here:
+ * machine, and its bindings, to which the {@link Mapping}s found for it add the parts it does not
+ * know. Reading and writing are the same for every format, and are here:
  * reading understands the whole file before it chooses the machine and walks it; writing walks the
  * machine into a file and puts it together.
  */
@@ -67,9 +68,21 @@ public abstract class DeclaredFormat implements SnapshotFormat {
   public final void read(byte[] bytes, Speccy speccy, Consumer<String> notes) throws SnapshotException {
     SnapshotFile file = understood(bytes);
     become(speccy, file);
-    plug(file, speccy);
-    speccy.accept(part -> bindings().apply(part, Direction.reading(file)));
+    List<Mapping> mappings = mappings();
+    mappings.forEach(mapping -> mapping.plug(file, speccy));
+    Bindings bindings = bindingsWith(mappings);
+    speccy.accept(part -> bindings.apply(part, Direction.reading(file)));
     file.notes().forEach(notes);
+  }
+
+  /** The mappings for this format, found where whoever knows the parts put them. */
+  protected final List<Mapping> mappings() {
+    return com.fpetrola.oozx.plugins.Plugins.found(Mapping.class).stream()
+        .filter(mapping -> mapping.format().isInstance(this)).toList();
+  }
+
+  private Bindings bindingsWith(List<Mapping> mappings) {
+    return mappings.stream().map(Mapping::bindings).reduce(bindings(), Bindings::and);
   }
 
   /** The RAM of the file, bank after bank, from the file understood without a machine. */
@@ -123,7 +136,8 @@ public abstract class DeclaredFormat implements SnapshotFormat {
     if (speccy.machine.current.snapshotModel() != shape.machine()) {
       file.note("written as: " + shape.machine().getLongModelName());
     }
-    speccy.accept(part -> bindings().apply(part, Direction.writing(file)));
+    Bindings bindings = bindingsWith(mappings());
+    speccy.accept(part -> bindings.apply(part, Direction.writing(file)));
     try {
       byte[] bytes = shape.assemble(file);
       file.notes().forEach(notes);
@@ -136,10 +150,6 @@ public abstract class DeclaredFormat implements SnapshotFormat {
   /** The bytes the shape describes: a format that wraps them, compressing them say, takes the wrapping off here. */
   protected byte[] unwrapped(byte[] file) {
     return file;
-  }
-
-  /** What the file says is plugged in, plugged in before the machine is walked, so the walk meets it. */
-  protected void plug(SnapshotFile file, Speccy speccy) {
   }
 
   /**

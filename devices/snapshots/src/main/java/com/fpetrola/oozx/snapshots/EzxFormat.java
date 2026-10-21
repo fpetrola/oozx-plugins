@@ -30,7 +30,6 @@ import com.fpetrola.oozx.formats.Refused;
 import com.fpetrola.oozx.formats.Shape;
 import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.formats.SnapshotFormat;
-import com.fpetrola.oozx.speccy.devices.ay.AyPeripheral;
 import com.fpetrola.oozx.speccy.machine.Paging128;
 import com.fpetrola.oozx.speccy.machine.SpectrumMachine;
 import com.fpetrola.oozx.speccy.modules.display.Border;
@@ -61,7 +60,7 @@ public final class EzxFormat extends DeclaredFormat implements SnapshotFormat {
   static final int BANK = 16384;
   static final Fixed ROMS = Fixed.of("signature and ROMs", 4 + 2 * BANK);
   /** From Lock7FFD to the end of the tape state: what comes after the banks and before the chunks. */
-  static final Fixed STATE = Fixed.of("state", 95);
+  public static final Fixed STATE = Fixed.of("state", 95);
   static final int LOCK = ROMS.length() + 8 * BANK;
   /** A colour a bit: eight for each byte of the bank. */
   static final int COLOURS_OF_A_BANK = 8 * BANK;
@@ -78,13 +77,11 @@ public final class EzxFormat extends DeclaredFormat implements SnapshotFormat {
   static final Layout<SpectrumZ80Clock> CLOCK = Layout.<SpectrumZ80Clock>of().u32(STATE, 32, TSTATES);
   static final Layout<Border> BORDER_TABLE = Layout.<Border>of().u8(STATE, 39, BORDER);
   static final Layout<Paging128> PAGING = Layout.<Paging128>of().encoded(STATE, 0, 40, new Port7ffd());
-  static final Layout<AyPeripheral> AY_TABLE = Layout.<AyPeripheral>of()
-      .bytes(STATE, 45, 16, AyFields.REGISTERS).u8(STATE, 44, AyFields.SELECTED);
   static final Layout<SpectrumMemory> RAM = Layout.<SpectrumMemory>of().pages(PAGE);
 
   static final Bindings BINDINGS = Bindings.of()
       .on(Cpu.class, CPU).on(SpectrumZ80Clock.class, CLOCK).on(Border.class, BORDER_TABLE)
-      .on(Paging128.class, PAGING).on(SpectrumMemory.class, RAM).on(AyPeripheral.class, AY_TABLE)
+      .on(Paging128.class, PAGING).on(SpectrumMemory.class, RAM)
       .quiet(Quiet.PARTS);
 
   /** Locked to 48K: the banks a 48K has are read, and the other five are passed over. */

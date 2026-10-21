@@ -32,7 +32,6 @@ import com.fpetrola.oozx.formats.Rule;
 import com.fpetrola.oozx.formats.Shape;
 import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.formats.SnapshotFormat;
-import com.fpetrola.oozx.speccy.devices.ay.AyPeripheral;
 import com.fpetrola.oozx.speccy.machine.Paging128;
 import com.fpetrola.oozx.speccy.machine.PagingPlus3;
 import com.fpetrola.oozx.speccy.machine.SpectrumMachine;
@@ -57,7 +56,7 @@ public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
 
   static final Fixed HEADER = Fixed.of("header", 30);
   /** The extended header, at the file's offsets as the specification numbers them; each version cuts it where it ends. */
-  static final Fixed EXTENDED = Fixed.span("extended", 30, 87);
+  public static final Fixed EXTENDED = Fixed.span("extended", 30, 87);
 
   /** The eighth bit of R, kept apart in bit 0 of byte 12. */
   static final Field<Cpu, Integer> R_HIGH = Field.of("r7", cpu -> R.get(cpu) >> 7, (cpu, v) -> R.set(cpu, R.get(cpu) & 0x7f | (v & 1) << 7));
@@ -76,8 +75,6 @@ public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
   static final Layout<Machine> UNIT = Layout.<Machine>of().bit(HEADER, 29, 2, ISSUE_2);
   static final Layout<PagingPlus3> PAGING_PLUS3 = Layout.<PagingPlus3>of().u8(EXTENDED, 86, PORT_1FFD);
   static final Layout<Paging128> PAGING = Layout.<Paging128>of().u8(EXTENDED, 35, PORT_7FFD);
-  static final Layout<AyPeripheral> AY = Layout.<AyPeripheral>of()
-      .bytes(EXTENDED, 39, 16, AyFields.REGISTERS).u8(EXTENDED, 38, AyFields.SELECTED);
   static final Layout<SpectrumZ80Clock> CLOCK = Layout.<SpectrumZ80Clock>of()
       .assuming(TSTATES, FrameCounter.WITHOUT_COUNTER)
       .encoded(EXTENDED, 55, 3, new FrameCounter());
@@ -86,7 +83,7 @@ public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
   static final Bindings BINDINGS = Bindings.of()
       .on(Machine.class, UNIT).on(PagingPlus3.class, PAGING_PLUS3).on(Paging128.class, PAGING)
       .on(Cpu.class, CPU).on(Border.class, BORDER_TABLE).on(SpectrumZ80Clock.class, CLOCK)
-      .on(SpectrumMemory.class, RAM).on(AyPeripheral.class, AY)
+      .on(SpectrumMemory.class, RAM)
       .quiet(Quiet.PARTS);
 
   /** Byte 12 at 255 means 1, for compatibility with the oldest writers. */

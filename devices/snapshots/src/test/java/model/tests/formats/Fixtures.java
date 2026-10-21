@@ -29,13 +29,15 @@ import java.util.stream.Stream;
  * The snapshots the net is made of, and where what was said about each one is kept.
  * <p>
  * The files are in this module and not referred to where they came from: the test this replaces
- * looked for libspectrum's corpus two directories up, found nothing there, and passed.
+ * looked for libspectrum's corpus two directories up, found nothing there, and passed. The
+ * mappings' tests are held to the same files, named in snapshots.corpus, and a corpus that is not
+ * there fails instead of passing. What is said about each file is kept by the module that says it.
  */
 final class Fixtures {
 
-  static final Path HERE = Path.of("src/test/resources/snapshots");
-  static final Path GOLDENS = HERE.resolve("goldens");
-  static final Path KNOWN = HERE.resolve("known");
+  static final Path HERE = Path.of(System.getProperty("snapshots.corpus", "src/test/resources/snapshots"));
+  static final Path GOLDENS = Path.of("src/test/resources/snapshots/goldens");
+  static final Path KNOWN = Path.of("src/test/resources/snapshots/known");
 
   private Fixtures() {
   }

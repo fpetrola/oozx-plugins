@@ -127,7 +127,7 @@ jobs:
               if not artifact or not artifact.startswith(('device-', 'tool-')):
                   continue                      # the aggregator is not a plugin
               jars = [j for j in glob.glob(module + '/target/' + artifact + '-*.jar')
-                      if not j.endswith(('-sources.jar', '-javadoc.jar'))]
+                      if not j.endswith(('-sources.jar', '-javadoc.jar', '-tests.jar'))]
               if not jars:
                   print('no jar for ' + artifact, file=sys.stderr)
                   continue

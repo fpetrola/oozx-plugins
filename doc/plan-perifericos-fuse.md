@@ -36,9 +36,9 @@ dos (1 y 3) salieron de este relevamiento.
 `devices/snapshots`) lee solo Z80R, SPCR, KEYB, AY y PLTT, y saltea con una nota los bloques de
 periféricos que sí existen: `B128`, `BDSK`, `PLSD`, `PDSK`, `OPUS`, `ODSK`, `ZXAT`, `ATRP`, `ZXCF`,
 `CFRP`, `COVX`, `DRUM`, `AMXM`, `ZXPR`, `SIDE`, `SCLD`, `+3DK`, `DSKF`, `ROM`, `DOCK`, `USPE` y
-`SNET`. Eso no es de este plan: `plan-snapshots.md` (paso 4 y después del paso 6) ya dice
-que cada plugin trae su bloque cuando tiene su concepto. La regla acá es que cada periférico nuevo
-nace con su bloque SZX cuando la base de ese plan exista. Hasta entonces, el bloque va anotado como
+`SNET`. Eso no es de este plan. Ningún plugin trae su bloque: desde el 21 de octubre de 2026 los
+mapea `tools/mappings`, que conoce los formatos y los aparatos y le da a cada formato lo suyo por el
+rol `Mapping` del motor. Mientras un periférico no tenga ahí su mapeo, el bloque va anotado como
 deuda en su sección.
 
 ## Las costuras que ya hay
@@ -142,9 +142,7 @@ que se reusó.
   de las máquinas. Abre un `.dck` desde el escritorio (`Equipment.opens`) y lo declara con
   `@Answers("dck")` para que se ofrezca si falta. `cartridge.svg` pasó al kit: la Interface 1 lo
   pedía para sus microdrives sin tenerlo.
-- Deuda: el bloque SZX `DOCK`. El SZX declara sus bloques dentro de `devices/snapshots`
-  (`SzxFormat`), atados a clases de dispositivos, y un plugin no tiene cómo traer el suyo: esa
-  base del plan de snapshots todavía no existe.
+- Deuda: el bloque SZX `DOCK`, que va en `tools/mappings`.
 - No probado: un cartucho real arrancando en la TS2068 (no hay ningún `.dck` en este disco).
 
 ### 4. Currah µSpeech — `devices/uspeech`
@@ -188,7 +186,7 @@ que se reusó.
   empezar la instrucción.
 - Probado una vez también en el núcleo generado, con una prueba temporal que no quedó.
 - No probado con las ROMs reales (no hay ninguna en este disco): no se oyó hablar.
-- Deuda: el bloque SZX `USPE`, por lo mismo que el `DOCK`.
+- Deuda: el bloque SZX `USPE`, que va en `tools/mappings`.
 
 ### 5. TTX2000S — `devices/ttx2000s`
 

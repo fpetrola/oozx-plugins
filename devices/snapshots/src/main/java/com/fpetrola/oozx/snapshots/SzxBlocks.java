@@ -37,12 +37,14 @@ import java.util.List;
  */
 final class SzxBlocks implements Region {
 
-  /** The blocks the tables of the parts read and write, with the length each is written with. */
-  static final List<Fixed> KNOWN = List.of(
-      SzxFormat.Z80R, SzxFormat.SPCR, SzxFormat.KEYB, SzxFormat.AY, SzxFormat.PLTT);
-  private static final int[] WRITTEN_LENGTHS = {37, 8, 5, 18, 66};
-
   private static final int COMPRESSED = 0x01;
+
+  /** The blocks the tables of the parts read and write, each written as long as it is declared. */
+  private final List<Fixed> known;
+
+  SzxBlocks(List<Fixed> known) {
+    this.known = known;
+  }
 
   @Override
   public void parse(Cursor in, SnapshotFile into) {
@@ -59,9 +61,9 @@ final class SzxBlocks implements Region {
       } else if (id.equals("CRTR")) {
         swapsAf = swapsAf(payload);
       } else {
-        Fixed known = KNOWN.stream().filter(block -> block.toString().equals(id)).findFirst().orElse(null);
-        if (known != null) {
-          into.stretch(known, payload);
+        Fixed block = known.stream().filter(one -> one.toString().equals(id)).findFirst().orElse(null);
+        if (block != null) {
+          into.stretch(block, payload);
         } else {
           into.note("skipped: the block " + id.trim() + " (" + length + " bytes)");
           into.carry(id, payload);
@@ -118,15 +120,13 @@ final class SzxBlocks implements Region {
 
   @Override
   public void prepare(SnapshotFile file) {
-    for (int at = 0; at < KNOWN.size(); at++) {
-      file.stretch(KNOWN.get(at), new byte[WRITTEN_LENGTHS[at]]);
-    }
+    known.forEach(block -> file.stretch(block, new byte[block.length()]));
   }
 
   @Override
   public void assemble(SnapshotFile from, Sink out) {
     block(out, "CRTR", creator());
-    for (Fixed block : KNOWN) {
+    for (Fixed block : known) {
       if (from.isWritten(block)) {
         block(out, block.toString(), from.bytes(block).toBytes());
       }

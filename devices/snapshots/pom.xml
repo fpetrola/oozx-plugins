@@ -14,16 +14,6 @@
     <dependencies>
         <dependency>
             <groupId>com.fpetrola</groupId>
-            <artifactId>device-spectrum128</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fpetrola</groupId>
-            <artifactId>device-ulaplus</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.fpetrola</groupId>
             <artifactId>formats</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -34,12 +24,23 @@
         </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
+            <artifactId>media-snapshot</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
             <artifactId>core</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
-        <!-- The +2A and the +3, so that a snapshot of one lands on one. -->
+        <!-- The 128K, the +2A and the +3, so that a snapshot of one lands on one. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-spectrum128</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>device-amstrad</artifactId>
@@ -55,4 +56,22 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <!-- The harness of the fixtures, for the tests of what a file leaves in a machine once the
+         mappings give the formats what is plugged in: those live with the mappings. -->
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>test-jar</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

@@ -26,8 +26,6 @@ final class Quiet {
   static final Class<?>[] PARTS = {
       com.fpetrola.oozx.speccy.modules.snapshot.Snapshots.class,
       com.fpetrola.oozx.speccy.devices.ula.UlaPeripheral.class,
-      com.fpetrola.oozx.speccy.devices.memory.Spec128MemoryPeripheral.class,
-      com.fpetrola.oozx.speccy.devices.memory.SpecPlus3MemoryPeripheral.class,
   };
 
   private Quiet() {

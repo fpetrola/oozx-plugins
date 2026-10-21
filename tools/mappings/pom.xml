@@ -1,0 +1,83 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.fpetrola</groupId>
+        <artifactId>tools</artifactId>
+        <version>0.0.2-alu-SNAPSHOT</version>
+    </parent>
+    <artifactId>tool-mappings</artifactId>
+    <packaging>jar</packaging>
+    <name>tool-mappings</name>
+    <!--
+      How each thing goes into a file, said in the one place that knows both: the formats, and what
+      is plugged in. The formats do not know the devices, and the devices never hear of a file.
+    -->
+    <dependencies>
+        <!--
+          The engine comes through device-snapshots and is never declared here: each plugin that
+          declares it carries a copy in its own classloader, and the Mapping implemented here would
+          then be another class than the one the formats ask for, and none would be found.
+        -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-snapshots</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-ay</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-ulaplus</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-memory</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- The fixtures the formats are held to, and the machines they land on. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-snapshots</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-spectrum128</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-amstrad</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.14.0</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <systemPropertyVariables>
+                        <snapshots.corpus>${project.basedir}/../../devices/snapshots/src/test/resources/snapshots</snapshots.corpus>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -50,14 +50,17 @@ final class MachineDescription {
   private static final Set<Field<Cpu, Integer>> BYTE_WIDE = Set.of(CoreFields.A, CoreFields.F, CoreFields.A_, CoreFields.F_, CoreFields.I, CoreFields.R);
 
   private final StringBuilder text = new StringBuilder();
+  private final List<String> others = new java.util.ArrayList<>();
   private List<Integer> banks = List.of();
 
   private MachineDescription() {
   }
 
+  /** The parts it has nothing to say of are named last, by name: the order a build meets them in is its classpath's. */
   static String of(Speccy speccy) {
     MachineDescription description = new MachineDescription();
     speccy.accept(description::say);
+    description.others.stream().sorted().forEach(part -> description.line("part", part));
     return description.text.toString();
   }
 
@@ -93,7 +96,7 @@ final class MachineDescription {
       }
       line("ay.registers", registers);
     } else {
-      line("part", part.getClass().getSimpleName());
+      others.add(part.getClass().getSimpleName());
     }
   }
 
