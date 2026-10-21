@@ -1,0 +1,27 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.fpetrola</groupId>
+        <artifactId>tools</artifactId>
+        <version>0.0.2-alu-SNAPSHOT</version>
+    </parent>
+    <artifactId>tool-dock</artifactId>
+    <packaging>jar</packaging>
+    <name>tool-dock</name>
+    <!-- The cartridge in a Timex's dock, put in by hand or by opening a .dck. -->
+    <dependencies>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-timex</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- A Timex is a 48K underneath, and the 48K is the emulator's own. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>machines</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
+        </dependency>
+    </dependencies>
+</project>

@@ -5,7 +5,7 @@ Relevado el 27 de septiembre de 2026, comparando `oozx/fuse-emulator-fuse` (`mac
 Retoma las secciones 15 a 19 del `plan-perifericos.md` de la otra línea de historia (hay copia en
 `versions/oozx_2/oozx/doc/`), que ya no está en `main`, puestas al día con lo que el emulador tiene hoy.
 
-**Estado (21 de octubre de 2026):** hechos el 1 y el 2.
+**Estado (21 de octubre de 2026):** hechos el 1, el 2 y el 3.
 
 ## Lo que hay
 
@@ -127,6 +127,24 @@ que se reusó.
   tiene un solo dueño.
 - Hay que ver si `Opens` del escritorio acepta `.dck` o si lo abre la ventana del Timex.
 - Test: un `.dck` sintético con una página de ROM en el dock; se pagina con 0xf4 y se lee.
+- **Hecho.** Cada cartucho queda con el suyo: el de la Interface 2 es una ROM cruda de 16K y el
+  `.dck` es otro formato; compartirlo haría depender al Timex del plugin de la Interface 2.
+  `DockCartridge` (en `devices/timex`) es el único lector del formato; `Tc2068.insert` lo deja en
+  el dock y el reset lo lee: sus páginas DOCK van al slot, las EXROM tapan la EXROM de la máquina
+  solo donde las trae, y las HOME de 0x4000 para arriba cargan la RAM una vez, en el reset que lo
+  mete. Las páginas en 0x4000-0x7fff tienen contención, como en Fuse. Diferencias con Fuse:
+  Fuse indexa `dck_banks[254]` fuera del arreglo para la EXROM (acá la EXROM anda) y da error con
+  páginas HOME de ROM, que acá también se rechazan; la RAM del cartucho no se recarga en un reset
+  en frío, se recarga al volver a meterlo.
+- La ventana es una herramienta, `tools/dock` (`tool-dock`), como la casetera: una ventana sobre
+  algo que la máquina ya tiene. En `devices/timex` le habría cambiado a CI el título de la release
+  de las máquinas. Abre un `.dck` desde el escritorio (`Equipment.opens`) y lo declara con
+  `@Answers("dck")` para que se ofrezca si falta. `cartridge.svg` pasó al kit: la Interface 1 lo
+  pedía para sus microdrives sin tenerlo.
+- Deuda: el bloque SZX `DOCK`. El SZX declara sus bloques dentro de `devices/snapshots`
+  (`SzxFormat`), atados a clases de dispositivos, y un plugin no tiene cómo traer el suyo: esa
+  base del plan de snapshots todavía no existe.
+- No probado: un cartucho real arrancando en la TS2068 (no hay ningún `.dck` en este disco).
 
 ### 4. Currah µSpeech — `devices/uspeech`
 

@@ -39,6 +39,7 @@
         <module>keyboard</module>
         <module>audio-in</module>
         <module>cassette</module>
+        <module>dock</module>
         <module>catalogue</module>
         <module>controls</module>
         <module>games</module>
