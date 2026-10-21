@@ -1,4 +1,4 @@
-machine = SPECTRUM48K
+machine = SPECTRUM16K
 issue2 = true
 a = 0x11
 f = 0x22
@@ -23,8 +23,6 @@ im = IM1
 halted = false
 eiPending = false
 page.5 = sha256:283ee6c717ea999c (16384)
-page.2 = sha256:4fe7b59af6de3b66 (16384)
-page.0 = sha256:4fe7b59af6de3b66 (16384)
 border = 2
 tstates = 12345
 part = Input

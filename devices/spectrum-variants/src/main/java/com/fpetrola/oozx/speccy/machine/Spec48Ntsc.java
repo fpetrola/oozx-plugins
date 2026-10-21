@@ -46,9 +46,9 @@ public class Spec48Ntsc extends Spec48 {
     return "48K_NTSC";
   }
 
-  /** A snapshot does not say PAL or NTSC: a 48K one loads into the 48K. */
+  /** A 48K snapshot loads into the 48K: only an SZX can say NTSC. */
   public MachineTypes snapshotModel() {
-    return null;
+    return MachineTypes.SPECTRUM48KNTSC;
   }
 
   public int reset() {

@@ -18,6 +18,7 @@
 
 package com.fpetrola.oozx.speccy.machine;
 
+import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fpetrola.oozx.speccy.modules.display.Display;
 import com.fpetrola.oozx.speccy.modules.display.Colouring;
 import com.fpetrola.oozx.speccy.modules.display.Painting;
@@ -154,6 +155,11 @@ public class Pentagon1024 extends Pentagon512 {
   @Override
   public String shortName() {
     return "Pentagon1024";
+  }
+
+  @Override
+  public MachineTypes snapshotModel() {
+    return MachineTypes.PENTAGON1024;
   }
 
   @Override

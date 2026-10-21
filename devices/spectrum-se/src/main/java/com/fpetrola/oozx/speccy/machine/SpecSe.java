@@ -127,7 +127,7 @@ public class SpecSe extends Spec128 {
 
   @Override
   public MachineTypes snapshotModel() {
-    return null;
+    return MachineTypes.SPECTRUMSE;
   }
 
   @Override

@@ -90,8 +90,8 @@ class SnapshotChoosesItsMachineTest {
     assertTrue(speccy().machine.forShortName("Jupiter Ace").isEmpty(), "an unknown machine name");
   }
 
-  /** No two machines may claim the same snapshot model; variants like Pentagon/NTSC/+3e claim
-   * none, so they are only reachable by explicit selection, never by loading a snapshot. */
+  /** No two machines may claim the same snapshot model: an SZX names the Pentagon, the NTSC 48K
+   * or the +3e as well as the 48K, and only clones it has no name for claim none. */
   @Test
   void noTwoMachinesAnswerForTheSameModel() {
     Set<MachineTypes> claimed = new HashSet<>();
@@ -102,6 +102,6 @@ class SnapshotChoosesItsMachineTest {
             machine.getName() + " claims " + model + ", which another machine already answers for");
       }
     }
-    assertEquals(6, claimed.size(), "the models a snapshot can name here");
+    assertEquals(16, claimed.size(), "the models a snapshot can name here");
   }
 }

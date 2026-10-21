@@ -18,6 +18,7 @@
 
 package com.fpetrola.oozx.speccy.machine;
 
+import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fpetrola.oozx.speccy.devices.ay.AyTimexPeripheral;
 import com.fpetrola.oozx.speccy.devices.scld.ScldPeripheral;
 import com.fpetrola.oozx.speccy.devices.scld.TimexMemoryPeripheral;
@@ -104,6 +105,11 @@ public class Tc2068 extends Tc2048 {
   @Override
   public String shortName() {
     return "TC2068";
+  }
+
+  @Override
+  public MachineTypes snapshotModel() {
+    return MachineTypes.TC2068;
   }
 
   @Override

@@ -10,20 +10,13 @@ plus3-1ffd.szx: ay.registers: 10 01 12 03 14 05 16 17 18 19 1a 1b 1c 0d 1e 1f, 1
 plus3-1ffd.z80: ay.registers: 10 01 12 03 14 05 16 17 18 19 1a 1b 1c 0d 1e 1f, 10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f
 
 # libspectrum lee un SNA de 128K como un Pentagon; aca se lee como un 128K, como antes.
-banks-5-on-top.sna: machine: SPECTRUM128K, PENTAGON
-banks.sna: machine: SPECTRUM128K, PENTAGON
-
-# Este build no tiene un 16K: un snapshot de 16K se carga en el 48K.
-sixteen.szx: machine: SPECTRUM48K, SPECTRUM16K
-sixteen.z80: machine: SPECTRUM48K, SPECTRUM16K
+banks-5-on-top.sna: machine: SPECTRUM128K, PENTAGON128
+banks.sna: machine: SPECTRUM128K, PENTAGON128
 
 # Un 48K no tiene AY donde poner el bloque AY de un SZX: haria falta enchufar la Melodik o la Fuller Box.
 libspectrum/szx-chunks/AY.szx: ay.registers: absent, 73 03 b1 00 bb 0c 19 0f 1e 07 11 71 6c 0a 2b 41
 libspectrum/szx-chunks/AY.szx: ay.selected: absent, 0x08
 libspectrum/szx-chunks/AY.szx: ay: absent, fitted
-
-# Este build no tiene un Timex: el SZX de uno se rechaza.
-libspectrum/szx-chunks/SCLD.szx: the machine refuses it, libspectrum reads it
 
 # Un +3 sin bloque AY deja el registro elegido como arranca la maquina; libspectrum deja el 14.
 libspectrum/szx-chunks/SPCR.szx: ay.selected: 0x00, 0x0e

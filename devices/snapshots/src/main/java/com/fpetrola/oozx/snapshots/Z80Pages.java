@@ -37,12 +37,12 @@ final class Z80Pages implements Region {
   private static final Map<Integer, Integer> UNPAGED = Map.of(8, 5, 4, 2, 5, 0);
 
   static Optional<Integer> bankOf(List<Integer> banks, int id) {
-    Integer bank = banks.size() == 8 ? Integer.valueOf(id - 3) : UNPAGED.get(id);
+    Integer bank = banks.size() >= 8 ? Integer.valueOf(id - 3) : UNPAGED.get(id);
     return Optional.ofNullable(bank).filter(banks::contains);
   }
 
   static int idOf(List<Integer> banks, int bank) {
-    if (banks.size() == 8) return bank + 3;
+    if (banks.size() >= 8) return bank + 3;
     return UNPAGED.entrySet().stream().filter(entry -> entry.getValue() == bank).findFirst().orElseThrow().getKey();
   }
 

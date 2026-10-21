@@ -311,15 +311,15 @@ final class Fields {
 
   private static boolean isFortyEightK(String machine) {
     return machine != null && (machine.equals("SPECTRUM16K") || machine.equals("SPECTRUM48K")
-        || machine.equals("48_NTSC") || machine.equals("TC2048"));
+        || machine.equals("SPECTRUM48KNTSC") || machine.equals("TC2048"));
   }
 
   private static boolean isPlus3Paged(String machine) {
     return machine != null && (machine.equals("SPECTRUMPLUS2A") || machine.equals("SPECTRUMPLUS3")
-        || machine.equals("PLUS3E") || machine.equals("SCORP"));
+        || machine.equals("SPECTRUMPLUS3E") || machine.equals("SCORPION"));
   }
 
-  /** libspectrum's machines in the names of today's MachineTypes where there is one, and in libspectrum's where not. */
+  /** libspectrum's machines in the names of MachineTypes. */
   private static String machineName(int machine) {
     return switch (machine) {
       case Libspectrum.MACHINE_16 -> "SPECTRUM16K";
@@ -328,17 +328,17 @@ final class Fields {
       case Libspectrum.MACHINE_PLUS2 -> "SPECTRUMPLUS2";
       case Libspectrum.MACHINE_PLUS2A -> "SPECTRUMPLUS2A";
       case Libspectrum.MACHINE_PLUS3 -> "SPECTRUMPLUS3";
-      case Libspectrum.MACHINE_PENT -> "PENTAGON";
-      case Libspectrum.MACHINE_SCORP -> "SCORP";
+      case Libspectrum.MACHINE_PENT -> "PENTAGON128";
+      case Libspectrum.MACHINE_SCORP -> "SCORPION";
       case Libspectrum.MACHINE_TC2048 -> "TC2048";
       case Libspectrum.MACHINE_TC2068 -> "TC2068";
       case Libspectrum.MACHINE_TS2068 -> "TS2068";
-      case Libspectrum.MACHINE_PLUS3E -> "PLUS3E";
-      case Libspectrum.MACHINE_SE -> "SE";
-      case Libspectrum.MACHINE_PENT512 -> "PENT512";
-      case Libspectrum.MACHINE_PENT1024 -> "PENT1024";
-      case Libspectrum.MACHINE_48_NTSC -> "48_NTSC";
-      case Libspectrum.MACHINE_128E -> "128E";
+      case Libspectrum.MACHINE_PLUS3E -> "SPECTRUMPLUS3E";
+      case Libspectrum.MACHINE_SE -> "SPECTRUMSE";
+      case Libspectrum.MACHINE_PENT512 -> "PENTAGON512";
+      case Libspectrum.MACHINE_PENT1024 -> "PENTAGON1024";
+      case Libspectrum.MACHINE_48_NTSC -> "SPECTRUM48KNTSC";
+      case Libspectrum.MACHINE_128E -> "SPECTRUM128KE";
       default -> "UNKNOWN";
     };
   }

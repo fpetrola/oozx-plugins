@@ -85,10 +85,9 @@ public class Pentagon extends Spec128 {
     return "Pentagon";
   }
 
-  /** No snapshot model maps to Pentagon, so it cannot be selected by loading a snapshot. */
   @Override
   public MachineTypes snapshotModel() {
-    return null;
+    return MachineTypes.PENTAGON128;
   }
 
   @Override

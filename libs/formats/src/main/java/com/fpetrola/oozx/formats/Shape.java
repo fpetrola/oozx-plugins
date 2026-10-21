@@ -33,11 +33,11 @@ public record Shape(MachineTypes machine, List<Region> regions, List<Rule> rules
     return new Shape(machine, List.of(regions), List.of(), banksOf(machine));
   }
 
-  /** The banks a machine has: the 16K one, the 48K three, the rest eight. */
+  /** The banks a machine has: the 16K one, the 48K three, the rest as many as it pages. */
   public static List<Integer> banksOf(MachineTypes machine) {
     if (machine == MachineTypes.SPECTRUM16K) return List.of(5);
     if (machine.codeModel == MachineTypes.CodeModel.SPECTRUM48K) return List.of(5, 2, 0);
-    return IntStream.range(0, 8).boxed().toList();
+    return IntStream.range(0, machine.ramBanks()).boxed().toList();
   }
 
   public Shape with(Rule... more) {

@@ -17,6 +17,7 @@
 
 package com.fpetrola.oozx.speccy.machine;
 
+import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fpetrola.oozx.speccy.modules.display.Display;
 import com.fpetrola.oozx.speccy.modules.machine.Machine;
 import com.fpetrola.oozx.speccy.modules.memory.MemoryBus;
@@ -50,6 +51,11 @@ public class Ts2068 extends Tc2068 {
   @Override
   public String shortName() {
     return "TS2068";
+  }
+
+  @Override
+  public MachineTypes snapshotModel() {
+    return MachineTypes.TS2068;
   }
 
   @Override

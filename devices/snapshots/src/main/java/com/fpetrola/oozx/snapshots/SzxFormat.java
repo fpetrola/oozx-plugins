@@ -61,7 +61,11 @@ public final class SzxFormat extends DeclaredFormat implements SnapshotFormat {
 
   static final Codes<MachineTypes> MACHINES = Codes.<MachineTypes>of("machine")
       .is(0, MachineTypes.SPECTRUM16K).is(1, MachineTypes.SPECTRUM48K).is(2, MachineTypes.SPECTRUM128K)
-      .is(3, MachineTypes.SPECTRUMPLUS2).is(4, MachineTypes.SPECTRUMPLUS2A).is(5, MachineTypes.SPECTRUMPLUS3);
+      .is(3, MachineTypes.SPECTRUMPLUS2).is(4, MachineTypes.SPECTRUMPLUS2A).is(5, MachineTypes.SPECTRUMPLUS3)
+      .is(6, MachineTypes.SPECTRUMPLUS3E).is(7, MachineTypes.PENTAGON128).is(8, MachineTypes.TC2048)
+      .is(9, MachineTypes.TC2068).is(10, MachineTypes.SCORPION).is(11, MachineTypes.SPECTRUMSE)
+      .is(12, MachineTypes.TS2068).is(13, MachineTypes.PENTAGON512).is(14, MachineTypes.PENTAGON1024)
+      .is(15, MachineTypes.SPECTRUM48KNTSC).is(16, MachineTypes.SPECTRUM128KE);
 
   /** Without a Z80R the processor is left as libspectrum leaves it (decision 8); a Z80R says the rest over it. */
   static final Layout<Cpu> CPU = Layout.<Cpu>of()

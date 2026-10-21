@@ -104,7 +104,7 @@ public class Scorpion extends SpecPlus3 {
 
   @Override
   public MachineTypes snapshotModel() {
-    return null;
+    return MachineTypes.SCORPION;
   }
 
   @Override

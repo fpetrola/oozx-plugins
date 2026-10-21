@@ -75,6 +75,8 @@ public class Tape extends AbstractPeripheral {
     private File file;
     private Cassette cassette;
     private MachineTypes model = MachineTypes.SPECTRUM48K;
+    /** How fast the machine it is in runs, which is how many T-states a sample of tape lasts. */
+    private long processorSpeed = 3500000;
     private int earBit = EAR_OFF;
     private boolean playing;
     /** By hand, every stop is obeyed; played by a loader, the first is run past. */
@@ -126,6 +128,7 @@ public class Tape extends AbstractPeripheral {
         if (machine.snapshotModel() != null) {
             model = machine.snapshotModel();
         }
+        processorSpeed = machine.getTimings().processorSpeed();
     }
 
     @Override
@@ -278,7 +281,7 @@ public class Tape extends AbstractPeripheral {
         earSource = source;
         if (source != null) {
             startEdges();
-            nextEdgeIn(Math.max(1, model.clockFreq / SAMPLE_RATE));
+            nextEdgeIn((int) Math.max(1, processorSpeed / SAMPLE_RATE));
         }
     }
 
@@ -321,7 +324,7 @@ public class Tape extends AbstractPeripheral {
     private void edge() {
         if (earSource != null) {
             setEarBit(earSource.earHigh());
-            nextEdgeIn(Math.max(1, model.clockFreq / SAMPLE_RATE));
+            nextEdgeIn((int) Math.max(1, processorSpeed / SAMPLE_RATE));
             return;
         }
         while (playing) {

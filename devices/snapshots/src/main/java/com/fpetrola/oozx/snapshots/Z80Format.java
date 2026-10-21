@@ -126,7 +126,8 @@ public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
     MachineTypes model = machine.snapshotModel();
     Hardware hardware = Hardware.forWriting(model);
     Version version = machine instanceof PagingPlus3 ? Version.V3_WITH_1FFD : Version.V3;
-    return version.shape(model, hardware, model == MachineTypes.SPECTRUM16K);
+    boolean modified = model == MachineTypes.SPECTRUM16K;
+    return version.shape(hardware.machine(modified), hardware, modified);
   }
 
   @Override
@@ -187,9 +188,13 @@ public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
     ONE_TWENTY_EIGHT_MGT(-1, 6, MachineTypes.SPECTRUM128K),
     PLUS_3(7, 7, MachineTypes.SPECTRUMPLUS3),
     PLUS_3_XZX(8, 8, MachineTypes.SPECTRUMPLUS3),
-    PENTAGON(9, 9, MachineTypes.SPECTRUM128K),
+    PENTAGON(9, 9, MachineTypes.PENTAGON128),
+    SCORPION(10, 10, MachineTypes.SCORPION),
     PLUS_2(12, 12, MachineTypes.SPECTRUMPLUS2),
-    PLUS_2A(13, 13, MachineTypes.SPECTRUMPLUS2A);
+    PLUS_2A(13, 13, MachineTypes.SPECTRUMPLUS2A),
+    TC2048(14, 14, MachineTypes.TC2048),
+    TC2068(15, 15, MachineTypes.TC2068),
+    TS2068(128, 128, MachineTypes.TS2068);
 
     final int v2;
     final int v3;
@@ -219,13 +224,19 @@ public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
       };
     }
 
+    /** A machine a Z80 has no number for is written as the nearest one, as libspectrum writes it. */
     static Hardware forWriting(MachineTypes machine) {
       return switch (machine) {
-        case SPECTRUM16K, SPECTRUM48K -> FORTY_EIGHT;
-        case SPECTRUM128K -> ONE_TWENTY_EIGHT;
+        case SPECTRUM16K, SPECTRUM48K, SPECTRUM48KNTSC -> FORTY_EIGHT;
+        case SPECTRUM128K, SPECTRUMSE, SPECTRUM128KE -> ONE_TWENTY_EIGHT;
         case SPECTRUMPLUS2 -> PLUS_2;
         case SPECTRUMPLUS2A -> PLUS_2A;
-        case SPECTRUMPLUS3 -> PLUS_3;
+        case SPECTRUMPLUS3, SPECTRUMPLUS3E -> PLUS_3;
+        case PENTAGON128, PENTAGON512, PENTAGON1024 -> PENTAGON;
+        case SCORPION -> SCORPION;
+        case TC2048 -> TC2048;
+        case TC2068 -> TC2068;
+        case TS2068 -> TS2068;
       };
     }
   }

@@ -42,9 +42,9 @@ public class SpecPlus3E extends SpecPlus3 {
     return "+3E";
   }
 
-  /** The +3e differs by its ROM, which no snapshot asks for. */
+  /** A +3 snapshot loads into the +3: only an SZX can say +3e. */
   public MachineTypes snapshotModel() {
-    return null;
+    return MachineTypes.SPECTRUMPLUS3E;
   }
 
   public int reset() {

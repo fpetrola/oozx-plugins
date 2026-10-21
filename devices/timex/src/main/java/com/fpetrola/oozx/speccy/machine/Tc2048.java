@@ -66,7 +66,7 @@ public class Tc2048 extends Spec48 {
 
   @Override
   public MachineTypes snapshotModel() {
-    return null;
+    return MachineTypes.TC2048;
   }
 
   @Override
