@@ -22,6 +22,8 @@ import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.mappings.SzxSession;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
+import com.fpetrola.oozx.speccy.machine.SpecPlus3;
+import com.fpetrola.oozx.speccy.machine.Tc2048;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
@@ -36,6 +38,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import java.awt.Rectangle;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -159,6 +162,37 @@ class AMachineComesBackWithItsWindowTest {
         List.of(back.getName(), back.getRawInstruction(), back.getPokFileName(), back.getGameName()));
     assertEquals(List.of(53, 8, 35136), List.of(back.getParsedInstruction().getPreviousValue(),
         back.getParsedInstruction().getPreviousBank(), back.getParsedInstruction().getPreviousAddress()));
+  }
+
+  /**
+   * A clone no format names is written as the model it copies, and comes back as itself from the
+   * block: the header of this file says 48K, and the block a TC2048, which is what it lands on.
+   */
+  @Test
+  void theMachineTheBlockNamesIsTheOneTheFileLandsOn() throws Exception {
+    Speccy kept = machine();
+    String timex = kept.machine.model(Tc2048.class).shortName();
+    byte[] file = new SzxFormat().write(kept, Map.of("OOZX", ("machine=" + timex).getBytes()), note -> { });
+
+    Speccy opened = machine();
+    new SzxFormat().read(file, opened, note -> { });
+
+    assertEquals(Tc2048.class, opened.machine.current.getClass());
+  }
+
+  @Test
+  void romsThatAreNotHereLeaveItOnItsOwnAndSaySo() throws Exception {
+    Speccy kept = machine();
+    kept.machine.select(kept.machine.model(SpecPlus3.class));
+    byte[] file = new SzxFormat().write(kept, Map.of("OOZX", "roms=Version 4.1".getBytes()), note -> { });
+
+    Speccy opened = machine();
+    List<String> notes = new java.util.ArrayList<>();
+    new SzxFormat().read(file, opened, notes::add);
+
+    assertEquals(SpecPlus3.class, opened.machine.current.getClass());
+    assertEquals("Version 4.0", opened.roms.chosenSet(opened.machine.current));
+    assertTrue(notes.stream().anyMatch(note -> note.contains("Version 4.1")), String.valueOf(notes));
   }
 
   @Test

@@ -123,7 +123,7 @@ public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
 
   @Override
   protected Shape shapeFor(SpectrumMachine machine) {
-    MachineTypes model = machine.snapshotModel();
+    MachineTypes model = machine.nearestModel();
     Hardware hardware = Hardware.forWriting(model);
     Version version = machine instanceof PagingPlus3 ? Version.V3_WITH_1FFD : Version.V3;
     boolean modified = model == MachineTypes.SPECTRUM16K;

@@ -112,7 +112,7 @@ public final class SzxFormat extends DeclaredFormat implements SnapshotFormat {
 
   @Override
   protected Shape shapeFor(SpectrumMachine machine) {
-    return shapeOf(machine.snapshotModel());
+    return shapeOf(machine.nearestModel());
   }
 
   private Shape shapeOf(MachineTypes machine) {

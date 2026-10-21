@@ -24,6 +24,7 @@ import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
 import com.fpetrola.oozx.speccy.devices.Session;
+import com.fpetrola.oozx.speccy.machine.Spectrum;
 import com.fpetrola.oozx.speccy.pokes.PokFile;
 import com.fpetrola.oozx.speccy.pokes.PokInstruction;
 import com.fpetrola.oozx.speccy.pokes.PokesTool;
@@ -40,13 +41,13 @@ import java.util.stream.Collectors;
 
 /**
  * A machine's window as an SZX: the machine in the format's blocks, and what is around it in one of
- * its own, OOZX, which another emulator passes over. What is around it is text, a key a line: where
- * the window is, whether it is paused, the file the machine came from, its processor and its turbo,
- * every setting of the machine and of its devices by the name it is declared under, and the pokes
- * applied to it.
+ * its own, OOZX, which another emulator passes over. What is around it is text, a key a line: which
+ * machine it is exactly and on which ROMs, where the window is, whether it is paused, the file the
+ * machine came from, its processor and its turbo, every setting of the machine and of its devices by
+ * the name it is declared under, and the pokes applied to it.
  * <p>
- * Not the model nor the ROMs: the format chooses the machine, and choosing it again once it is read
- * starts it from cold.
+ * The machine and its ROMs are chosen as the file is read, before the machine is walked ({@link
+ * SzxMapping}): choosing them once it is read starts it from cold.
  */
 public final class SzxSession implements Session {
 
@@ -78,6 +79,10 @@ public final class SzxSession implements Session {
     around.put("window.y", String.valueOf(place.getY()));
     around.put("window.width", String.valueOf(place.getWidth()));
     around.put("window.height", String.valueOf(place.getHeight()));
+    Spectrum machine = window.machine().machine.current;
+    around.put("machine", machine.shortName());
+    String roms = window.machine().roms.chosenSet(machine);
+    if (roms != null) around.put("roms", roms);
     EmulatorControl control = window.machine().control;
     if (control != null) {
       around.put("paused", String.valueOf(control.isPaused()));
@@ -101,11 +106,7 @@ public final class SzxSession implements Session {
   public void bringBack(byte[] file, EmulatorWindow window) {
     byte[] block = szx.carried(file).get(BLOCK);
     if (block == null) return;
-    Map<String, String> around = new TreeMap<>();
-    for (String line : new String(block, StandardCharsets.UTF_8).split("\n")) {
-      int equals = line.indexOf('=');
-      if (equals > 0) around.put(line.substring(0, equals), line.substring(equals + 1));
-    }
+    Map<String, String> around = around(block);
     for (Settings.Configurable settings : window.machine().settings().devices()) {
       for (String property : settings.device().properties()) {
         String value = around.get(settings.device().name() + "." + property);
@@ -170,6 +171,16 @@ public final class SzxSession implements Session {
 
   private static Integer number(String text) {
     return text.equals("null") ? null : Integer.valueOf(text);
+  }
+
+  /** What is around a machine, from its block: a key a line. */
+  static Map<String, String> around(byte[] block) {
+    Map<String, String> around = new TreeMap<>();
+    for (String line : new String(block, StandardCharsets.UTF_8).split("\n")) {
+      int equals = line.indexOf('=');
+      if (equals > 0) around.put(line.substring(0, equals), line.substring(equals + 1));
+    }
+    return around;
   }
 
   /** The window itself where it is one, and otherwise what it shows the machine on. */

@@ -55,6 +55,11 @@ public class Tk90x extends Spec48 {
   }
 
   @Override
+  public MachineTypes nearestModel() {
+    return MachineTypes.SPECTRUM48K;
+  }
+
+  @Override
   public String getName() {
     return "Microdigital TK90X";
   }

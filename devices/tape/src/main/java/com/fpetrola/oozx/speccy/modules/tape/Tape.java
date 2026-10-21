@@ -125,8 +125,8 @@ public class Tape extends AbstractPeripheral {
     /** A stop-if-48K block asks this. */
     @Override
     public void activate(SpectrumMachine machine) {
-        if (machine.snapshotModel() != null) {
-            model = machine.snapshotModel();
+        if (machine.nearestModel() != null) {
+            model = machine.nearestModel();
         }
         processorSpeed = machine.getTimings().processorSpeed();
     }

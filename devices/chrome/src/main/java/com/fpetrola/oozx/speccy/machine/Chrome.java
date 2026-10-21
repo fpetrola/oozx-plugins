@@ -147,6 +147,11 @@ public class Chrome extends Spec128 implements PagingPlus3 {
   }
 
   @Override
+  public MachineTypes nearestModel() {
+    return MachineTypes.SPECTRUM128K;
+  }
+
+  @Override
   public String getName() {
     return "Chrome";
   }

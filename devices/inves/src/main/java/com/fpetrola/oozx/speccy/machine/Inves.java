@@ -118,6 +118,11 @@ public class Inves extends Spec48 {
   }
 
   @Override
+  public MachineTypes nearestModel() {
+    return MachineTypes.SPECTRUM48K;
+  }
+
+  @Override
   public String getName() {
     return "Inves Spectrum+";
   }

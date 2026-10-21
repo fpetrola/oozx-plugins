@@ -52,6 +52,11 @@ public class CzSpectrum extends Spec48 {
   }
 
   @Override
+  public MachineTypes nearestModel() {
+    return MachineTypes.SPECTRUM48K;
+  }
+
+  @Override
   public String getName() {
     return "Czerweny CZ Spectrum";
   }

@@ -96,6 +96,11 @@ public class Chloe280Se extends SpecSe {
   }
 
   @Override
+  public MachineTypes nearestModel() {
+    return MachineTypes.SPECTRUMSE;
+  }
+
+  @Override
   public String getName() {
     return "Chloe 280SE";
   }
