@@ -170,18 +170,51 @@ public final class Alignment {
   }
 
   public void from(State followed, State follower) {
-    for (RegisterName name : named) {
-      follower.getRegister(name).write(followed.getRegister(name).read());
+    between(followed, follower).now();
+  }
+
+  /** One follower and the processor it follows, their registers looked up again only when the letters change. */
+  public Aligned between(State followed, State follower) {
+    return new Aligned(followed, follower);
+  }
+
+  public final class Aligned {
+    private final State followed, follower;
+    private final Register hisF, myF, hisFx, myFx;
+    private RegisterName[] resolvedFor;
+    private Register[] his, mine;
+
+    private Aligned(State followed, State follower) {
+      this.followed = followed;
+      this.follower = follower;
+      hisF = followed.getRegister(RegisterName.F);
+      myF = follower.getRegister(RegisterName.F);
+      hisFx = followed.getRegister(RegisterName.Fx);
+      myFx = follower.getRegister(RegisterName.Fx);
     }
-    if (flags) exceptTheCarry(followed.getRegister(RegisterName.F), follower.getRegister(RegisterName.F));
-    if (alternateFlags) exceptTheCarry(followed.getRegister(RegisterName.Fx), follower.getRegister(RegisterName.Fx));
-    follower.getRegister(RegisterName.I).write(followed.getRegister(RegisterName.I).read());
-    follower.getRegister(RegisterName.R).write(followed.getRegister(RegisterName.R).read());
-    follower.setIff1(followed.isIff1());
-    follower.setIff2(followed.isIff2());
-    follower.setIntMode(followed.getInterruptionMode());
-    follower.setHalted(followed.isHalted());
-    follower.setPendingEI(followed.isPendingEI());
+
+    public void now() {
+      if (resolvedFor != named) resolve();
+      for (int i = 0; i < mine.length; i++) mine[i].write(his[i].read());
+      if (flags) exceptTheCarry(hisF, myF);
+      if (alternateFlags) exceptTheCarry(hisFx, myFx);
+      follower.setIff1(followed.isIff1());
+      follower.setIff2(followed.isIff2());
+      follower.setIntMode(followed.getInterruptionMode());
+      follower.setHalted(followed.isHalted());
+      follower.setPendingEI(followed.isPendingEI());
+    }
+
+    private void resolve() {
+      resolvedFor = named;
+      his = new Register[named.length + 2];
+      mine = new Register[his.length];
+      for (int i = 0; i < his.length; i++) {
+        RegisterName name = i < named.length ? named[i] : i == named.length ? RegisterName.I : RegisterName.R;
+        his[i] = followed.getRegister(name);
+        mine[i] = follower.getRegister(name);
+      }
+    }
   }
 
   private void exceptTheCarry(com.fpetrola.z80.registers.Register followed, com.fpetrola.z80.registers.Register follower) {

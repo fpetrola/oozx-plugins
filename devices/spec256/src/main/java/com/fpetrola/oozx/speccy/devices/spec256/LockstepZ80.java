@@ -34,13 +34,14 @@ import com.fpetrola.z80.cpu.OOZ80;
  */
 public final class LockstepZ80 extends OOZ80 {
   private final OOZ80[] followers;
-  private final Alignment alignment;
+  private final Alignment.Aligned[] aligned;
   private boolean following;
 
   public LockstepZ80(OOZ80 one, OOZ80[] followers, Alignment alignment) {
     super(one);
     this.followers = followers;
-    this.alignment = alignment;
+    aligned = new Alignment.Aligned[followers.length];
+    for (int i = 0; i < followers.length; i++) aligned[i] = alignment.between(state, followers[i].getState());
   }
 
   @Override
@@ -79,9 +80,9 @@ public final class LockstepZ80 extends OOZ80 {
   }
 
   private void takenByAll(java.util.function.Consumer<OOZ80> what) {
-    for (OOZ80 follower : followers) {
-      alignment.from(state, follower.getState());
-      what.accept(follower);
+    for (int i = 0; i < followers.length; i++) {
+      aligned[i].now();
+      what.accept(followers[i]);
     }
   }
 }
