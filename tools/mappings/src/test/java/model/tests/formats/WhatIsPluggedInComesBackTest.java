@@ -24,6 +24,7 @@ import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
+import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
@@ -198,6 +199,23 @@ class WhatIsPluggedInComesBackTest {
 
     assertTrue(opened.peripheralRegistry.isActive(Interface2Peripheral.class), "the file plugs it in");
     assertEquals(Arrays.hashCode(new byte[Cartridge.SIZE]), Arrays.hashCode(seen(opened, Cartridge.SIZE)));
+  }
+
+  @Test
+  void theSimpleIdeIsThere() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, SimpleIdePeripheral.class);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(SimpleIdePeripheral.class), "the file plugs it in");
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/SIDE.szx")), fromLibspectrums, note -> { });
+    assertTrue(fromLibspectrums.peripheralRegistry.isActive(SimpleIdePeripheral.class), "libspectrum's SIDE plugs it in");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_simpleide_active).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */

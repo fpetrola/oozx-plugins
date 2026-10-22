@@ -168,6 +168,8 @@ public interface Libspectrum extends Library {
 
   int libspectrum_snap_simpleide_active(Pointer snap);
 
+  int libspectrum_snap_zxmmc_active(Pointer snap);
+
   int libspectrum_snap_divide_active(Pointer snap);
 
   int libspectrum_snap_divide_eprom_writeprotect(Pointer snap);

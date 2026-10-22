@@ -29,5 +29,6 @@ border = 0
 tstates = 69664
 part = Input
 part = PretendInterface
+part = SimpleIdePeripheral
 part = Snapshots
 part = UlaPeripheral
