@@ -28,6 +28,7 @@ page.0 = sha256:4fe7b59af6de3b66 (16384)
 border = 0
 tstates = 69664
 part = Input
+part = Interface1Peripheral
 part = PretendInterface
 part = Snapshots
 part = UlaPeripheral

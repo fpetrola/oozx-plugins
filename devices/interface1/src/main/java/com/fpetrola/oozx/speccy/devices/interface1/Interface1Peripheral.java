@@ -260,6 +260,11 @@ public class Interface1Peripheral extends PluggablePeripheral {
     return paged;
   }
 
+  /** Its shadow ROM in or out, as the processor's fetches at the points that page it leave it. */
+  public void pagedIn(boolean in) {
+    if (in) page(); else unpage();
+  }
+
   public boolean motorOn(int which) {
     return drives[which].motorOn;
   }

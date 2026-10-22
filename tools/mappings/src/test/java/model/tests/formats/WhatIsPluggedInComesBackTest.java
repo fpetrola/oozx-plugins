@@ -23,6 +23,7 @@ import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
 import com.fpetrola.oozx.speccy.devices.ide.DivPeripheral;
+import com.fpetrola.oozx.speccy.devices.interface1.Interface1Peripheral;
 import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.mouse.KempstonMousePeripheral;
@@ -430,6 +431,27 @@ class WhatIsPluggedInComesBackTest {
 
     assumeTrue(Reference.present(), "libspectrum is not installed here");
     assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_kempston_mouse_active).orElseThrow());
+  }
+
+  /** Without its ROM here, where it cannot page in: libspectrum's own IF1, paged, plugs it in all the same. */
+  @Test
+  void theInterfaceOneIsThere() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, Interface1Peripheral.class);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(Interface1Peripheral.class), "the file plugs it in");
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/IF1.szx")), fromLibspectrums, note -> { });
+    assertTrue(fromLibspectrums.peripheralRegistry.isActive(Interface1Peripheral.class), "libspectrum's IF1 plugs it in");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(List.of(1, 0, Interface1Peripheral.DRIVES, 0), Reference.withSnap(file, "szx", snap -> List.of(
+        lib.libspectrum_snap_interface1_active(snap), lib.libspectrum_snap_interface1_paged(snap),
+        lib.libspectrum_snap_interface1_drive_count(snap), lib.libspectrum_snap_interface1_custom_rom(snap))).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */
