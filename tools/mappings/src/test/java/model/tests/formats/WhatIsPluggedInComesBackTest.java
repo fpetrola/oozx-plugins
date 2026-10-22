@@ -19,6 +19,7 @@ package model.tests.formats;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.snapshots.SzxFormat;
+import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
@@ -84,6 +85,49 @@ class WhatIsPluggedInComesBackTest {
     assertEquals(List.of(true, false, 0xab, 0x8c, 0x82, 0xd8, 0x11), described(board).subList(0, 7));
   }
 
+  @Test
+  void theDivideWithItsEpromAndItsPages() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    DivIdePeripheral divide = plugged(kept, DivIdePeripheral.class);
+    divide.eprom(pattern(40, 0x2000));
+    for (int page = 0; page < divide.ramPages(); page++) divide.ram(page, pattern(50 + page, 0x2000));
+    divide.setWriteProtect(true);
+    divide.control(0x42);
+    divide.setAutomap(true);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(DivIdePeripheral.class), "the file plugs it in");
+    assertEquals(described(divide), described((DivIdePeripheral) opened.peripheralRegistry.find(DivIdePeripheral.class)));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(described(divide), Reference.withSnap(file, "szx", snap -> {
+      assertEquals(1, lib.libspectrum_snap_divide_active(snap));
+      assertEquals(DivIdePeripheral.RAM_PAGES, lib.libspectrum_snap_divide_pages(snap).intValue());
+      List<Object> said = new ArrayList<>(List.of(lib.libspectrum_snap_divide_eprom_writeprotect(snap) != 0,
+          lib.libspectrum_snap_divide_control(snap) & 0xff, lib.libspectrum_snap_divide_paged(snap) != 0,
+          Arrays.hashCode(lib.libspectrum_snap_divide_eprom(snap, 0).getByteArray(0, 0x2000))));
+      for (int page = 0; page < DivIdePeripheral.RAM_PAGES; page++) {
+        said.add(Arrays.hashCode(lib.libspectrum_snap_divide_ram(snap, page).getByteArray(0, 0x2000)));
+      }
+      return said;
+    }).orElseThrow());
+  }
+
+  /** libspectrum's DIDE: paged in through its register, page count 1, and 0x12 first in its EPROM. */
+  @Test
+  void theDivideOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/DIDE.szx")), opened, note -> { });
+
+    DivIdePeripheral divide = (DivIdePeripheral) opened.peripheralRegistry.find(DivIdePeripheral.class);
+    assertTrue(opened.peripheralRegistry.isActive(DivIdePeripheral.class), "the file plugs it in");
+    assertEquals(List.of(false, 0xab, true, 0x12), List.of(divide.writeProtect(), divide.control(), divide.isPaged(),
+        (int) divide.eprom()[0]));
+  }
+
   /** That device of the machine, plugged in as its window plugs it. */
   static <T extends Peripheral & Pluggable> T plugged(Speccy speccy, Class<T> type) {
     T device = type.cast(speccy.peripheralRegistry.find(type));
@@ -97,6 +141,14 @@ class WhatIsPluggedInComesBackTest {
     List<Object> said = new ArrayList<>(List.of(board.upload(), board.writeProtect(), board.portA(), board.portB(),
         board.portC(), board.control(), board.isPaged() ? board.bank() : 0xff));
     for (int bank = 0; bank < ZxataspPeripheral.BANKS; bank++) said.add(Arrays.hashCode(board.contents(bank)));
+    return said;
+  }
+
+  /** Its EPROM jumper, its register, whether it is paged in, its EPROM and each page of its RAM. */
+  private static List<Object> described(DivIdePeripheral divide) {
+    List<Object> said = new ArrayList<>(List.of(divide.writeProtect(), divide.control(), divide.isPaged(),
+        Arrays.hashCode(divide.eprom())));
+    for (int page = 0; page < divide.ramPages(); page++) said.add(Arrays.hashCode(divide.ram(page)));
     return said;
   }
 

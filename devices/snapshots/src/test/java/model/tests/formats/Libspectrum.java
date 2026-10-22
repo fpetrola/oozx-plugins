@@ -166,6 +166,12 @@ public interface Libspectrum extends Library {
 
   int libspectrum_snap_simpleide_active(Pointer snap);
 
+  int libspectrum_snap_divide_active(Pointer snap);
+
+  int libspectrum_snap_divide_eprom_writeprotect(Pointer snap);
+
+  NativeLong libspectrum_snap_divide_pages(Pointer snap);
+
   int libspectrum_snap_divide_paged(Pointer snap);
 
   byte libspectrum_snap_divide_control(Pointer snap);

@@ -102,6 +102,35 @@ public abstract class DivPeripheral extends PluggablePeripheral implements IdeIn
     return control;
   }
 
+  /** The register as it stands, MAPRAM too, which a write through the port cannot clear. */
+  public void control(int value) {
+    control = value;
+    refresh();
+  }
+
+  /** What the EPROM holds. */
+  public byte[] eprom() {
+    return eprom.bytes.clone();
+  }
+
+  public void eprom(byte[] bytes) {
+    eprom.fill(bytes);
+  }
+
+  /** How many 8K pages of RAM it has. */
+  public int ramPages() {
+    return ram.length;
+  }
+
+  /** What that page of RAM holds. */
+  public byte[] ram(int page) {
+    return ram[page].bytes.clone();
+  }
+
+  public void ram(int page, byte[] bytes) {
+    ram[page].fill(bytes);
+  }
+
   /** Automapper's page-in decision, independent of whether jumpers permit it to act. */
   public void setAutomap(boolean automap) {
     this.automap = automap;
