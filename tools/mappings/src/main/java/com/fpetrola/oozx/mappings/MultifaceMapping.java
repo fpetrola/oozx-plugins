@@ -55,7 +55,7 @@ public final class MultifaceMapping implements Mapping {
           face.j2(!stealth);
         }
       }))
-      .rest(MFCE, 1, 1, Field.of("multiface.ram", MultifacePeripheral::ram, MultifacePeripheral::ram));
+      .rest(MFCE, 1, 1, MultifacePeripheral.RAM_SIZE, Field.of("multiface.ram", MultifacePeripheral::ram, MultifacePeripheral::ram));
 
   private static boolean one(MultifacePeripheral face) {
     return face.model() == MultifaceModel.ONE;

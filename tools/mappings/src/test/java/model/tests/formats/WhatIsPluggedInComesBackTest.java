@@ -20,6 +20,8 @@ package model.tests.formats;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
+import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
+import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
@@ -167,6 +169,42 @@ class WhatIsPluggedInComesBackTest {
     assertTrue(opened.peripheralRegistry.isActive(MultifaceOnePeripheral.class), "the file plugs it in");
     MultifacePeripheral face = (MultifacePeripheral) opened.peripheralRegistry.find(MultifaceOnePeripheral.class);
     assertEquals(List.of(true, false, true, Arrays.hashCode(new byte[MultifacePeripheral.RAM_SIZE])), described(face));
+  }
+
+  @Test
+  void theInterfaceTwoWithItsCartridgePagedIn() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, Interface2Peripheral.class).inserted(new Cartridge("Jetpac", pattern(70, Cartridge.SIZE), null));
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(Interface2Peripheral.class), "the file plugs it in");
+    assertEquals(Arrays.hashCode(pattern(70, Cartridge.SIZE)), Arrays.hashCode(seen(opened, Cartridge.SIZE)),
+        "the cartridge is paged in");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(List.of(1, Arrays.hashCode(pattern(70, Cartridge.SIZE))), Reference.withSnap(file, "szx", snap -> List.of(
+        lib.libspectrum_snap_interface2_active(snap),
+        Arrays.hashCode(lib.libspectrum_snap_interface2_rom(snap, 0).getByteArray(0, Cartridge.SIZE)))).orElseThrow());
+  }
+
+  /** libspectrum's IF2R: a cartridge of zeros, which a machine reading it runs. */
+  @Test
+  void theInterfaceTwoOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/IF2R.szx")), opened, note -> { });
+
+    assertTrue(opened.peripheralRegistry.isActive(Interface2Peripheral.class), "the file plugs it in");
+    assertEquals(Arrays.hashCode(new byte[Cartridge.SIZE]), Arrays.hashCode(seen(opened, Cartridge.SIZE)));
+  }
+
+  /** What the machine sees from the bottom of its memory up. */
+  private static byte[] seen(Speccy speccy, int length) {
+    byte[] seen = new byte[length];
+    for (int address = 0; address < length; address++) seen[address] = (byte) speccy.memory.peek(address);
+    return seen;
   }
 
   /** That device of the machine, plugged in as its window plugs it. */

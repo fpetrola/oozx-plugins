@@ -123,17 +123,17 @@ class WhatIsPluggedInIsKeptInItsBlocksTest {
           .bit(DIDE, 0, 1, Field.of("paged", div -> div.paged, (div, paged) -> div.paged = paged))
           .u8(DIDE, 2, Field.of("control", div -> div.control, (div, control) -> div.control = control))
           .u8(DIDE, 3, Field.of("pages", div -> div.ram.length, (div, pages) -> { }))
-          .rest(DIDE, 0, 2, Field.of("eprom", div -> div.eprom, (div, eprom) -> div.eprom = eprom))
+          .rest(DIDE, 0, 2, 0x2000, Field.of("eprom", div -> div.eprom, (div, eprom) -> div.eprom = eprom))
           .pages(DIRP, div -> div.ram.length, PageField.of((div, page) -> div.ram[page], (div, page, bytes) -> div.ram[page] = bytes)))
       .on(Face.class, Layout.<Face>of()
           .bit(MFCE, 1, 0, Field.of("paged", face -> face.paged, (face, paged) -> face.paged = paged))
-          .rest(MFCE, 1, 1, Field.of("ram", face -> face.ram, (face, ram) -> face.ram = ram)))
+          .rest(MFCE, 1, 1, 0x2000, Field.of("ram", face -> face.ram, (face, ram) -> face.ram = ram)))
       .on(Cartridge.class, Layout.<Cartridge>of()
-          .packedRest(IF2R, 0, Field.of("rom", cartridge -> cartridge.rom, (cartridge, rom) -> cartridge.rom = rom)))
+          .packedRest(IF2R, 0, 0x4000, Field.of("rom", cartridge -> cartridge.rom, (cartridge, rom) -> cartridge.rom = rom)))
       .on(Side.class, Layout.<Side>of().present(SIDE))
       .on(Roms.class, Layout.<Roms>of()
           .u32(ROM, 2, Field.of("length", roms -> roms.rom.length, (roms, length) -> { }))
-          .rest(ROM, 0, 0, Field.of("rom", roms -> roms.rom, (roms, rom) -> roms.rom = rom)));
+          .rest(ROM, 0, 0, 0x8000, Field.of("rom", roms -> roms.rom, (roms, rom) -> roms.rom = rom)));
 
   static final Shape SHAPE = Shape.of(MachineTypes.SPECTRUM128K, SzxFormat.HEADER,
       new SzxBlocks(List.of(ATRP, DIDE, DIRP, MFCE, IF2R, SIDE, ROM))).with(new SzxFormat.Signed(MachineTypes.SPECTRUM128K));

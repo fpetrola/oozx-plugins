@@ -47,7 +47,7 @@ public final class DivideMapping implements Mapping {
       .u8(DIDE, 2, Field.of("divide.control", DivIdePeripheral::control, DivIdePeripheral::control))
       .bit(DIDE, 0, 1, Field.of("divide.paged", DivIdePeripheral::isPaged, DivIdePeripheral::setAutomap))
       .u8(DIDE, 3, Field.of("divide.pages", DivIdePeripheral::ramPages, (divide, pages) -> { }))
-      .rest(DIDE, 0, 2, Field.of("divide.eprom", DivIdePeripheral::eprom, DivIdePeripheral::eprom))
+      .rest(DIDE, 0, 2, DivIdePeripheral.PAGE_SIZE, Field.of("divide.eprom", DivIdePeripheral::eprom, DivIdePeripheral::eprom))
       .pages(DIRP, DivIdePeripheral::ramPages, PageField.of(DivIdePeripheral::ram, DivIdePeripheral::ram));
 
   @Override

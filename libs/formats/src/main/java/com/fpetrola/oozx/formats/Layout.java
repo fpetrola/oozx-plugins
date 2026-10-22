@@ -250,18 +250,19 @@ public final class Layout<P> {
   }
 
   /**
-   * What a block carries after its fields, to its end, as long as the part's: a ROM, the RAM of
-   * something plugged in. Packed with zlib when that bit of that byte of the block is set, and
-   * written packed, with the bit set. Nothing is read from a block that ends with its fields, and
-   * nothing is written for a part that has none.
+   * What a block carries after its fields, to its end, that many bytes: a ROM, the RAM of something
+   * plugged in. Packed with zlib when that bit of that byte of the block is set, and written packed,
+   * with the bit set. Nothing is read from a block that ends with its fields, and nothing is written
+   * for a part that has none.
    */
-  public Layout<P> rest(Fixed block, int flagAt, int bit, Field<P, byte[]> field) {
-    return with(new Rest<>(block, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0, (bytes, packed) -> bytes.or(flagAt, 1 << bit)));
+  public Layout<P> rest(Fixed block, int flagAt, int bit, int length, Field<P, byte[]> field) {
+    return with(new Rest<>(block, length, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0,
+        (bytes, packed) -> bytes.or(flagAt, 1 << bit)));
   }
 
   /** The same, always packed, and how long it is packed in four bytes at that place of the block: a cartridge. */
-  public Layout<P> packedRest(Fixed block, int lengthAt, Field<P, byte[]> field) {
-    return with(new Rest<>(block, field, bytes -> true, (bytes, packed) -> bytes.u32(lengthAt, packed.length)));
+  public Layout<P> packedRest(Fixed block, int lengthAt, int length, Field<P, byte[]> field) {
+    return with(new Rest<>(block, length, field, bytes -> true, (bytes, packed) -> bytes.u32(lengthAt, packed.length)));
   }
 
   /** The block, written with the part even when there is nothing else to say: that the part is there is what it says. */
@@ -274,13 +275,12 @@ public final class Layout<P> {
   }
 
   /** The bytes after a block's fields, and what in the block says whether they are packed. */
-  private record Rest<P>(Fixed block, Field<P, byte[]> field, Predicate<Bytes> isPacked, BiConsumer<Bytes, byte[]> saysPacked)
-      implements Place<P> {
+  private record Rest<P>(Fixed block, int length, Field<P, byte[]> field, Predicate<Bytes> isPacked,
+                         BiConsumer<Bytes, byte[]> saysPacked) implements Place<P> {
     public void read(SnapshotFile file, P part) {
       if (!file.has(block, block.length(), 1)) return;
       Bytes bytes = file.bytes(block);
       byte[] kept = bytes.slice(block.length(), bytes.length() - block.length());
-      int length = field.get(part).length;
       field.set(part, isPacked.test(bytes) ? Codec.ZLIB.decode(kept, length) : Codec.RAW.decode(kept, length));
     }
 

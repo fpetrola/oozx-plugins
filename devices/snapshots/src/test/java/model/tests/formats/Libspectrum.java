@@ -162,6 +162,8 @@ public interface Libspectrum extends Library {
 
   Pointer libspectrum_snap_zxatasp_ram(Pointer snap, int idx);
 
+  int libspectrum_snap_interface2_active(Pointer snap);
+
   Pointer libspectrum_snap_interface2_rom(Pointer snap, int idx);
 
   int libspectrum_snap_simpleide_active(Pointer snap);

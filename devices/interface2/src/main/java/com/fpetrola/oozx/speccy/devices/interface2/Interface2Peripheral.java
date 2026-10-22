@@ -94,6 +94,19 @@ public class Interface2Peripheral extends PluggablePeripheral {
     if (on == null || cartridge == null) {
       return;
     }
+    pageIn();
+  }
+
+  /** A cartridge that was in when the machine started, paged in with no reset: as a machine running it has it. */
+  public void inserted(Cartridge cartridge) {
+    unpage();
+    this.cartridge = cartridge;
+    if (on != null) {
+      pageIn();
+    }
+  }
+
+  private void pageIn() {
     rom.fill(cartridge.image());
     paged = true;
     memory.plug(held);
