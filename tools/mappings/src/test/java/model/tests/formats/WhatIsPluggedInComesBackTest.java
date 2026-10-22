@@ -28,6 +28,7 @@ import com.fpetrola.oozx.speccy.devices.ide.DivPeripheral;
 import com.fpetrola.oozx.speccy.devices.interface1.Interface1Peripheral;
 import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
+import com.fpetrola.oozx.speccy.devices.melodik.MelodikPeripheral;
 import com.fpetrola.oozx.speccy.devices.mouse.KempstonMousePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
@@ -635,6 +636,25 @@ class WhatIsPluggedInComesBackTest {
   private static List<Object> described(OpusPeripheral opus) {
     return List.of(opus.isPaged(), opus.fdc().direction == Fdd.Dir.OUT, opus.pia(), opus.fdc().trackRegister,
         opus.fdc().sectorRegister, opus.fdc().dataRegister, opus.fdc().statusRegister, Arrays.hashCode(opus.ram()));
+  }
+
+  /** A 48K with one fitted, which the AY's block says, and a machine that reads it fits one with the same registers. */
+  @Test
+  void theMelodikFittedToAFortyEightK() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    MelodikPeripheral melodik = (MelodikPeripheral) kept.peripheralRegistry.find(MelodikPeripheral.class);
+    melodik.setFitted(true);
+    if (kept.peripheralRegistry.update()) kept.machine.reset(true);
+    melodik.register(7, 0x38);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(MelodikPeripheral.class), "the file fits it");
+    assertEquals(0x38, ((MelodikPeripheral) opened.peripheralRegistry.find(MelodikPeripheral.class)).register(7));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_melodik_active).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */

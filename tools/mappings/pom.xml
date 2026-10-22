@@ -135,6 +135,11 @@
             <artifactId>device-opus</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-melodik</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- The fixtures the formats are held to, and the machines they land on. -->
         <dependency>
             <groupId>com.fpetrola</groupId>
@@ -189,13 +194,6 @@
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>device-beta128</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- Something plugged in by a setting. -->
-        <dependency>
-            <groupId>com.fpetrola</groupId>
-            <artifactId>device-melodik</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
