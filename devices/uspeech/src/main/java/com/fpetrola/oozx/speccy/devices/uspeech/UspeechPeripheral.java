@@ -172,6 +172,11 @@ public class UspeechPeripheral extends PluggablePeripheral implements DacDevice 
     return paged;
   }
 
+  /** Its ROM in or out, flipped as its port flips it: only while it has its ROMs. */
+  public void pagedIn(boolean in) {
+    if (available && paged != in) flip();
+  }
+
   /** The last allophone a program wrote, or -1 since the reset. */
   public int allophone() {
     return allophone;

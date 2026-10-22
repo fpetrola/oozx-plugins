@@ -29,6 +29,7 @@ import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
+import com.fpetrola.oozx.speccy.devices.uspeech.UspeechPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
@@ -366,6 +367,26 @@ class WhatIsPluggedInComesBackTest {
     Libspectrum lib = Libspectrum.INSTANCE;
     assertEquals(List.of(1, 0x31 - 128), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_specdrum_active(snap),
         (int) lib.libspectrum_snap_specdrum_dac(snap))).orElseThrow());
+  }
+
+  /** Without its ROMs, as libspectrum's own USPE has it: its ROM out. */
+  @Test
+  void theUspeechIsThere() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, UspeechPeripheral.class);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(UspeechPeripheral.class), "the file plugs it in");
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/USPE.szx")), fromLibspectrums, note -> { });
+    assertTrue(fromLibspectrums.peripheralRegistry.isActive(UspeechPeripheral.class), "libspectrum's USPE plugs it in");
+
+    assumeTrue(Reference.present() && Reference.has("libspectrum_snap_uspeech_active"), "no libspectrum here that knows USPE");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(List.of(1, 0), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_uspeech_active(snap),
+        lib.libspectrum_snap_uspeech_paged(snap))).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */

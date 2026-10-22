@@ -54,6 +54,16 @@ public final class Reference {
     }
   }
 
+  /** Whether the libspectrum installed here has that function: an older one lacks the blocks added after it. */
+  public static boolean has(String function) {
+    try {
+      com.sun.jna.NativeLibrary.getInstance("spectrum").getFunction(function);
+      return true;
+    } catch (UnsatisfiedLinkError absent) {
+      return false;
+    }
+  }
+
   static boolean asks(String format) {
     return ASKED.contains(format);
   }

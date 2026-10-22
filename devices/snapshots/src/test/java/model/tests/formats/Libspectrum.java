@@ -170,6 +170,10 @@ public interface Libspectrum extends Library {
 
   int libspectrum_snap_zxmmc_active(Pointer snap);
 
+  int libspectrum_snap_uspeech_active(Pointer snap);
+
+  int libspectrum_snap_uspeech_paged(Pointer snap);
+
   int libspectrum_snap_covox_active(Pointer snap);
 
   byte libspectrum_snap_covox_dac(Pointer snap);
