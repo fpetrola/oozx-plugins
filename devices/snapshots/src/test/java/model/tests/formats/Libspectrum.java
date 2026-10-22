@@ -174,6 +174,26 @@ public interface Libspectrum extends Library {
 
   int libspectrum_snap_kempston_mouse_active(Pointer snap);
 
+  int libspectrum_snap_beta_active(Pointer snap);
+
+  int libspectrum_snap_beta_paged(Pointer snap);
+
+  int libspectrum_snap_beta_direction(Pointer snap);
+
+  int libspectrum_snap_beta_drive_count(Pointer snap);
+
+  int libspectrum_snap_beta_custom_rom(Pointer snap);
+
+  byte libspectrum_snap_beta_system(Pointer snap);
+
+  byte libspectrum_snap_beta_track(Pointer snap);
+
+  byte libspectrum_snap_beta_sector(Pointer snap);
+
+  byte libspectrum_snap_beta_data(Pointer snap);
+
+  byte libspectrum_snap_beta_status(Pointer snap);
+
   int libspectrum_snap_interface1_active(Pointer snap);
 
   int libspectrum_snap_interface1_paged(Pointer snap);

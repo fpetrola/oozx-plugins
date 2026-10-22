@@ -115,6 +115,11 @@
             <artifactId>device-interface1</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-disk</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- The fixtures the formats are held to, and the machines they land on. -->
         <dependency>
             <groupId>com.fpetrola</groupId>
@@ -162,6 +167,13 @@
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>device-spectrum-variants</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <!-- The Beta 128 a 48K plugs in, beside the Pentagon's own. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-beta128</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

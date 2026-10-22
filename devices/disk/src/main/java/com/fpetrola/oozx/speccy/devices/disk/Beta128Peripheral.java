@@ -157,7 +157,7 @@ public class Beta128Peripheral extends PluggablePeripheral implements DiskInterf
   }
 
   /** System register: bits 0-1 drive select, bit 3 HLT, bit 4 side (inverted), bit 5 density. */
-  private void system(int b) {
+  public void system(int b) {
     selectDrive(b & 0x03);
     fdc.setHlt((b & 0x08) != 0);
     fdc.currentDrive.setHead((b & 0x10) != 0 ? 0 : 1);
@@ -290,6 +290,15 @@ public class Beta128Peripheral extends PluggablePeripheral implements DiskInterf
   @Override
   public boolean isPaged() {
     return paged;
+  }
+
+  /** TR-DOS in or out, as its entry points and the climb above 0x4000 leave it: in only while its ROM is here. */
+  public void pagedIn(boolean in) {
+    if (!in) {
+      unpage();
+    } else if (available) {
+      page();
+    }
   }
 
   public WdFdc fdc() {

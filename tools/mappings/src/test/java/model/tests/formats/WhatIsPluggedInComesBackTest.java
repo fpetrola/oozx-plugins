@@ -20,6 +20,8 @@ package model.tests.formats;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
+import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
+import com.fpetrola.oozx.speccy.devices.disk.Fdd;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
 import com.fpetrola.oozx.speccy.devices.ide.DivPeripheral;
@@ -452,6 +454,56 @@ class WhatIsPluggedInComesBackTest {
     assertEquals(List.of(1, 0, Interface1Peripheral.DRIVES, 0), Reference.withSnap(file, "szx", snap -> List.of(
         lib.libspectrum_snap_interface1_active(snap), lib.libspectrum_snap_interface1_paged(snap),
         lib.libspectrum_snap_interface1_drive_count(snap), lib.libspectrum_snap_interface1_custom_rom(snap))).orElseThrow());
+  }
+
+  /** The Pentagon's own, in the middle of something: TR-DOS paged in, the head stepping in, its registers set. */
+  @Test
+  void theBetaOneTwoEightWithItsController() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    kept.machine.select(kept.machine.model(Pentagon.class));
+    Beta128Peripheral beta = (Beta128Peripheral) kept.peripheralRegistry.find(Beta128Peripheral.class);
+    beta.pagedIn(true);
+    beta.system(0x3d);
+    beta.fdc().direction = Fdd.Dir.IN;
+    beta.fdc().trackRegister = 5;
+    beta.fdc().sectorRegister = 3;
+    beta.fdc().dataRegister = 0xaa;
+    beta.fdc().statusRegister = 0x81;
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(Beta128Peripheral.class), "on board");
+    assertEquals(described(beta), described((Beta128Peripheral) opened.peripheralRegistry.find(Beta128Peripheral.class)));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(described(beta), Reference.withSnap(file, "szx", snap -> {
+      assertEquals(List.of(1, Beta128Peripheral.DRIVES, 0), List.of(lib.libspectrum_snap_beta_active(snap),
+          lib.libspectrum_snap_beta_drive_count(snap), lib.libspectrum_snap_beta_custom_rom(snap)));
+      return List.<Object>of(lib.libspectrum_snap_beta_paged(snap) != 0, lib.libspectrum_snap_beta_direction(snap) == 0,
+          lib.libspectrum_snap_beta_system(snap) & 0xff, lib.libspectrum_snap_beta_track(snap) & 0xff,
+          lib.libspectrum_snap_beta_sector(snap) & 0xff, lib.libspectrum_snap_beta_data(snap) & 0xff,
+          lib.libspectrum_snap_beta_status(snap) & 0xff);
+    }).orElseThrow());
+  }
+
+  /** libspectrum's B128 is a 48K's: it plugs one in, with the registers its tests read. */
+  @Test
+  void theBetaOneTwoEightOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/B128.szx")), opened, note -> { });
+
+    Beta128Peripheral beta = opened.peripheralRegistry.allThatAre(Beta128Peripheral.class).stream()
+        .filter(one -> one.fitsOn(opened.machine.current)).findFirst().orElseThrow();
+    assertTrue(opened.peripheralRegistry.isActive(beta.getClass()), "the file plugs it in");
+    assertEquals(List.of(0x11, 5, 3, 0xaa, 0xff), described(beta).subList(2, 7));
+  }
+
+  /** Whether TR-DOS is paged in, whether the head steps out, the system register and the controller's four. */
+  private static List<Object> described(Beta128Peripheral beta) {
+    return List.of(beta.isPaged(), beta.fdc().direction == Fdd.Dir.OUT, beta.systemRegister(), beta.fdc().trackRegister,
+        beta.fdc().sectorRegister, beta.fdc().dataRegister, beta.fdc().statusRegister);
   }
 
   /** What the machine sees from the bottom of its memory up. */
