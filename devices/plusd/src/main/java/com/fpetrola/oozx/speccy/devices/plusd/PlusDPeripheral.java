@@ -86,7 +86,7 @@ public class PlusDPeripheral extends MgtDiskInterface {
 
   /** Control register: bits 0-1 select drive (value 2 = second drive), bit 7 side, bit 6 printer strobe. */
   @Override
-  protected void control(int b) {
+  public void control(int b) {
     controlRegister = b;
     selectDrive((b & 0x03) == 2 ? 1 : 0, (b & 0x80) != 0 ? 1 : 0);
     strobe((b & 0x40) != 0);

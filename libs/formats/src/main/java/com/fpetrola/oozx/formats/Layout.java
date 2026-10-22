@@ -19,7 +19,7 @@ package com.fpetrola.oozx.formats;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
@@ -256,13 +256,21 @@ public final class Layout<P> {
    * for a part that has none.
    */
   public Layout<P> rest(Fixed block, int flagAt, int bit, int length, Field<P, byte[]> field) {
-    return with(new Rest<>(block, length, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0,
-        (bytes, packed) -> bytes.or(flagAt, 1 << bit)));
+    return rest(block, flagAt, bit, -1, length, field);
+  }
+
+  /**
+   * The same, kept in as many bytes as four bytes at that place of the block say: what follows them is something
+   * else's, as the ROM after the RAM of a disk interface.
+   */
+  public Layout<P> rest(Fixed block, int flagAt, int bit, int lengthAt, int length, Field<P, byte[]> field) {
+    return with(new Rest<>(block, lengthAt, length, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0,
+        bytes -> bytes.or(flagAt, 1 << bit)));
   }
 
   /** The same, always packed, and how long it is packed in four bytes at that place of the block: a cartridge. */
   public Layout<P> packedRest(Fixed block, int lengthAt, int length, Field<P, byte[]> field) {
-    return with(new Rest<>(block, length, field, bytes -> true, (bytes, packed) -> bytes.u32(lengthAt, packed.length)));
+    return with(new Rest<>(block, lengthAt, length, field, bytes -> true, bytes -> { }));
   }
 
   /** The block, written with the part even when there is nothing else to say: that the part is there is what it says. */
@@ -274,13 +282,17 @@ public final class Layout<P> {
     });
   }
 
-  /** The bytes after a block's fields, and what in the block says whether they are packed. */
-  private record Rest<P>(Fixed block, int length, Field<P, byte[]> field, Predicate<Bytes> isPacked,
-                         BiConsumer<Bytes, byte[]> saysPacked) implements Place<P> {
+  /**
+   * The bytes after a block's fields, what in the block says whether they are packed, and where it says how many
+   * there are, or -1 for all there are.
+   */
+  private record Rest<P>(Fixed block, int lengthAt, int length, Field<P, byte[]> field, Predicate<Bytes> isPacked,
+                         Consumer<Bytes> saysPacked) implements Place<P> {
     public void read(SnapshotFile file, P part) {
       if (!file.has(block, block.length(), 1)) return;
       Bytes bytes = file.bytes(block);
-      byte[] kept = bytes.slice(block.length(), bytes.length() - block.length());
+      int there = bytes.length() - block.length();
+      byte[] kept = bytes.slice(block.length(), lengthAt < 0 ? there : Math.min(bytes.u32(lengthAt), there));
       field.set(part, isPacked.test(bytes) ? Codec.ZLIB.decode(kept, length) : Codec.RAW.decode(kept, length));
     }
 
@@ -288,7 +300,8 @@ public final class Layout<P> {
       byte[] rest = field.get(part);
       if (rest == null || !file.has(block)) return;
       byte[] packed = Codec.ZLIB.encode(rest);
-      saysPacked.accept(file.bytes(block), packed);
+      saysPacked.accept(file.bytes(block));
+      if (lengthAt >= 0) file.bytes(block).u32(lengthAt, packed.length);
       file.bytes(block).append(packed);
       file.wrote(block);
     }

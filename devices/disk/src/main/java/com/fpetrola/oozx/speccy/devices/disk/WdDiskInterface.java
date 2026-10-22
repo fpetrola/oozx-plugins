@@ -206,6 +206,20 @@ public abstract class WdDiskInterface extends PluggablePeripheral implements Dis
     return paged;
   }
 
+  /** Its ROM and RAM in or out, as its patch port leaves them: in only while its ROM is here. */
+  public void pagedIn(boolean in) {
+    if (in) page(); else unpage();
+  }
+
+  /** What its RAM holds, or null where it has none. */
+  public byte[] ram() {
+    return ram == null ? null : ram.bytes.clone();
+  }
+
+  public void ram(byte[] bytes) {
+    if (ram != null) ram.fill(bytes);
+  }
+
   protected void page() {
     if (!available) {
       return;

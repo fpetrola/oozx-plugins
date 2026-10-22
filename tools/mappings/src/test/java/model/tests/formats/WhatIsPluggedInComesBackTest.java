@@ -31,6 +31,8 @@ import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.mouse.KempstonMousePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
+import com.fpetrola.oozx.speccy.devices.plusd.MgtDiskInterface;
+import com.fpetrola.oozx.speccy.devices.plusd.PlusDPeripheral;
 import com.fpetrola.oozx.speccy.devices.printer.ZxPrinterPeripheral;
 import com.fpetrola.oozx.speccy.devices.scld.ScldPeripheral;
 import com.fpetrola.oozx.speccy.devices.scld.TimexMemoryPeripheral;
@@ -531,6 +533,55 @@ class WhatIsPluggedInComesBackTest {
     Libspectrum lib = Libspectrum.INSTANCE;
     assertEquals(List.of(0x49, 0x3e), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_out_scld_hsr(snap) & 0xff,
         lib.libspectrum_snap_out_scld_dec(snap) & 0xff)).orElseThrow());
+  }
+
+  /** Without GDOS here it cannot page in; the rest of it comes back, its RAM, its control register and its controller. */
+  @Test
+  void thePlusDWithItsRamAndItsController() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    PlusDPeripheral plusd = plugged(kept, PlusDPeripheral.class);
+    plusd.ram(pattern(110, MgtDiskInterface.RAM_SIZE));
+    plusd.control(0x81);
+    plusd.fdc().direction = Fdd.Dir.IN;
+    plusd.fdc().trackRegister = 7;
+    plusd.fdc().sectorRegister = 0x0a;
+    plusd.fdc().dataRegister = 0x5a;
+    plusd.fdc().statusRegister = 0x02;
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(PlusDPeripheral.class), "the file plugs it in");
+    assertEquals(described(plusd), described((PlusDPeripheral) opened.peripheralRegistry.find(PlusDPeripheral.class)));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(described(plusd), Reference.withSnap(file, "szx", snap -> {
+      assertEquals(List.of(1, MgtDiskInterface.DRIVES, 0), List.of(lib.libspectrum_snap_plusd_active(snap),
+          lib.libspectrum_snap_plusd_drive_count(snap), lib.libspectrum_snap_plusd_custom_rom(snap)));
+      return List.<Object>of(lib.libspectrum_snap_plusd_paged(snap) != 0, lib.libspectrum_snap_plusd_direction(snap) == 0,
+          lib.libspectrum_snap_plusd_control(snap) & 0xff, lib.libspectrum_snap_plusd_track(snap) & 0xff,
+          lib.libspectrum_snap_plusd_sector(snap) & 0xff, lib.libspectrum_snap_plusd_data(snap) & 0xff,
+          lib.libspectrum_snap_plusd_status(snap) & 0xff,
+          Arrays.hashCode(lib.libspectrum_snap_plusd_ram(snap, 0).getByteArray(0, MgtDiskInterface.RAM_SIZE)));
+    }).orElseThrow());
+  }
+
+  /** libspectrum's PLSD: its control register, its controller, and its RAM empty. */
+  @Test
+  void thePlusDOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/PLSD.szx")), opened, note -> { });
+
+    assertTrue(opened.peripheralRegistry.isActive(PlusDPeripheral.class), "the file plugs it in");
+    PlusDPeripheral plusd = (PlusDPeripheral) opened.peripheralRegistry.find(PlusDPeripheral.class);
+    assertEquals(List.of(0xbc, 7, 0x0a, 0xff, 0, Arrays.hashCode(new byte[MgtDiskInterface.RAM_SIZE])), described(plusd).subList(2, 8));
+  }
+
+  /** Whether it is paged in, whether the head steps out, its control register, its controller's four, and its RAM. */
+  private static List<Object> described(PlusDPeripheral plusd) {
+    return List.of(plusd.isPaged(), plusd.fdc().direction == Fdd.Dir.OUT, plusd.controlRegister(), plusd.fdc().trackRegister,
+        plusd.fdc().sectorRegister, plusd.fdc().dataRegister, plusd.fdc().statusRegister, Arrays.hashCode(plusd.ram()));
   }
 
   /** What the machine sees from the bottom of its memory up. */

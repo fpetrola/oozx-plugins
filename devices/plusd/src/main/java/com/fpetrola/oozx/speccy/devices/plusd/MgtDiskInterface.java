@@ -49,7 +49,7 @@ public abstract class MgtDiskInterface extends WdDiskInterface {
   }
 
   /** Writes the control register: drive select, side, printer strobe, plus board-specific bits. */
-  protected abstract void control(int b);
+  public abstract void control(int b);
 
   /** The patch port: reading pages this interface in, writing pages it out. */
   protected Wired patchPort(int port) {

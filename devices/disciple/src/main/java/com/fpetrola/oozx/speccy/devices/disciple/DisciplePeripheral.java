@@ -120,7 +120,7 @@ public class DisciplePeripheral extends MgtDiskInterface {
 
   /** Control register: bit 0 low selects drive 2, bit 1 side, bit 6 printer strobe, bit 4 inhibit. */
   @Override
-  protected void control(int b) {
+  public void control(int b) {
     controlRegister = b;
     selectDrive((b & 0x01) != 0 ? 0 : 1, (b & 0x02) != 0 ? 1 : 0);
     strobe((b & 0x40) != 0);
