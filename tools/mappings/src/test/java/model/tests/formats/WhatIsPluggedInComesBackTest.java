@@ -25,6 +25,7 @@ import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
 import com.fpetrola.oozx.speccy.devices.ide.DivPeripheral;
 import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
+import com.fpetrola.oozx.speccy.devices.mouse.KempstonMousePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.printer.ZxPrinterPeripheral;
@@ -412,6 +413,23 @@ class WhatIsPluggedInComesBackTest {
 
     assumeTrue(Reference.present(), "libspectrum is not installed here");
     assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_zx_printer_active).orElseThrow());
+  }
+
+  @Test
+  void theKempstonMouseIsThere() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, KempstonMousePeripheral.class);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(KempstonMousePeripheral.class), "the file plugs it in");
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/AMXM.szx")), fromLibspectrums, note -> { });
+    assertTrue(fromLibspectrums.peripheralRegistry.isActive(KempstonMousePeripheral.class), "libspectrum's AMXM plugs it in");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_kempston_mouse_active).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */
