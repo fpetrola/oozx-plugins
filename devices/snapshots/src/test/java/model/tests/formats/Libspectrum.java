@@ -170,6 +170,20 @@ public interface Libspectrum extends Library {
 
   int libspectrum_snap_zxmmc_active(Pointer snap);
 
+  int libspectrum_snap_divmmc_active(Pointer snap);
+
+  int libspectrum_snap_divmmc_eprom_writeprotect(Pointer snap);
+
+  int libspectrum_snap_divmmc_paged(Pointer snap);
+
+  byte libspectrum_snap_divmmc_control(Pointer snap);
+
+  NativeLong libspectrum_snap_divmmc_pages(Pointer snap);
+
+  Pointer libspectrum_snap_divmmc_eprom(Pointer snap, int idx);
+
+  Pointer libspectrum_snap_divmmc_ram(Pointer snap, int idx);
+
   int libspectrum_snap_zxcf_active(Pointer snap);
 
   int libspectrum_snap_zxcf_upload(Pointer snap);

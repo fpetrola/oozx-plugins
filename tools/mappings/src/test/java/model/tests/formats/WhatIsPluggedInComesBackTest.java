@@ -20,6 +20,8 @@ package model.tests.formats;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
+import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
+import com.fpetrola.oozx.speccy.devices.ide.DivPeripheral;
 import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
@@ -132,6 +134,47 @@ class WhatIsPluggedInComesBackTest {
     assertTrue(opened.peripheralRegistry.isActive(DivIdePeripheral.class), "the file plugs it in");
     assertEquals(List.of(false, 0xab, true, 0x12), List.of(divide.writeProtect(), divide.control(), divide.isPaged(),
         (int) divide.eprom()[0]));
+  }
+
+  @Test
+  void theDivmmcWithItsEpromAndItsPages() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    DivMmcPeripheral divmmc = plugged(kept, DivMmcPeripheral.class);
+    divmmc.eprom(pattern(41, 0x2000));
+    for (int page = 0; page < divmmc.ramPages(); page++) divmmc.ram(page, pattern(90 + page, 0x2000));
+    divmmc.control(0x8b);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(DivMmcPeripheral.class), "the file plugs it in");
+    assertEquals(described(divmmc), described((DivMmcPeripheral) opened.peripheralRegistry.find(DivMmcPeripheral.class)));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(described(divmmc), Reference.withSnap(file, "szx", snap -> {
+      assertEquals(1, lib.libspectrum_snap_divmmc_active(snap));
+      assertEquals(DivMmcPeripheral.RAM_PAGES, lib.libspectrum_snap_divmmc_pages(snap).intValue());
+      List<Object> said = new ArrayList<>(List.of(lib.libspectrum_snap_divmmc_eprom_writeprotect(snap) != 0,
+          lib.libspectrum_snap_divmmc_control(snap) & 0xff, lib.libspectrum_snap_divmmc_paged(snap) != 0,
+          Arrays.hashCode(lib.libspectrum_snap_divmmc_eprom(snap, 0).getByteArray(0, 0x2000))));
+      for (int page = 0; page < DivMmcPeripheral.RAM_PAGES; page++) {
+        said.add(Arrays.hashCode(lib.libspectrum_snap_divmmc_ram(snap, page).getByteArray(0, 0x2000)));
+      }
+      return said;
+    }).orElseThrow());
+  }
+
+  /** libspectrum's DMMC: paged in through its register, page count 2, and 0x34 first in its EPROM. */
+  @Test
+  void theDivmmcOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/DMMC.szx")), opened, note -> { });
+
+    DivMmcPeripheral divmmc = (DivMmcPeripheral) opened.peripheralRegistry.find(DivMmcPeripheral.class);
+    assertTrue(opened.peripheralRegistry.isActive(DivMmcPeripheral.class), "the file plugs it in");
+    assertEquals(List.of(false, 0xcd, true, 0x34), List.of(divmmc.writeProtect(), divmmc.control(), divmmc.isPaged(),
+        (int) divmmc.eprom()[0]));
   }
 
   @Test
@@ -288,7 +331,7 @@ class WhatIsPluggedInComesBackTest {
   }
 
   /** Its EPROM jumper, its register, whether it is paged in, its EPROM and each page of its RAM. */
-  private static List<Object> described(DivIdePeripheral divide) {
+  private static List<Object> described(DivPeripheral divide) {
     List<Object> said = new ArrayList<>(List.of(divide.writeProtect(), divide.control(), divide.isPaged(),
         Arrays.hashCode(divide.eprom())));
     for (int page = 0; page < divide.ramPages(); page++) said.add(Arrays.hashCode(divide.ram(page)));
