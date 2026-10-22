@@ -36,6 +36,7 @@ public class SpecDrumPeripheral extends PluggablePeripheral implements DacDevice
   public static final double FULL_SCALE = 128 * 128;
 
   private final Sound sound;
+  private final Z80Clock clock;
   private int volume;
   private Dac dac;
 
@@ -43,13 +44,23 @@ public class SpecDrumPeripheral extends PluggablePeripheral implements DacDevice
   public SpecDrumPeripheral(Sound sound, Z80Clock clock) {
     super(List.of());
     this.sound = sound;
+    this.clock = clock;
     ports(Wired.at(0x00ff, 0x00df, new DefaultPortHandler(false, true) {
       public void write(int port, byte b) {
-        if (dac != null) {
-          dac.write(clock.getTStates(), ((b & 0xff) - 128) * 128);
-        }
+        written(b & 0xff);
       }
     }));
+  }
+
+  /** The byte last written to its port, 128 being silence. */
+  public int written() {
+    return dac == null ? 128 : dac.level() / 128 + 128;
+  }
+
+  public void written(int value) {
+    if (dac != null) {
+      dac.write(clock.getTStates(), (value - 128) * 128);
+    }
   }
 
   /** A 48K or a 128: not the Amstrad machines, not a clone. */

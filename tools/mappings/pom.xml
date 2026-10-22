@@ -90,6 +90,11 @@
             <artifactId>device-covox</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-specdrum</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- The fixtures the formats are held to, and the machines they land on. -->
         <dependency>
             <groupId>com.fpetrola</groupId>
@@ -140,13 +145,7 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
-        <!-- Something plugged in by its window, something by a setting, and more windows to clip on. -->
-        <dependency>
-            <groupId>com.fpetrola</groupId>
-            <artifactId>device-specdrum</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
+        <!-- Something plugged in by a setting, and more windows to clip on. -->
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>device-mouse</artifactId>

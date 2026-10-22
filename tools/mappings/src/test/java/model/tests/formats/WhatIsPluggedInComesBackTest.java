@@ -28,6 +28,7 @@ import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
+import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
@@ -344,6 +345,27 @@ class WhatIsPluggedInComesBackTest {
     Libspectrum lib = Libspectrum.INSTANCE;
     assertEquals(List.of(1, 0xc0), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_covox_active(snap),
         lib.libspectrum_snap_covox_dac(snap) & 0xff)).orElseThrow());
+  }
+
+  @Test
+  void theSpecdrumWithTheLastByteWrittenToIt() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, SpecDrumPeripheral.class).written(0x31);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(SpecDrumPeripheral.class), "the file plugs it in");
+    assertEquals(0x31, ((SpecDrumPeripheral) opened.peripheralRegistry.find(SpecDrumPeripheral.class)).written());
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/DRUM.szx")), fromLibspectrums, note -> { });
+    assertEquals(0x45, ((SpecDrumPeripheral) fromLibspectrums.peripheralRegistry.find(SpecDrumPeripheral.class)).written(),
+        "libspectrum's DRUM, which it reads as -0x3b");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(List.of(1, 0x31 - 128), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_specdrum_active(snap),
+        (int) lib.libspectrum_snap_specdrum_dac(snap))).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */
