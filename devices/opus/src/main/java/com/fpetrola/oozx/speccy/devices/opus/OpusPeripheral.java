@@ -124,6 +124,25 @@ public class OpusPeripheral extends WdDiskInterface {
         new MappedMemory(0x2800, controller), new MappedMemory(0x3000, pia)};
   }
 
+  /** The 6821's six registers as they stand: each side's control, data and direction. */
+  public record Pia(int controlA, int dataA, int directionA, int controlB, int dataB, int directionB) {
+  }
+
+  public Pia pia() {
+    return new Pia(controlA, dataRegA, dataDirA, controlB, dataRegB, dataDirB);
+  }
+
+  /** The registers as they were, with the drive and side the data on side A last chose. */
+  public void pia(Pia pia) {
+    controlA = pia.controlA();
+    dataRegA = pia.dataA();
+    dataDirA = pia.directionA();
+    controlB = pia.controlB();
+    dataRegB = pia.dataB();
+    dataDirB = pia.directionB();
+    selectDrive((dataRegA & 0x02) == 2 ? 1 : 0, (dataRegA & 0x10) != 0 ? 1 : 0);
+  }
+
   /** PIA register write: port A selects drive and side, port B drives the printer. */
   private void piaWrite(int reg, int data) {
     switch (reg) {

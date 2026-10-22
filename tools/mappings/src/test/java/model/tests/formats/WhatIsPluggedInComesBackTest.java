@@ -31,6 +31,7 @@ import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.mouse.KempstonMousePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
+import com.fpetrola.oozx.speccy.devices.opus.OpusPeripheral;
 import com.fpetrola.oozx.speccy.devices.plusd.MgtDiskInterface;
 import com.fpetrola.oozx.speccy.devices.plusd.PlusDPeripheral;
 import com.fpetrola.oozx.speccy.devices.printer.ZxPrinterPeripheral;
@@ -582,6 +583,58 @@ class WhatIsPluggedInComesBackTest {
   private static List<Object> described(PlusDPeripheral plusd) {
     return List.of(plusd.isPaged(), plusd.fdc().direction == Fdd.Dir.OUT, plusd.controlRegister(), plusd.fdc().trackRegister,
         plusd.fdc().sectorRegister, plusd.fdc().dataRegister, plusd.fdc().statusRegister, Arrays.hashCode(plusd.ram()));
+  }
+
+  /** Without its ROM here it cannot page in; its RAM, its PIA and its controller come back. */
+  @Test
+  void theOpusWithItsRamItsPiaAndItsController() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    OpusPeripheral opus = plugged(kept, OpusPeripheral.class);
+    opus.ram(pattern(120, OpusPeripheral.RAM_SIZE));
+    opus.pia(new OpusPeripheral.Pia(0xca, 0xfe, 0xef, 0xbd, 0xdb, 0xb7));
+    opus.fdc().direction = Fdd.Dir.IN;
+    opus.fdc().trackRegister = 5;
+    opus.fdc().sectorRegister = 0x11;
+    opus.fdc().dataRegister = 0x22;
+    opus.fdc().statusRegister = 0x33;
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(OpusPeripheral.class), "the file plugs it in");
+    assertEquals(described(opus), described((OpusPeripheral) opened.peripheralRegistry.find(OpusPeripheral.class)));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(described(opus), Reference.withSnap(file, "szx", snap -> {
+      assertEquals(List.of(1, OpusPeripheral.DRIVES, 0), List.of(lib.libspectrum_snap_opus_active(snap),
+          lib.libspectrum_snap_opus_drive_count(snap), lib.libspectrum_snap_opus_custom_rom(snap)));
+      return List.<Object>of(lib.libspectrum_snap_opus_paged(snap) != 0, lib.libspectrum_snap_opus_direction(snap) == 0,
+          new OpusPeripheral.Pia(lib.libspectrum_snap_opus_control_a(snap) & 0xff, lib.libspectrum_snap_opus_data_reg_a(snap) & 0xff,
+              lib.libspectrum_snap_opus_data_dir_a(snap) & 0xff, lib.libspectrum_snap_opus_control_b(snap) & 0xff,
+              lib.libspectrum_snap_opus_data_reg_b(snap) & 0xff, lib.libspectrum_snap_opus_data_dir_b(snap) & 0xff),
+          lib.libspectrum_snap_opus_track(snap) & 0xff, lib.libspectrum_snap_opus_sector(snap) & 0xff,
+          lib.libspectrum_snap_opus_data(snap) & 0xff, lib.libspectrum_snap_opus_status(snap) & 0xff,
+          Arrays.hashCode(lib.libspectrum_snap_opus_ram(snap, 0).getByteArray(0, OpusPeripheral.RAM_SIZE)));
+    }).orElseThrow());
+  }
+
+  /** libspectrum's OPUS: its PIA and its controller as its tests read them, and its RAM empty. */
+  @Test
+  void theOpusOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/OPUS.szx")), opened, note -> { });
+
+    assertTrue(opened.peripheralRegistry.isActive(OpusPeripheral.class), "the file plugs it in");
+    OpusPeripheral opus = (OpusPeripheral) opened.peripheralRegistry.find(OpusPeripheral.class);
+    assertEquals(List.of(new OpusPeripheral.Pia(0xca, 0xfe, 0xef, 0xbd, 0xdb, 0xb7), 5, 0x11, 0x22, 0x33,
+        Arrays.hashCode(new byte[OpusPeripheral.RAM_SIZE])), described(opus).subList(2, 8));
+  }
+
+  /** Whether it is paged in, whether the head steps out, its PIA, its controller's four, and its RAM. */
+  private static List<Object> described(OpusPeripheral opus) {
+    return List.of(opus.isPaged(), opus.fdc().direction == Fdd.Dir.OUT, opus.pia(), opus.fdc().trackRegister,
+        opus.fdc().sectorRegister, opus.fdc().dataRegister, opus.fdc().statusRegister, Arrays.hashCode(opus.ram()));
   }
 
   /** What the machine sees from the bottom of its memory up. */
