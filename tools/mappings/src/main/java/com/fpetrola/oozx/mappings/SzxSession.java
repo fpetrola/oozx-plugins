@@ -22,6 +22,7 @@ import com.fpetrola.oozx.EmulatorControl;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.formats.SnapshotFile;
+import com.fpetrola.oozx.plugins.Plugins;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
@@ -256,8 +257,7 @@ public final class SzxSession implements Session {
       around.put(key + "side", window.dockedTo().name());
       around.put(key + "width", String.valueOf(window.getWidth()));
       around.put(key + "height", String.valueOf(window.getHeight()));
-      around.put(key + "compact", String.valueOf(window.isCompact()));
-      around.put(key + "expanded", String.valueOf(window.expandedHeight()));
+      keepFolding(window, key, around);
     }
   }
 
@@ -267,10 +267,42 @@ public final class SzxSession implements Session {
       String key = "equipment." + at + ".";
       MachineFrame window = Desk.theOne().equipment(around.get(key + "kind"));
       if (window == null) continue;
-      window.setCompact(Boolean.parseBoolean(around.get(key + "compact")), Integer.parseInt(around.get(key + "expanded")));
+      fold(window, key, around);
       window.setSize(Integer.parseInt(around.get(key + "width")), Integer.parseInt(around.get(key + "height")));
       window.attachTo(onto, AttachedFrame.Dock.valueOf(around.get(key + "side")));
     }
+  }
+
+  /**
+   * Any other window of the desk: the name the desk opened it under, how it folds, and what the
+   * mapping of its kind says it has inside. One clipped onto a machine goes with the machine.
+   */
+  @Override
+  public Map<String, String> keep(JInternalFrame window) {
+    String kind = Desk.theOne().nameOf(window);
+    if (kind == null || window instanceof AttachedFrame clipped && clipped.isAttached()) return Map.of();
+    Map<String, String> kept = new TreeMap<>(Map.of("kind", kind));
+    if (window instanceof AttachedFrame folding) keepFolding(folding, "", kept);
+    Plugins.found(WindowInside.class).forEach(inside -> inside.keep(window, kept));
+    return kept;
+  }
+
+  @Override
+  public JInternalFrame bringBack(Map<String, String> kept) {
+    JInternalFrame window = kept.containsKey("kind") ? Desk.theOne().window(kept.get("kind")) : null;
+    if (window instanceof AttachedFrame folding) fold(folding, "", kept);
+    if (window != null) Plugins.found(WindowInside.class).forEach(inside -> inside.bringBack(window, kept));
+    return window;
+  }
+
+  private static void keepFolding(AttachedFrame window, String key, Map<String, String> around) {
+    around.put(key + "compact", String.valueOf(window.isCompact()));
+    around.put(key + "expanded", String.valueOf(window.expandedHeight()));
+  }
+
+  private static void fold(AttachedFrame window, String key, Map<String, String> around) {
+    if (around.containsKey(key + "compact"))
+      window.setCompact(Boolean.parseBoolean(around.get(key + "compact")), Integer.parseInt(around.get(key + "expanded")));
   }
 
   /** How far along its side a window sits, which is the order of the windows sharing it. */

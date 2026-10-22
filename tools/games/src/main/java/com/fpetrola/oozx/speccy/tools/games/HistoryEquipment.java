@@ -35,10 +35,6 @@ public class HistoryEquipment implements DeskEquipment {
     return new HistoryFrame();
   }
 
-  public String keeps() {
-    return "SNAPSHOT_HISTORY";
-  }
-
   @Override
   public Icon icon() {
     return Widgets.loadIcon("E260.svg");

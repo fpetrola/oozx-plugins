@@ -35,10 +35,6 @@ public class FavoritesEquipment implements DeskEquipment {
     return new FavoritesFrame();
   }
 
-  public String keeps() {
-    return "FAVORITES";
-  }
-
   @Override
   public Icon icon() {
     return Widgets.loadIcon("2B50.svg");

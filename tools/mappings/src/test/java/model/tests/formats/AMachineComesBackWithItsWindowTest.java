@@ -18,6 +18,7 @@
 package model.tests.formats;
 
 import com.fpetrola.oozx.Speccy;
+import com.fpetrola.oozx.api.KnowsTheGames;
 import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.formats.CoreFields;
 import com.fpetrola.oozx.mappings.SzxSession;
@@ -42,6 +43,7 @@ import com.fpetrola.oozx.speccy.peripherals.MockEmulatorCore;
 import com.fpetrola.oozx.speccy.pokes.PokFile;
 import com.fpetrola.oozx.speccy.pokes.PokesTool;
 import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
+import com.fpetrola.oozx.speccy.tools.games.GamesFrame;
 import com.fpetrola.oozx.speccy.windows.AttachedFrame;
 import org.junit.jupiter.api.Test;
 
@@ -119,17 +121,31 @@ class AMachineComesBackWithItsWindowTest {
   }
 
   /**
-   * A desk offering a few pieces of equipment, on a desktop of its own, that keeps the windows it
-   * opened of each: what the application's does with them and nothing more. It hands back the
-   * ones clipped onto a machine in no particular order, as the application's do: newest first here.
+   * A desk offering a few pieces of equipment and the game browser, on a desktop of its own, that
+   * keeps the windows it opened of each: what the application's does with them and nothing more. It
+   * hands back the ones clipped onto a machine in no particular order, as the application's do:
+   * newest first here.
    */
-  record Desktop(JDesktopPane pane, Map<MachineFrame, String> opened) implements Desk {
+  record Desktop(JDesktopPane pane, Map<MachineFrame, String> opened, Map<JInternalFrame, String> ofTheDesk) implements Desk {
     static final Map<String, Equipment> OFFERED = Map.of("SpecDrum", new SpecDrumEquipment(),
         "ZX Printer", new PrinterEquipment(), "Kempston Mouse", new MouseEquipment());
 
     Desktop() {
-      this(new JDesktopPane(), new LinkedHashMap<>());
+      this(new JDesktopPane(), new LinkedHashMap<>(), new LinkedHashMap<>());
       pane.setSize(1600, 1200);
+    }
+
+    public String nameOf(JInternalFrame window) {
+      return opened.containsKey(window) ? opened.get(window) : ofTheDesk.get(window);
+    }
+
+    public JInternalFrame window(String name) {
+      if (!name.equals("Game Browser")) return equipment(name);
+      GamesFrame window = new GamesFrame();
+      ofTheDesk.put(window, name);
+      pane.add(window);
+      window.setVisible(true);
+      return window;
     }
 
     public Map<MachineFrame, String> equipmentOn(EmulatorWindow machine) {
@@ -347,6 +363,46 @@ class AMachineComesBackWithItsWindowTest {
   private static List<String> asLeft(Stream<MachineFrame> windows) {
     return windows.map(window -> window.getTitle() + " " + window.dockedTo() + " " + window.getBounds()
         + (window.isCompact() ? " compact" : " expanded") + " to " + window.expandedHeight()).sorted().toList();
+  }
+
+  /**
+   * The other windows of the desk: one of equipment comes back folded as it was, and the game
+   * browser looking for what it was. One clipped onto a machine goes with the machine, and one the
+   * desk did not open is not kept.
+   */
+  @Test
+  void theOtherWindowsOfTheDeskComeBackAsTheyWereLeft() throws Exception {
+    try {
+      Desktop desk = new Desktop();
+      GamesFrame.Search looking = new GamesFrame.Search("dizzy", "On this machine", "Most known",
+          new KnowsTheGames.Slice(1987, "Arcade: Platform", "ZX-Spectrum 48K"), true, false, false, true, false);
+      List<Map<String, String>> kept = onTheEventThread(() -> {
+        Desk.isRunBy(desk);
+        desk.equipment("ZX Printer").setCompact(false, 230);
+        ((GamesFrame) desk.window("Game Browser")).search(looking);
+        Window machine = kept();
+        desk.pane().add(machine);
+        desk.equipment("SpecDrum").attachTo(machine, AttachedFrame.Dock.BOTTOM);
+        desk.pane().add(new JInternalFrame("Loose"));
+        SzxSession session = new SzxSession();
+        return Stream.of(desk.pane().getAllFrames()).map(session::keep).filter(inside -> !inside.isEmpty()).toList();
+      });
+      assertEquals(2, kept.size(), "the printer and the browser: " + kept);
+
+      Desktop another = new Desktop();
+      List<JInternalFrame> back = onTheEventThread(() -> {
+        Desk.isRunBy(another);
+        SzxSession session = new SzxSession();
+        return kept.stream().map(session::bringBack).toList();
+      });
+      MachineFrame printer = back.stream().filter(MachineFrame.class::isInstance).map(MachineFrame.class::cast).findFirst().orElseThrow();
+      assertEquals("ZX Printer expanded to 230", another.opened().get(printer)
+          + (printer.isCompact() ? " compact" : " expanded") + " to " + printer.expandedHeight());
+      GamesFrame games = back.stream().filter(GamesFrame.class::isInstance).map(GamesFrame.class::cast).findFirst().orElseThrow();
+      assertEquals(looking, onTheEventThread(games::search));
+    } finally {
+      Desk.isRunBy(null);
+    }
   }
 
   @Test

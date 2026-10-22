@@ -35,10 +35,6 @@ public class SettingsEquipment implements DeskEquipment {
     return new SettingsInternalFrame();
   }
 
-  public String keeps() {
-    return "SETTINGS";
-  }
-
   @Override
   public Icon icon() {
     return Widgets.loadIcon("2699.svg");

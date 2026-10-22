@@ -19,7 +19,6 @@ package com.fpetrola.oozx.speccy.tools.games;
 
 import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.Desk;
-import com.fpetrola.oozx.speccy.devices.KeepsItsPlace;
 
 import javax.swing.*;
 import javax.swing.table.AbstractTableModel;
@@ -32,7 +31,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-public class HistoryFrame extends JInternalFrame implements KeepsItsPlace {
+public class HistoryFrame extends JInternalFrame {
   private final OOZxConfiguration config = Desk.theOne().configuration();
   private JTable historyTable;
   private SnapshotHistoryTableModel tableModel;
@@ -216,22 +215,6 @@ public class HistoryFrame extends JInternalFrame implements KeepsItsPlace {
     tableModel.clear();
     for (OOZxConfiguration.SnapshotHistoryEntry entry : config.getSnapshotHistory().values()) {
       tableModel.addEntry(entry);
-    }
-  }
-
-  public OOZxConfiguration.WindowState saveWindowState() {
-    return new OOZxConfiguration.WindowState(
-        "SNAPSHOT_HISTORY", getX(), getY(), getWidth(), getHeight());
-  }
-
-  public void restoreWindowState(OOZxConfiguration.WindowState state) {
-    if (state != null) {
-      if (state.getWidth() > 0 && state.getHeight() > 0) {
-        setSize(state.getWidth(), state.getHeight());
-      }
-      if (state.getX() >= 0 && state.getY() >= 0) {
-        setLocation(state.getX(), state.getY());
-      }
     }
   }
 

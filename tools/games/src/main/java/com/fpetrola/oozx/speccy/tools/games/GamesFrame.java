@@ -23,12 +23,10 @@ import com.fpetrola.oozx.api.GameLibrary;
 import com.fpetrola.oozx.speccy.media.DownloadAndUnzip;
 import com.fpetrola.oozx.speccy.media.LocalGames;
 import com.fpetrola.oozx.speccy.windows.LazyImageIconLoader;
-import com.fpetrola.oozx.speccy.windows.Widgets;
 import com.fpetrola.oozx.api.*;
 import com.fpetrola.oozx.rzx.RzxArchive;
 import com.fpetrola.oozx.rzx.RzxOption;
 import com.fpetrola.oozx.rzx.RzxRecording;
-import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
@@ -58,7 +56,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 // --- NEW: Game Browser Internal Frame ---
-public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.speccy.devices.KeepsItsPlace {
+public class GamesFrame extends JInternalFrame {
   private JTextField searchField;
   private JButton searchButton;
   private JProgressBar searchProgress;
@@ -81,6 +79,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   private JCheckBox rzxFilter;
   private JCheckBox mapFilter;
   private JCheckBox loadableFilter;
+  /** While a whole search is put in the controls, so that each one chosen does not search on its own. */
+  private boolean choosingAll;
 
   /**
    * First entry of each filter combo, meaning "do not narrow by this". They name what they
@@ -301,7 +301,9 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     // Machine, genre and year change the query, so they need the server asked again. The rest only
     // narrow what came back, but the results are not kept, so a search is the simplest honest
     // way to reapply them.
-    ActionListener research = e -> performSearch();
+    ActionListener research = e -> {
+      if (!choosingAll) performSearch();
+    };
     machineFilter.addActionListener(research);
     genreFilter.addActionListener(research);
     yearFilter.addActionListener(research);
@@ -774,9 +776,7 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
       }
 
       private void fill(JComboBox<String> combo, List<String> values) {
-        for (String value : values) {
-          combo.addItem(value);
-        }
+        values.stream().filter(value -> !listed(combo, value)).forEach(combo::addItem);
       }
     }.execute();
   }
@@ -790,12 +790,8 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
   }
 
   private void performSearch() {
-    String query = searchField.getText().trim();
-    String where = String.valueOf(sourceFilter.getSelectedItem());
-    boolean net = !ON_THIS_MACHINE.equals(where);
-    boolean machine = !ON_THE_NET.equals(where);
-    boolean onlyUnknown = unknownFilter.isSelected();
-    boolean onlyColour = colourFilter.isSelected();
+    Search now = search();
+    String query = now.words();
     // An empty box is everything: the games on this machine, and on the net the catalogue from
     // its first page, which is as much as one question to it brings.
 
@@ -804,17 +800,11 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
       runningSearch.cancel(true);
     }
 
-    String year = selected(yearFilter);
-    KnowsTheGames.Slice slice = new KnowsTheGames.Slice(year == null ? null : Integer.valueOf(year),
-        selected(genreFilter), selected(machineFilter));
-    boolean onTheNet = net;
-    boolean onThisMachine = machine;
-    boolean onlyRzx = rzxFilter.isSelected();
-    boolean onlyMap = mapFilter.isSelected();
-    boolean onlyLoadable = loadableFilter.isSelected();
+    KnowsTheGames.Slice slice = now.slice();
+    String year = slice.year() == null ? null : String.valueOf(slice.year());
+    String sortedBy = now.order();
 
     setSearching(true);
-    Object sortedBy = order.getSelectedItem();
     showMessage(query.isEmpty() ? "Looking at everything..." : "Searching for \"" + query + "\"...");
 
     SwingWorker<List<GameSearchResult>, Void> search = new SwingWorker<>() {
@@ -825,10 +815,10 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         // the search had even started. Reading the library is quick, but it goes the same way
         // so that both sources arrive by the same door.
         List<GameSearchResult> found = new ArrayList<>();
-        if (onThisMachine) {
-          found.addAll(gamesOnThisMachine(query, onlyUnknown, year));
+        if (!ON_THE_NET.equals(now.where())) {
+          found.addAll(gamesOnThisMachine(query, now.unknown(), year));
         }
-        if (onTheNet) {
+        if (!ON_THIS_MACHINE.equals(now.where())) {
           // In an order that is not the catalogue's own: the web service answers with its first
           // hundred and fifty titles alphabetically, none of which anybody knows, so the most voted
           // that match are asked for too, from all of it.
@@ -875,13 +865,13 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
         // broken; what a game on the disk offers is known too, and offline: its recordings from
         // the archive that ships, its map from the catalogue that ships.
         results.removeIf(result ->
-            (onlyColour && !result.inColour)
-                || (onlyRzx && !result.hasRzx)
-                || (onlyMap && !result.hasMap)
+            (now.colour() && !result.inColour)
+                || (now.rzx() && !result.hasRzx)
+                || (now.map() && !result.hasMap)
                 // Not merely "has a file": one the archive will not hand over cannot be
                 // loaded either, and a filter for what can be loaded that still shows those is
                 // a filter that lies.
-                || (onlyLoadable && (result.filename == null || !result.available)));
+                || (now.loadable() && (result.filename == null || !result.available)));
 
         if (results.isEmpty()) {
           showMessage(found == 0
@@ -1371,30 +1361,49 @@ public class GamesFrame extends JInternalFrame implements com.fpetrola.oozx.spec
     lazyImageIconLoader.execute();
   }
 
-  public void setSearchQuery(String query) {
-    searchField.setText(query);
+  /**
+   * What it is looking for, as its controls say it: the words, where, in what order, the slice the
+   * catalogue is asked for, and what narrows what comes back.
+   */
+  public record Search(String words, String where, String order, KnowsTheGames.Slice slice,
+                       boolean rzx, boolean map, boolean loadable, boolean unknown, boolean colour) {
+  }
+
+  public Search search() {
+    String year = selected(yearFilter);
+    return new Search(searchField.getText().trim(), String.valueOf(sourceFilter.getSelectedItem()),
+        String.valueOf(order.getSelectedItem()),
+        new KnowsTheGames.Slice(year == null ? null : Integer.valueOf(year), selected(genreFilter), selected(machineFilter)),
+        rzxFilter.isSelected(), mapFilter.isSelected(), loadableFilter.isSelected(), unknownFilter.isSelected(),
+        colourFilter.isSelected());
+  }
+
+  /** Looks for that: every control as it says, and a single search. */
+  public void search(Search search) {
+    choosingAll = true;
+    searchField.setText(search.words());
+    sourceFilter.setSelectedItem(search.where());
+    order.setSelectedItem(search.order());
+    choose(machineFilter, search.slice().machine());
+    choose(genreFilter, search.slice().genre());
+    choose(yearFilter, search.slice().year() == null ? null : String.valueOf(search.slice().year()));
+    rzxFilter.setSelected(search.rzx());
+    mapFilter.setSelected(search.map());
+    loadableFilter.setSelected(search.loadable());
+    unknownFilter.setSelected(search.unknown());
+    colourFilter.setSelected(search.colour());
+    choosingAll = false;
     performSearch();
   }
 
-  @Override
-  public OOZxConfiguration.WindowState saveWindowState() {
-    OOZxConfiguration.WindowState state = new OOZxConfiguration.WindowState(
-        "GAME_BROWSER", getX(), getY(), getWidth(), getHeight());
-    state.setSearchQuery(searchField.getText());
-    state.setZOrder(Widgets.zOrderOf(this));
-    return state;
+  /** That one chosen, or the first, which narrows nothing: one the catalogue's lists have not brought yet goes in. */
+  private static void choose(JComboBox<String> combo, String value) {
+    if (value != null && !listed(combo, value)) combo.addItem(value);
+    if (value == null) combo.setSelectedIndex(0);
+    else combo.setSelectedItem(value);
   }
 
-  @Override
-  public void restoreWindowState(OOZxConfiguration.WindowState state) {
-    if (state.getWidth() > 0 && state.getHeight() > 0) {
-      setSize(state.getWidth(), state.getHeight());
-    }
-    if (state.getX() >= 0 && state.getY() >= 0) {
-      setLocation(state.getX(), state.getY());
-    }
-    if (state.getSearchQuery() != null && !state.getSearchQuery().isEmpty()) {
-      setSearchQuery(state.getSearchQuery());
-    }
+  private static boolean listed(JComboBox<String> combo, String value) {
+    return ((DefaultComboBoxModel<String>) combo.getModel()).getIndexOf(value) >= 0;
   }
 }

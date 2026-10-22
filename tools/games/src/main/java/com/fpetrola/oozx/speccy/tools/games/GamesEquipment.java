@@ -34,11 +34,6 @@ public class GamesEquipment implements DeskEquipment {
     return new GamesFrame();
   }
 
-  /** What layouts saved before this was a plugin call it. */
-  public String keeps() {
-    return "GAME_BROWSER";
-  }
-
   /** Su boton en la barra del escritorio. */
   @Override
   public javax.swing.Icon icon() {
