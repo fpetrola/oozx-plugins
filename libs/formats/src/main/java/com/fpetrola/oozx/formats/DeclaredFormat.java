@@ -70,6 +70,7 @@ public abstract class DeclaredFormat implements SnapshotFormat {
     become(speccy, file);
     List<Mapping> mappings = mappings();
     mappings.forEach(mapping -> mapping.plug(file, speccy));
+    if (speccy.peripheralRegistry.update()) speccy.machine.reset(true);
     Bindings bindings = bindingsWith(mappings);
     speccy.accept(part -> bindings.apply(part, Direction.reading(file)));
     file.notes().forEach(notes);

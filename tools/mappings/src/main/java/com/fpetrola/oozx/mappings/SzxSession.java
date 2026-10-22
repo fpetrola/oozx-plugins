@@ -125,8 +125,8 @@ public final class SzxSession implements Session {
 
   /**
    * What has to be in place before the machine is walked, from the block a session wrote: the
-   * machine and its ROMs, its settings, and what is plugged into it, with the reset that plugging
-   * some devices in asks for, as it did when they were plugged in the first place.
+   * machine and its ROMs, its settings, and what is plugged into it. The format switches it on, with
+   * the reset that plugging some devices in asks for, as it did when they were plugged in first.
    */
   static void plug(byte[] block, Speccy speccy, SnapshotFile file) {
     Map<String, String> around = around(block);
@@ -148,7 +148,6 @@ public final class SzxSession implements Session {
       here.stream().filter(device -> device.getClass().getName().equals(named)).findFirst()
           .ifPresentOrElse(device -> device.plugIn(true), () -> file.note("this build has no " + named + " to plug in"));
     }
-    if (speccy.peripheralRegistry.update()) speccy.machine.reset(true);
   }
 
   private static void becomes(Map<String, String> around, Speccy speccy, SnapshotFile file) {

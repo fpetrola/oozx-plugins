@@ -30,7 +30,7 @@ import com.sun.jna.ptr.PointerByReference;
  * format, and say what it read, field by field. Bound here rather than borrowed from the bridge,
  * which only has the five accessors it needed.
  */
-interface Libspectrum extends Library {
+public interface Libspectrum extends Library {
 
   /** libspectrum_id_t, counted from its header: DSK is 6, the CPC ones came later and went to the end. */
   int SNA = 2, Z80 = 3, SP = 12, SZX = 15;
@@ -135,4 +135,30 @@ interface Libspectrum extends Library {
   int libspectrum_snap_joystick_list(Pointer snap, int idx);
 
   Pointer libspectrum_snap_pages(Pointer snap, int idx);
+
+  int libspectrum_snap_custom_rom(Pointer snap);
+
+  Pointer libspectrum_snap_roms(Pointer snap, int idx);
+
+  NativeLong libspectrum_snap_rom_length(Pointer snap, int idx);
+
+  Pointer libspectrum_snap_zxatasp_ram(Pointer snap, int idx);
+
+  Pointer libspectrum_snap_interface2_rom(Pointer snap, int idx);
+
+  int libspectrum_snap_simpleide_active(Pointer snap);
+
+  int libspectrum_snap_divide_paged(Pointer snap);
+
+  byte libspectrum_snap_divide_control(Pointer snap);
+
+  Pointer libspectrum_snap_divide_eprom(Pointer snap, int idx);
+
+  Pointer libspectrum_snap_divide_ram(Pointer snap, int idx);
+
+  int libspectrum_snap_multiface_paged(Pointer snap);
+
+  Pointer libspectrum_snap_multiface_ram(Pointer snap, int idx);
+
+  NativeLong libspectrum_snap_multiface_ram_length(Pointer snap, int idx);
 }

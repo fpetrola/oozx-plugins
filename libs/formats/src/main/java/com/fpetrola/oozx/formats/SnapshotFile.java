@@ -28,9 +28,10 @@ import java.util.Set;
 import java.util.TreeMap;
 
 /**
- * A file of a format, understood: its fixed stretches by name and its pages by bank, and what was
- * left out on the way. Reading, it is filled whole from the bytes before the machine is touched;
- * writing, the machine's parts fill it and then it is put together in order.
+ * A file of a format, understood: its fixed stretches by name, its pages by bank, the pages of what
+ * is plugged in by block and number, and what was left out on the way. Reading, it is filled whole
+ * from the bytes before the machine is touched; writing, the machine's parts fill it and then it is
+ * put together in order.
  */
 public final class SnapshotFile {
 
@@ -38,6 +39,7 @@ public final class SnapshotFile {
   private final Map<Fixed, Bytes> fixed = new HashMap<>();
   private final Set<Fixed> written = new java.util.HashSet<>();
   private final Map<Integer, byte[]> pages = new TreeMap<>();
+  private final Map<Fixed, Map<Integer, byte[]>> paged = new HashMap<>();
   private final Set<Integer> placedOrWritten = new LinkedHashSet<>();
   private final List<String> notes = new ArrayList<>();
   private final Map<String, byte[]> carried = new java.util.LinkedHashMap<>();
@@ -123,6 +125,18 @@ public final class SnapshotFile {
       throw new Refused("a page of " + bytes.length + " bytes");
     }
     pages.put(bank, bytes.clone());
+  }
+
+  /** The pages the file has of that block, by number. */
+  public Map<Integer, byte[]> pages(Fixed block) {
+    return java.util.Collections.unmodifiableMap(paged.getOrDefault(block, Map.of()));
+  }
+
+  public void page(Fixed block, int number, byte[] bytes) {
+    if (bytes.length != block.length()) {
+      throw new Refused("a page of " + block + " of " + bytes.length + " bytes, where they are " + block.length());
+    }
+    paged.computeIfAbsent(block, any -> new TreeMap<>()).put(number, bytes.clone());
   }
 
   /** The RAM from 0x4000 as a 48K sees it, over the file's banks 5, 2 and 0: what a rule reads the stack from. */

@@ -20,7 +20,7 @@ package com.fpetrola.oozx.formats;
 /**
  * A stretch of fixed length, whose bytes the tables of the parts read and write at offsets. A
  * virtual one is not in the file: a rule fills it or empties it, like the PC a 48K SNA keeps on the
- * stack.
+ * stack. A paged one is in the file once a page, each page that long.
  */
 public final class Fixed implements Region {
 
@@ -28,36 +28,47 @@ public final class Fixed implements Region {
   private final int start;
   private final int length;
   private final boolean virtual;
+  private final boolean paged;
 
-  private Fixed(String name, int start, int length, boolean virtual) {
+  private Fixed(String name, int start, int length, boolean virtual, boolean paged) {
     this.name = name;
     this.start = start;
     this.length = length;
     this.virtual = virtual;
+    this.paged = paged;
   }
 
   /** A stretch of that length, its offsets counted from where it starts. */
   public static Fixed of(String name, int length) {
-    return new Fixed(name, 0, length, false);
+    return new Fixed(name, 0, length, false, false);
   }
 
   /** A stretch from one offset of the file to another, its offsets the file's. */
   public static Fixed span(String name, int from, int to) {
-    return new Fixed(name, from, to - from, false);
+    return new Fixed(name, from, to - from, false, false);
   }
 
   /** A stretch no file has, that a rule fills when reading and empties when writing. */
   public static Fixed virtual(String name, int length) {
-    return new Fixed(name, 0, length, true);
+    return new Fixed(name, 0, length, true, false);
+  }
+
+  /** The memory of something plugged in, a page of that length at a time, each by its number. */
+  public static Fixed pages(String name, int pageLength) {
+    return new Fixed(name, 0, pageLength, false, true);
   }
 
   public int length() {
     return length;
   }
 
+  public boolean isPaged() {
+    return paged;
+  }
+
   /** The same stretch, ending at that offset of the file: what a version of a format that says less has of it. */
   public Fixed upTo(int end) {
-    return new Fixed(name, start, end - start, virtual);
+    return new Fixed(name, start, end - start, virtual, paged);
   }
 
   /** Whether it reaches that far: a place past where a version cuts it is not in that version. */

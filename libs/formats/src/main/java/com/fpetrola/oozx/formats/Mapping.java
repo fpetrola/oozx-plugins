@@ -42,7 +42,10 @@ public interface Mapping {
     return List.of();
   }
 
-  /** What the file says is plugged in, plugged in before the machine is walked, so the walk meets it. */
+  /**
+   * What the file says is plugged in, plugged in before the machine is walked, so the walk meets it.
+   * Switching it on, and the reset some ask for, comes after every mapping has plugged its own.
+   */
   default void plug(SnapshotFile file, Speccy speccy) {
   }
 }

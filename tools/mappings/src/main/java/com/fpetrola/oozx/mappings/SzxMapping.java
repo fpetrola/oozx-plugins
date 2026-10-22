@@ -66,10 +66,7 @@ public final class SzxMapping implements Mapping {
   public void plug(SnapshotFile file, Speccy speccy) {
     byte[] block = file.carried().get(SzxSession.BLOCK);
     if (block != null) SzxSession.plug(block, speccy, file);
-    if (speccy.peripheralRegistry.find(UlaPlusPeripheral.class) instanceof UlaPlusPeripheral chip) {
-      chip.fitted(file.has(PLTT));
-      speccy.peripheralRegistry.update();
-    }
+    if (speccy.peripheralRegistry.find(UlaPlusPeripheral.class) instanceof UlaPlusPeripheral chip) chip.fitted(file.has(PLTT));
   }
 
   /** PLTT: whether the palette is on, the register last named, and the sixty-four colours as written. */

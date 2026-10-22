@@ -30,7 +30,7 @@ import java.util.Optional;
  * What libspectrum makes of a snapshot: the fields it reads, or the same snapshot written in
  * another format. Everything that uses it steps aside where the library is not installed.
  */
-final class Reference {
+public final class Reference {
 
   static final Map<String, Integer> TYPES = Map.of(
       "z80", Libspectrum.Z80, "sna", Libspectrum.SNA, "sp", Libspectrum.SP, "szx", Libspectrum.SZX);
@@ -46,7 +46,7 @@ final class Reference {
   private Reference() {
   }
 
-  static boolean present() {
+  public static boolean present() {
     try {
       return Libspectrum.INSTANCE != null;
     } catch (Throwable notInstalled) {
@@ -81,7 +81,8 @@ final class Reference {
     });
   }
 
-  private static <T> Optional<T> withSnap(byte[] image, String format, java.util.function.Function<Pointer, T> use) {
+  /** What that is asked of the snapshot libspectrum reads from the image, if it reads one. */
+  public static <T> Optional<T> withSnap(byte[] image, String format, java.util.function.Function<Pointer, T> use) {
     Libspectrum lib = Libspectrum.INSTANCE;
     lib.libspectrum_init();
     Pointer snap = lib.libspectrum_snap_alloc();

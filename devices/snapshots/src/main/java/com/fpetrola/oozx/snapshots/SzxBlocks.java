@@ -31,9 +31,10 @@ import java.util.List;
 
 /**
  * The blocks of an SZX after its header: each an id of four letters, a length, and its bytes. The
- * ones a part's table knows are kept as stretches by id; the pages of RAM go to their banks,
- * packed with zlib or not; the rest are passed over and said. Written, a block goes only if some
- * part wrote into it, and the creator always goes first.
+ * ones a part's table knows are kept as stretches by id, or by page where they come a page a block;
+ * the pages of RAM go to their banks, packed with zlib or not; the rest are passed over and said.
+ * Written, a block goes only if some part wrote into it, one a page for every page written, and the
+ * creator always goes first.
  */
 final class SzxBlocks implements Region {
 
@@ -57,16 +58,19 @@ final class SzxBlocks implements Region {
       }
       byte[] payload = in.take(length);
       if (id.equals("RAMP")) {
-        page(payload, into);
+        bank(payload, into);
       } else if (id.equals("CRTR")) {
         swapsAf = swapsAf(payload);
       } else {
         Fixed block = known.stream().filter(one -> one.toString().equals(id)).findFirst().orElse(null);
-        if (block != null) {
-          into.stretch(block, payload);
-        } else {
+        if (block == null) {
           into.note("skipped: the block " + id.trim() + " (" + length + " bytes)");
           into.carry(id, payload);
+        } else if (block.isPaged()) {
+          Page page = Page.of(payload, block.length());
+          into.page(block, page.number(), page.bytes());
+        } else {
+          into.stretch(block, payload);
         }
       }
     }
@@ -103,38 +107,47 @@ final class SzxBlocks implements Region {
     file.u8(SzxFormat.Z80R, offset + 1, first);
   }
 
-  private static void page(byte[] payload, SnapshotFile into) {
-    if (payload.length < 3) {
-      throw new Refused("a page block of " + payload.length + " bytes");
-    }
-    int flags = (payload[0] & 0xff) | (payload[1] & 0xff) << 8;
-    int bank = payload[2] & 0xff;
-    byte[] data = java.util.Arrays.copyOfRange(payload, 3, payload.length);
-    byte[] page = (flags & COMPRESSED) != 0 ? Codec.ZLIB.decode(data, Pages.LENGTH) : Codec.RAW.decode(data, Pages.LENGTH);
-    if (into.shape().banks().contains(bank)) {
-      into.page(bank, page);
+  private static void bank(byte[] payload, SnapshotFile into) {
+    Page page = Page.of(payload, Pages.LENGTH);
+    if (into.shape().banks().contains(page.number())) {
+      into.page(page.number(), page.bytes());
     } else {
-      into.note("skipped: page " + bank + ", a bank this machine does not have");
+      into.note("skipped: page " + page.number() + ", a bank this machine does not have");
+    }
+  }
+
+  /** A page as RAMP keeps one, and every block that keeps memory a page at a time: flags, the first saying it is packed, its number, and the page. */
+  private record Page(int number, byte[] bytes) {
+    static Page of(byte[] payload, int length) {
+      if (payload.length < 3) {
+        throw new Refused("a page block of " + payload.length + " bytes");
+      }
+      byte[] data = java.util.Arrays.copyOfRange(payload, 3, payload.length);
+      return new Page(payload[2] & 0xff, (payload[0] & COMPRESSED) != 0 ? Codec.ZLIB.decode(data, length) : Codec.RAW.decode(data, length));
+    }
+
+    byte[] block() {
+      return new Sink().u16(COMPRESSED).u8(number).bytes(Codec.ZLIB.encode(bytes)).toBytes();
     }
   }
 
   @Override
   public void prepare(SnapshotFile file) {
-    known.forEach(block -> file.stretch(block, new byte[block.length()]));
+    known.stream().filter(block -> !block.isPaged()).forEach(block -> file.stretch(block, new byte[block.length()]));
   }
 
   @Override
   public void assemble(SnapshotFile from, Sink out) {
     block(out, "CRTR", creator());
     for (Fixed block : known) {
-      if (from.isWritten(block)) {
+      if (block.isPaged()) {
+        from.pages(block).forEach((number, page) -> block(out, block.toString(), new Page(number, page).block()));
+      } else if (from.isWritten(block)) {
         block(out, block.toString(), from.bytes(block).toBytes());
       }
     }
     for (int bank : from.shape().banks()) {
-      byte[] packed = Codec.ZLIB.encode(from.pageOrZeros(bank));
-      Sink page = new Sink().u16(COMPRESSED).u8(bank).bytes(packed);
-      block(out, "RAMP", page.toBytes());
+      block(out, "RAMP", new Page(bank, from.pageOrZeros(bank)).block());
     }
     from.carried().forEach((name, payload) -> block(out, fourLetters(name), payload));
   }

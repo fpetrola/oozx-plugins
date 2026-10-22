@@ -19,6 +19,9 @@ package com.fpetrola.oozx.formats;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Predicate;
+import java.util.function.ToIntFunction;
 
 /**
  * A table for one kind of part: each of its fields at a place of a stretch of the file. Reading and
@@ -221,6 +224,78 @@ public final class Layout<P> {
         return List.of(field);
       }
     });
+  }
+
+  /**
+   * Every page the file has of that block, to the part's page of that number; and every page the
+   * part has, as many as it says, to the file. A page the part does not have is said and left.
+   */
+  public Layout<P> pages(Fixed block, ToIntFunction<P> count, PageField<P> field) {
+    return with(new Place<P>() {
+      public void read(SnapshotFile file, P part) {
+        file.pages(block).forEach((number, page) -> {
+          if (number < count.applyAsInt(part)) field.set(part, number, page);
+          else file.note("skipped: page " + number + " of " + block + ", which this part does not have");
+        });
+      }
+
+      public void write(P part, SnapshotFile file) {
+        for (int number = 0; number < count.applyAsInt(part); number++) file.page(block, number, field.get(part, number));
+      }
+
+      public List<Object> fields() {
+        return List.of(field);
+      }
+    });
+  }
+
+  /**
+   * What a block carries after its fields, to its end, as long as the part's: a ROM, the RAM of
+   * something plugged in. Packed with zlib when that bit of that byte of the block is set, and
+   * written packed, with the bit set. Nothing is read from a block that ends with its fields, and
+   * nothing is written for a part that has none.
+   */
+  public Layout<P> rest(Fixed block, int flagAt, int bit, Field<P, byte[]> field) {
+    return with(new Rest<>(block, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0, (bytes, packed) -> bytes.or(flagAt, 1 << bit)));
+  }
+
+  /** The same, always packed, and how long it is packed in four bytes at that place of the block: a cartridge. */
+  public Layout<P> packedRest(Fixed block, int lengthAt, Field<P, byte[]> field) {
+    return with(new Rest<>(block, field, bytes -> true, (bytes, packed) -> bytes.u32(lengthAt, packed.length)));
+  }
+
+  /** The block, written with the part even when there is nothing else to say: that the part is there is what it says. */
+  public Layout<P> present(Fixed block) {
+    return with(new Place<P>() {
+      public void read(SnapshotFile file, P part) { }
+      public void write(P part, SnapshotFile file) { if (file.has(block)) file.wrote(block); }
+      public List<Object> fields() { return List.of(); }
+    });
+  }
+
+  /** The bytes after a block's fields, and what in the block says whether they are packed. */
+  private record Rest<P>(Fixed block, Field<P, byte[]> field, Predicate<Bytes> isPacked, BiConsumer<Bytes, byte[]> saysPacked)
+      implements Place<P> {
+    public void read(SnapshotFile file, P part) {
+      if (!file.has(block, block.length(), 1)) return;
+      Bytes bytes = file.bytes(block);
+      byte[] kept = bytes.slice(block.length(), bytes.length() - block.length());
+      int length = field.get(part).length;
+      field.set(part, isPacked.test(bytes) ? Codec.ZLIB.decode(kept, length) : Codec.RAW.decode(kept, length));
+    }
+
+    public void write(P part, SnapshotFile file) {
+      byte[] rest = field.get(part);
+      if (rest == null || !file.has(block)) return;
+      byte[] packed = Codec.ZLIB.encode(rest);
+      saysPacked.accept(file.bytes(block), packed);
+      file.bytes(block).append(packed);
+      file.wrote(block);
+    }
+
+    public List<Object> fields() {
+      return List.of(field);
+    }
   }
 
   public void read(SnapshotFile file, P part) {

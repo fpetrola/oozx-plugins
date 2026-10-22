@@ -27,7 +27,7 @@ import java.util.Arrays;
 public final class Bytes {
 
   private final int start;
-  private final byte[] bytes;
+  private byte[] bytes;
 
   private Bytes(int start, byte[] bytes) {
     this.start = start;
@@ -88,6 +88,13 @@ public final class Bytes {
   public Bytes put(int offset, byte[] data) {
     System.arraycopy(data, 0, bytes, index(offset, data.length), data.length);
     return this;
+  }
+
+  /** Those bytes after the last there are: what a block carries after its fields. */
+  public Bytes append(byte[] data) {
+    int end = bytes.length;
+    bytes = Arrays.copyOf(bytes, end + data.length);
+    return put(start + end, data);
   }
 
   public byte[] toBytes() {
