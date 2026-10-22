@@ -27,6 +27,7 @@ import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
+import com.fpetrola.oozx.speccy.devices.printer.ZxPrinterPeripheral;
 import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
 import com.fpetrola.oozx.speccy.devices.uspeech.UspeechPeripheral;
@@ -42,8 +43,10 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -387,6 +390,28 @@ class WhatIsPluggedInComesBackTest {
     Libspectrum lib = Libspectrum.INSTANCE;
     assertEquals(List.of(1, 0), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_uspeech_active(snap),
         lib.libspectrum_snap_uspeech_paged(snap))).orElseThrow());
+  }
+
+  @Test
+  void theZxPrinterIsOn() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, ZxPrinterPeripheral.class);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(ZxPrinterPeripheral.class), "the file plugs it in");
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/ZXPR.szx")), fromLibspectrums, note -> { });
+    assertTrue(fromLibspectrums.peripheralRegistry.isActive(ZxPrinterPeripheral.class), "libspectrum's ZXPR plugs it in");
+    Speccy saysOff = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(new SzxFormat().write(AMachineComesBackWithItsWindowTest.machine(), Map.of("ZXPR", new byte[2]), note -> { }),
+        saysOff, note -> { });
+    assertFalse(saysOff.peripheralRegistry.isActive(ZxPrinterPeripheral.class), "a ZXPR that says it is off, as libspectrum "
+        + "writes it for every machine, does not");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_zx_printer_active).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */

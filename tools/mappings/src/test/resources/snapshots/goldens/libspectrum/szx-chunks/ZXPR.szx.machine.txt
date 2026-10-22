@@ -31,3 +31,4 @@ part = Input
 part = PretendInterface
 part = Snapshots
 part = UlaPeripheral
+part = ZxPrinterPeripheral
