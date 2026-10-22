@@ -29,6 +29,7 @@ import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
+import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import org.junit.jupiter.api.Test;
@@ -305,6 +306,23 @@ class WhatIsPluggedInComesBackTest {
     List<Object> said = new ArrayList<>(List.of(board.upload(), board.lastMemoryControl()));
     for (int bank = 0; bank < ZxcfPeripheral.BANKS; bank++) said.add(Arrays.hashCode(board.contents(bank)));
     return said;
+  }
+
+  @Test
+  void theZxmmcIsThere() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, ZxmmcPeripheral.class);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(ZxmmcPeripheral.class), "the file plugs it in");
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/ZMMC.szx")), fromLibspectrums, note -> { });
+    assertTrue(fromLibspectrums.peripheralRegistry.isActive(ZxmmcPeripheral.class), "libspectrum's ZMMC plugs it in");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_zxmmc_active).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */
