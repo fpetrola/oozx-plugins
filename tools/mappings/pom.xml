@@ -140,6 +140,11 @@
             <artifactId>device-melodik</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-fuller</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- The fixtures the formats are held to, and the machines they land on. -->
         <dependency>
             <groupId>com.fpetrola</groupId>

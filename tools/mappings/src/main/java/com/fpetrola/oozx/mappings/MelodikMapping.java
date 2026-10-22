@@ -25,6 +25,7 @@ import com.fpetrola.oozx.formats.Layout;
 import com.fpetrola.oozx.formats.Mapping;
 import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.snapshots.SzxFormat;
+import com.fpetrola.oozx.snapshots.Z80Format;
 import com.fpetrola.oozx.speccy.devices.melodik.MelodikPeripheral;
 import dev.crystal.plugins.api.OnlyWith;
 
@@ -35,6 +36,8 @@ import dev.crystal.plugins.api.OnlyWith;
 @OnlyWith("device-melodik")
 public final class MelodikMapping implements Mapping {
 
+  static final Field<MelodikPeripheral, Boolean> THERE = Field.of("melodik.fitted", melodik -> true, (melodik, fitted) -> { });
+
   @Override
   public Class<? extends DeclaredFormat> format() {
     return SzxFormat.class;
@@ -42,13 +45,35 @@ public final class MelodikMapping implements Mapping {
 
   @Override
   public Bindings bindings() {
-    return Bindings.of().on(MelodikPeripheral.class, Layout.<MelodikPeripheral>of()
-        .bit(SzxMapping.AY, 0, 1, Field.of("melodik.fitted", melodik -> true, (melodik, fitted) -> { })));
+    return Bindings.of().on(MelodikPeripheral.class, Layout.<MelodikPeripheral>of().bit(SzxMapping.AY, 0, 1, THERE));
   }
 
   @Override
   public void plug(SnapshotFile file, Speccy speccy) {
-    if (file.has(SzxMapping.AY, 0, 1) && (file.u8(SzxMapping.AY, 0) & 0x02) != 0
-        && speccy.peripheralRegistry.find(MelodikPeripheral.class) instanceof MelodikPeripheral melodik) melodik.setFitted(true);
+    fitIf(file.says(SzxMapping.AY, 0, 0x02), speccy);
+  }
+
+  static void fitIf(boolean said, Speccy speccy) {
+    if (said && speccy.peripheralRegistry.find(MelodikPeripheral.class) instanceof MelodikPeripheral melodik) melodik.setFitted(true);
+  }
+
+  /** The Melodik in a Z80: bit 2 of byte 37, an AY in use on a 48K, without bit 6, which would make it a Fuller Box's. */
+  @OnlyWith("device-melodik")
+  public static final class InZ80 implements Mapping {
+
+    @Override
+    public Class<? extends DeclaredFormat> format() {
+      return Z80Format.class;
+    }
+
+    @Override
+    public Bindings bindings() {
+      return Bindings.of().on(MelodikPeripheral.class, Layout.<MelodikPeripheral>of().bit(Z80Format.EXTENDED, 37, 2, THERE));
+    }
+
+    @Override
+    public void plug(SnapshotFile file, Speccy speccy) {
+      fitIf(file.says(Z80Format.EXTENDED, 37, 0x04) && !file.says(Z80Format.EXTENDED, 37, 0x40), speccy);
+    }
   }
 }

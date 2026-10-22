@@ -18,12 +18,15 @@
 package model.tests.formats;
 
 import com.fpetrola.oozx.Speccy;
+import com.fpetrola.oozx.formats.SnapshotFormat;
 import com.fpetrola.oozx.snapshots.SzxFormat;
+import com.fpetrola.oozx.snapshots.Z80Format;
 import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
 import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
 import com.fpetrola.oozx.speccy.devices.disk.Fdd;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
+import com.fpetrola.oozx.speccy.devices.fuller.FullerPeripheral;
 import com.fpetrola.oozx.speccy.devices.ide.DivPeripheral;
 import com.fpetrola.oozx.speccy.devices.interface1.Interface1Peripheral;
 import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
@@ -49,12 +52,16 @@ import com.fpetrola.oozx.speccy.machine.Tc2068;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -638,23 +645,48 @@ class WhatIsPluggedInComesBackTest {
         opus.fdc().sectorRegister, opus.fdc().dataRegister, opus.fdc().statusRegister, Arrays.hashCode(opus.ram()));
   }
 
-  /** A 48K with one fitted, which the AY's block says, and a machine that reads it fits one with the same registers. */
-  @Test
-  void theMelodikFittedToAFortyEightK() throws Exception {
+  /** The formats that say which AY a 48K has plugged in, each by the name libspectrum reads it by. */
+  static Stream<Arguments> sayingWhichAyAFortyEightHas() {
+    return Stream.of(Arguments.of("szx", new SzxFormat()), Arguments.of("z80", new Z80Format()));
+  }
+
+  /** A 48K with one fitted, which the file says, and a machine that reads it fits one with the same registers. */
+  @ParameterizedTest
+  @MethodSource("sayingWhichAyAFortyEightHas")
+  void theMelodikFittedToAFortyEightK(String name, SnapshotFormat format) throws Exception {
     Speccy kept = AMachineComesBackWithItsWindowTest.machine();
     MelodikPeripheral melodik = (MelodikPeripheral) kept.peripheralRegistry.find(MelodikPeripheral.class);
     melodik.setFitted(true);
     if (kept.peripheralRegistry.update()) kept.machine.reset(true);
     melodik.register(7, 0x38);
-    byte[] file = new SzxFormat().write(kept, note -> { });
+    byte[] file = format.write(kept, note -> { });
 
     Speccy opened = AMachineComesBackWithItsWindowTest.machine();
-    new SzxFormat().read(file, opened, note -> { });
+    format.read(file, opened, note -> { });
     assertTrue(opened.peripheralRegistry.isActive(MelodikPeripheral.class), "the file fits it");
+    assertFalse(opened.peripheralRegistry.isActive(FullerPeripheral.class), "and no Fuller Box");
     assertEquals(0x38, ((MelodikPeripheral) opened.peripheralRegistry.find(MelodikPeripheral.class)).register(7));
 
     assumeTrue(Reference.present(), "libspectrum is not installed here");
-    assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_melodik_active).orElseThrow());
+    assertEquals(1, Reference.withSnap(file, name, Libspectrum.INSTANCE::libspectrum_snap_melodik_active).orElseThrow());
+  }
+
+  /** A Fuller Box plugged into a 48K, which the file says, its AY with it. */
+  @ParameterizedTest
+  @MethodSource("sayingWhichAyAFortyEightHas")
+  void theFullerBoxPluggedIntoAFortyEightK(String name, SnapshotFormat format) throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    plugged(kept, FullerPeripheral.class).register(7, 0x2a);
+    byte[] file = format.write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    format.read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(FullerPeripheral.class), "the file plugs it in");
+    assertFalse(opened.peripheralRegistry.isActive(MelodikPeripheral.class), "and no Melodik");
+    assertEquals(0x2a, ((FullerPeripheral) opened.peripheralRegistry.find(FullerPeripheral.class)).register(7));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(1, Reference.withSnap(file, name, Libspectrum.INSTANCE::libspectrum_snap_fuller_box_active).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */

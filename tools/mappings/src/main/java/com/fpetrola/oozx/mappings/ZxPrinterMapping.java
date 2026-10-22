@@ -60,7 +60,7 @@ public final class ZxPrinterMapping implements Mapping {
 
   @Override
   public void plug(SnapshotFile file, Speccy speccy) {
-    if (!file.has(ZXPR, 0, 1) || (file.u8(ZXPR, 0) & 1) == 0) return;
+    if (!file.says(ZXPR, 0, 0x01)) return;
     speccy.peripheralRegistry.allThatAre(ZxPrinterPeripheral.class).stream()
         .filter(printer -> printer.fitsOn(speccy.machine.current)).findFirst().ifPresent(printer -> printer.plugIn(true));
   }

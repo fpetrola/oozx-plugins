@@ -63,7 +63,7 @@ public final class Interface1Mapping implements Mapping {
 
   @Override
   public void plug(SnapshotFile file, Speccy speccy) {
-    if (file.has(IF1, 0, 1) && (file.u8(IF1, 0) & 1) != 0
+    if (file.says(IF1, 0, 0x01)
         && speccy.peripheralRegistry.find(Interface1Peripheral.class) instanceof Interface1Peripheral interface1) interface1.plugIn(true);
   }
 }

@@ -65,6 +65,11 @@ public final class SnapshotFile {
     return bytes != null && offset >= bytes.start() && offset + count <= bytes.start() + bytes.length();
   }
 
+  /** Whether the file has that byte with all those bits on: how a block or a header says what is plugged in. */
+  public boolean says(Fixed region, int offset, int bits) {
+    return has(region, offset, 1) && (u8(region, offset) & bits) == bits;
+  }
+
   public Bytes bytes(Fixed region) {
     Bytes bytes = fixed.get(region);
     if (bytes == null) {
