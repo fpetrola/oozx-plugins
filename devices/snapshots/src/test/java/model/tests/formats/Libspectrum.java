@@ -180,6 +180,16 @@ public interface Libspectrum extends Library {
 
   Pointer libspectrum_snap_divide_ram(Pointer snap, int idx);
 
+  int libspectrum_snap_multiface_active(Pointer snap);
+
+  int libspectrum_snap_multiface_model_one(Pointer snap);
+
+  int libspectrum_snap_multiface_disabled(Pointer snap);
+
+  int libspectrum_snap_multiface_software_lockout(Pointer snap);
+
+  int libspectrum_snap_multiface_red_button_disabled(Pointer snap);
+
   int libspectrum_snap_multiface_paged(Pointer snap);
 
   Pointer libspectrum_snap_multiface_ram(Pointer snap, int idx);

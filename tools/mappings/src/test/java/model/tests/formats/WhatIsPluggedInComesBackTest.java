@@ -20,6 +20,8 @@ package model.tests.formats;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
+import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
+import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
@@ -128,6 +130,45 @@ class WhatIsPluggedInComesBackTest {
         (int) divide.eprom()[0]));
   }
 
+  @Test
+  void theMultifaceOnePagedInStealthyAndPressed() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    MultifaceOnePeripheral face = plugged(kept, MultifaceOnePeripheral.class);
+    face.ram(pattern(60, MultifacePeripheral.RAM_SIZE));
+    face.pagedIn(true);
+    face.setStealth(true);
+    face.j2(false);
+    face.redButtonReady(false);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(MultifaceOnePeripheral.class), "the file plugs it in");
+    assertEquals(described(face), described((MultifacePeripheral) opened.peripheralRegistry.find(MultifaceOnePeripheral.class)));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(described(face), Reference.withSnap(file, "szx", snap -> {
+      assertEquals(List.of(1, 1, 0, 0x2000L), List.of(lib.libspectrum_snap_multiface_active(snap),
+          lib.libspectrum_snap_multiface_model_one(snap), lib.libspectrum_snap_multiface_software_lockout(snap),
+          lib.libspectrum_snap_multiface_ram_length(snap, 0).longValue()));
+      return List.<Object>of(lib.libspectrum_snap_multiface_paged(snap) != 0, lib.libspectrum_snap_multiface_disabled(snap) != 0,
+          lib.libspectrum_snap_multiface_red_button_disabled(snap) == 0,
+          Arrays.hashCode(lib.libspectrum_snap_multiface_ram(snap, 0).getByteArray(0, MultifacePeripheral.RAM_SIZE)));
+    }).orElseThrow());
+  }
+
+  /** libspectrum's MFCE: a One, paged in, its RAM empty. */
+  @Test
+  void theMultifaceOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/MFCE.szx")), opened, note -> { });
+
+    assertTrue(opened.peripheralRegistry.isActive(MultifaceOnePeripheral.class), "the file plugs it in");
+    MultifacePeripheral face = (MultifacePeripheral) opened.peripheralRegistry.find(MultifaceOnePeripheral.class);
+    assertEquals(List.of(true, false, true, Arrays.hashCode(new byte[MultifacePeripheral.RAM_SIZE])), described(face));
+  }
+
   /** That device of the machine, plugged in as its window plugs it. */
   static <T extends Peripheral & Pluggable> T plugged(Speccy speccy, Class<T> type) {
     T device = type.cast(speccy.peripheralRegistry.find(type));
@@ -150,6 +191,11 @@ class WhatIsPluggedInComesBackTest {
         Arrays.hashCode(divide.eprom())));
     for (int page = 0; page < divide.ramPages(); page++) said.add(Arrays.hashCode(divide.ram(page)));
     return said;
+  }
+
+  /** Whether it is paged in, stealthy (the One without J2), ready for the button, and its RAM. */
+  private static List<Object> described(MultifacePeripheral face) {
+    return List.of(face.isPaged(), face.stealth() && !face.isJ2(), face.redButtonReady(), Arrays.hashCode(face.ram()));
   }
 
   static byte[] pattern(int seed, int length) {

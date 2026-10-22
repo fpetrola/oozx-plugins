@@ -156,13 +156,45 @@ public abstract class MultifacePeripheral extends PluggablePeripheral {
     return paged;
   }
 
+  /** Pages its ROM and RAM in or out, as a port read does. */
+  public void pagedIn(boolean in) {
+    if (in) {
+      page();
+      ic8aQ = model == MultifaceModel.M3;
+    } else {
+      unpage();
+    }
+  }
+
   /** On the One, its stealth switch state; on other models, whether the ROM allows port paging. */
   public boolean isJ2() {
     return j2;
   }
 
+  public void j2(boolean on) {
+    j2 = on;
+  }
+
+  /** Whether the button answers: not between a press and the port write that follows the ROM's work. */
+  public boolean redButtonReady() {
+    return ic8bQ;
+  }
+
+  public void redButtonReady(boolean ready) {
+    ic8bQ = ready;
+  }
+
   public int ram(int address) {
     return ram.bytes[address & (RAM_SIZE - 1)] & 0xff;
+  }
+
+  /** What its RAM holds. */
+  public byte[] ram() {
+    return ram.bytes.clone();
+  }
+
+  public void ram(byte[] bytes) {
+    ram.fill(bytes);
   }
 
   /**
