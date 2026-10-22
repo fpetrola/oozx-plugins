@@ -34,6 +34,7 @@ import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import com.fpetrola.oozx.speccy.pokes.PokFile;
 import com.fpetrola.oozx.speccy.pokes.PokInstruction;
 import com.fpetrola.oozx.speccy.pokes.PokesTool;
+import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
 import com.fpetrola.oozx.speccy.windows.AttachedFrame;
 import com.google.inject.Inject;
 
@@ -52,9 +53,9 @@ import java.util.stream.Collectors;
  * A machine's window as an SZX: the machine in the format's blocks, and what is around it in one of
  * its own, OOZX, which another emulator passes over. What is around it is text, a key a line: which
  * machine it is exactly and on which ROMs, every setting of the machine and of its devices by the
- * name it is declared under, which devices are plugged into it, where the window is, whether it is
- * paused, the file the machine came from, its processor and its turbo, the pokes applied to it, and
- * the equipment clipped onto the window.
+ * name it is declared under, which devices are plugged into it, where the window is and how it shows
+ * the picture, whether it is paused, the file the machine came from, its processor and its turbo, the
+ * pokes applied to it, and the equipment clipped onto the window.
  * <p>
  * The first four are put back as the file is read, before the machine is walked ({@link #plug},
  * asked by {@link SzxMapping}): choosing a machine starts it from cold, and plugging some devices
@@ -63,6 +64,7 @@ import java.util.stream.Collectors;
 public final class SzxSession implements Session {
 
   static final String BLOCK = "OOZX";
+  private static final String LOOK = "screen.";
 
   private final SzxFormat szx = new SzxFormat();
   /** The tools, asked what they left done on a window: the very ones its toolbar has. */
@@ -91,6 +93,10 @@ public final class SzxSession implements Session {
     around.put("window.y", String.valueOf(place.getY()));
     around.put("window.width", String.valueOf(place.getWidth()));
     around.put("window.height", String.valueOf(place.getHeight()));
+    if (window.picture() instanceof SpeccyScreen screen) {
+      around.put("window.zoom", String.valueOf(screen.getZoom()));
+      screen.getScreenSettings().values().forEach((knob, value) -> around.put(LOOK + knob, value));
+    }
     Spectrum machine = speccy.machine.current;
     around.put("machine", machine.shortName());
     String roms = speccy.roms.chosenSet(machine);
@@ -193,6 +199,12 @@ public final class SzxSession implements Session {
     if (around.containsKey("window.width")) {
       placeOf(window).setBounds(Integer.parseInt(around.get("window.x")), Integer.parseInt(around.get("window.y")),
           Integer.parseInt(around.get("window.width")), Integer.parseInt(around.get("window.height")));
+    }
+    if (window.picture() instanceof SpeccyScreen screen) {
+      Map<String, String> look = new TreeMap<>();
+      around.forEach((key, value) -> { if (key.startsWith(LOOK)) look.put(key.substring(LOOK.length()), value); });
+      screen.getScreenSettings().apply(look);
+      if (around.containsKey("window.zoom")) screen.setZoom(Double.parseDouble(around.get("window.zoom")));
     }
     PokesTool pokes = pokes();
     if (pokes != null) pokes.applied(window, appliedIn(around));

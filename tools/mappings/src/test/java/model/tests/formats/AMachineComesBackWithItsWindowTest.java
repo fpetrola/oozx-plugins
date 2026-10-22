@@ -33,6 +33,7 @@ import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumEquipment;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
 import com.fpetrola.oozx.speccy.machine.SpecPlus3;
 import com.fpetrola.oozx.speccy.machine.Tc2048;
+import com.fpetrola.oozx.speccy.modules.display.Picture;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
@@ -40,10 +41,10 @@ import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
 import com.fpetrola.oozx.speccy.peripherals.MockEmulatorCore;
 import com.fpetrola.oozx.speccy.pokes.PokFile;
 import com.fpetrola.oozx.speccy.pokes.PokesTool;
+import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
 import com.fpetrola.oozx.speccy.windows.AttachedFrame;
 import org.junit.jupiter.api.Test;
 
-import javax.swing.JComponent;
 import javax.swing.JDesktopPane;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
@@ -65,22 +66,24 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * A machine's window kept as a file of the session and opened again: the machine from the file as
- * any file opens, with its settings and what was plugged into it, and then where its window was,
- * whether it was paused, the file it came from, the pokes applied to it and the equipment clipped
- * onto it. Another emulator reads the same file.
+ * any file opens, with its settings and what was plugged into it, and then where its window was and
+ * how it showed the picture, whether it was paused, the file it came from, the pokes applied to it
+ * and the equipment clipped onto it. Another emulator reads the same file.
  */
 class AMachineComesBackWithItsWindowTest {
 
-  /** A machine's window, as far as the session can tell: where it is, and which machine it shows. */
+  /** A machine's window, as far as the session can tell: where it is, which machine it shows, and how. */
   static final class Window extends JInternalFrame implements EmulatorWindow {
     private final Speccy speccy;
+    private final SpeccyScreen screen;
 
     Window(Speccy speccy) {
       this.speccy = speccy;
+      this.screen = new SpeccyScreen(speccy.picture.pixels, Picture.STRIDE);
     }
 
-    public JComponent picture() {
-      return this;
+    public SpeccyScreen picture() {
+      return screen;
     }
 
     public Speccy machine() {
@@ -196,6 +199,24 @@ class AMachineComesBackWithItsWindowTest {
     assertEquals("/games/banks.tap", opened.control.getFilename());
     assertEquals(37, settings(opened, "sound.volume").values().get("volume"));
     assertEquals(false, settings(opened, "sound").values().get("enabled"), "muted");
+  }
+
+  /** How its picture was shown comes back too: a look of its own, not the one a new window opens with, three times its size. */
+  @Test
+  void itsPictureIsShownAsItWas() throws Exception {
+    Window kept = kept();
+    kept.picture().getScreenSettings().apply(Map.of("scaler", "Sharp bilinear", "tv", "Aerial (RF)", "scanlines", "0.3",
+        "mask", "SLOT_MASK", "shade", "Green phosphor", "brightness", "1.2", "border", "true"));
+    kept.picture().setZoom(3);
+    byte[] file = new SzxSession().write(kept);
+
+    Speccy opened = machine();
+    new SzxFormat().read(file, opened, note -> { });
+    Window window = new Window(opened);
+    new SzxSession().bringBack(file, window);
+
+    assertEquals(kept.picture().getScreenSettings().values(), window.picture().getScreenSettings().values());
+    assertEquals(3, window.picture().getZoom());
   }
 
   @Test
