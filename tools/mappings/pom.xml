@@ -44,6 +44,12 @@
             <artifactId>tool-pokes</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- Each one only with its plugin: the mapping that names it is @OnlyWith it, and the rest go on without it. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-zxatasp</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- The fixtures the formats are held to, and the machines they land on. -->
         <dependency>
             <groupId>com.fpetrola</groupId>

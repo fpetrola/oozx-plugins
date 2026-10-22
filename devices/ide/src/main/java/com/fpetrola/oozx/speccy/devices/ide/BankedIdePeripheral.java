@@ -57,7 +57,7 @@ public abstract class BankedIdePeripheral extends IdeBoard {
   }
 
   /** Pages the selected bank into low memory, or unplugs it entirely. */
-  protected void select(int bank, boolean on) {
+  public void select(int bank, boolean on) {
     this.bank = bank & banks - 1;
     paged = on;
     ram.writeProtected = !writable(bank);
@@ -89,6 +89,15 @@ public abstract class BankedIdePeripheral extends IdeBoard {
 
   public int bank() {
     return bank;
+  }
+
+  /** What that bank holds. */
+  public byte[] contents(int bank) {
+    return java.util.Arrays.copyOfRange(ram.bytes, bank * BANK_SIZE, (bank + 1) * BANK_SIZE);
+  }
+
+  public void contents(int bank, byte[] bytes) {
+    System.arraycopy(bytes, 0, ram.bytes, bank * BANK_SIZE, BANK_SIZE);
   }
 
   @Override

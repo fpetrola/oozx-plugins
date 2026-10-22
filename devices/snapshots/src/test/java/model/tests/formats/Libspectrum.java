@@ -142,6 +142,24 @@ public interface Libspectrum extends Library {
 
   NativeLong libspectrum_snap_rom_length(Pointer snap, int idx);
 
+  int libspectrum_snap_zxatasp_active(Pointer snap);
+
+  int libspectrum_snap_zxatasp_upload(Pointer snap);
+
+  int libspectrum_snap_zxatasp_writeprotect(Pointer snap);
+
+  byte libspectrum_snap_zxatasp_port_a(Pointer snap);
+
+  byte libspectrum_snap_zxatasp_port_b(Pointer snap);
+
+  byte libspectrum_snap_zxatasp_port_c(Pointer snap);
+
+  byte libspectrum_snap_zxatasp_control(Pointer snap);
+
+  NativeLong libspectrum_snap_zxatasp_pages(Pointer snap);
+
+  NativeLong libspectrum_snap_zxatasp_current_page(Pointer snap);
+
   Pointer libspectrum_snap_zxatasp_ram(Pointer snap, int idx);
 
   Pointer libspectrum_snap_interface2_rom(Pointer snap, int idx);

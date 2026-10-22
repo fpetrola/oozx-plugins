@@ -194,4 +194,37 @@ public class ZxataspPeripheral extends BankedIdePeripheral {
   public void setUpload(boolean upload) {
     this.upload = upload;
   }
+
+  /** What the 8255 holds in each of its ports and in its control word, as they stand. */
+  public int portA() {
+    return portA;
+  }
+
+  public void portA(int value) {
+    portA = value;
+  }
+
+  public int portB() {
+    return portB;
+  }
+
+  public void portB(int value) {
+    portB = value;
+  }
+
+  public int portC() {
+    return portC;
+  }
+
+  public void portC(int value) {
+    portC = value;
+  }
+
+  public int control() {
+    return control;
+  }
+
+  public void control(int value) {
+    control = value;
+  }
 }
