@@ -39,6 +39,7 @@ public class CovoxPeripheral extends PluggablePeripheral implements DacDevice {
   public static final double FULL_SCALE = 255 * 128;
 
   private final Sound sound;
+  private final Z80Clock clock;
   private int volume;
   private Dac dac;
 
@@ -46,17 +47,27 @@ public class CovoxPeripheral extends PluggablePeripheral implements DacDevice {
   public CovoxPeripheral(Sound sound, Z80Clock clock) {
     super(List.of());
     this.sound = sound;
-    ports(port(0xfb, clock), port(0xdd, clock));
+    this.clock = clock;
+    ports(port(0xfb), port(0xdd));
   }
 
-  private Wired port(int value, Z80Clock clock) {
+  private Wired port(int value) {
     return Wired.at(0x00ff, value, new DefaultPortHandler(false, true) {
       public void write(int port, byte b) {
-        if (dac != null) {
-          dac.write(clock.getTStates(), (b & 0xff) * 128);
-        }
+        written(b & 0xff);
       }
     });
+  }
+
+  /** The byte last written to its port, which is the level it puts out. */
+  public int written() {
+    return dac == null ? 0 : dac.level() / 128;
+  }
+
+  public void written(int value) {
+    if (dac != null) {
+      dac.write(clock.getTStates(), value * 128);
+    }
   }
 
   /** The Russian clones, which decode their ports fully. */

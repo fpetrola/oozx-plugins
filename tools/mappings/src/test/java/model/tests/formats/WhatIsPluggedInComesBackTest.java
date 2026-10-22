@@ -19,6 +19,7 @@ package model.tests.formats;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.snapshots.SzxFormat;
+import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
 import com.fpetrola.oozx.speccy.devices.ide.DivPeripheral;
@@ -30,6 +31,7 @@ import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
+import com.fpetrola.oozx.speccy.machine.Pentagon;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import org.junit.jupiter.api.Test;
@@ -323,6 +325,25 @@ class WhatIsPluggedInComesBackTest {
 
     assumeTrue(Reference.present(), "libspectrum is not installed here");
     assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_zxmmc_active).orElseThrow());
+  }
+
+  /** On a Pentagon, the machine it was sold for: libspectrum's own COVX is a 48K's, where it does not go. */
+  @Test
+  void theCovoxWithTheLastByteWrittenToIt() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    kept.machine.select(kept.machine.model(Pentagon.class));
+    plugged(kept, CovoxPeripheral.class).written(0xc0);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(CovoxPeripheral.class), "the file plugs it in");
+    assertEquals(0xc0, ((CovoxPeripheral) opened.peripheralRegistry.find(CovoxPeripheral.class)).written());
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(List.of(1, 0xc0), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_covox_active(snap),
+        lib.libspectrum_snap_covox_dac(snap) & 0xff)).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */
