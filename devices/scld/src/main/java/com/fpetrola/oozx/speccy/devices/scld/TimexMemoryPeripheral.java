@@ -62,8 +62,7 @@ public class TimexMemoryPeripheral extends AbstractPeripheral {
     ports(Wired.at(0x00ff, 0x00f4, new DefaultPortHandler(true, true) {
       @Override
       public void write(int port, byte value) {
-        wanted = value & 0xff;
-        map();
+        wanted(value & 0xff);
       }
 
       @Override
@@ -89,6 +88,12 @@ public class TimexMemoryPeripheral extends AbstractPeripheral {
 
   public int wanted() {
     return wanted;
+  }
+
+  /** Which eight K chunks the slot is asked to cover, as a write to port 0xf4 asks. */
+  public void wanted(int chunks) {
+    wanted = chunks;
+    map();
   }
 
   public void map() {

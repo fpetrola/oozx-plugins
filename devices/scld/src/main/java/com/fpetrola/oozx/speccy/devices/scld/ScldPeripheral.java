@@ -41,6 +41,15 @@ public class ScldPeripheral extends AbstractPeripheral {
     return port.pairOfColours();
   }
 
+  /** Its register, as the program last wrote it to port 0xff. */
+  public int register() {
+    return port.register() & 0xff;
+  }
+
+  public void register(int value) {
+    port.write(0x00ff, (byte) value);
+  }
+
   @Override
   public void activate(SpectrumMachine machine) {
     port.reset();

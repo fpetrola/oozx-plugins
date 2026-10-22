@@ -32,6 +32,8 @@ import com.fpetrola.oozx.speccy.devices.mouse.KempstonMousePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.printer.ZxPrinterPeripheral;
+import com.fpetrola.oozx.speccy.devices.scld.ScldPeripheral;
+import com.fpetrola.oozx.speccy.devices.scld.TimexMemoryPeripheral;
 import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
 import com.fpetrola.oozx.speccy.devices.uspeech.UspeechPeripheral;
@@ -39,6 +41,7 @@ import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
 import com.fpetrola.oozx.speccy.machine.Pentagon;
+import com.fpetrola.oozx.speccy.machine.Tc2068;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import org.junit.jupiter.api.Test;
@@ -504,6 +507,30 @@ class WhatIsPluggedInComesBackTest {
   private static List<Object> described(Beta128Peripheral beta) {
     return List.of(beta.isPaged(), beta.fdc().direction == Fdd.Dir.OUT, beta.systemRegister(), beta.fdc().trackRegister,
         beta.fdc().sectorRegister, beta.fdc().dataRegister, beta.fdc().statusRegister);
+  }
+
+  /** A TC2068 with its slot asked to cover some chunks and its screen in hi-res: the two ports of its SCLD. */
+  @Test
+  void theScldOfATimex() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    kept.machine.select(kept.machine.model(Tc2068.class));
+    ((TimexMemoryPeripheral) kept.peripheralRegistry.find(TimexMemoryPeripheral.class)).wanted(0x49);
+    ((ScldPeripheral) kept.peripheralRegistry.find(ScldPeripheral.class)).register(0x3e);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertEquals(List.of(0x49, 0x3e), List.of(((TimexMemoryPeripheral) opened.peripheralRegistry.find(TimexMemoryPeripheral.class)).wanted(),
+        ((ScldPeripheral) opened.peripheralRegistry.find(ScldPeripheral.class)).register()));
+    Speccy fromLibspectrums = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/SCLD.szx")), fromLibspectrums, note -> { });
+    assertEquals(0x9d, ((ScldPeripheral) fromLibspectrums.peripheralRegistry.find(ScldPeripheral.class)).register(),
+        "libspectrum's SCLD, a TC2048's");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(List.of(0x49, 0x3e), Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_out_scld_hsr(snap) & 0xff,
+        lib.libspectrum_snap_out_scld_dec(snap) & 0xff)).orElseThrow());
   }
 
   /** What the machine sees from the bottom of its memory up. */
