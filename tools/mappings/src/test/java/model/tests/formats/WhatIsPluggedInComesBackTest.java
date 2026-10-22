@@ -26,6 +26,7 @@ import com.fpetrola.oozx.speccy.devices.multiface.MultifaceOnePeripheral;
 import com.fpetrola.oozx.speccy.devices.multiface.MultifacePeripheral;
 import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
+import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import org.junit.jupiter.api.Test;
@@ -216,6 +217,51 @@ class WhatIsPluggedInComesBackTest {
 
     assumeTrue(Reference.present(), "libspectrum is not installed here");
     assertEquals(1, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_simpleide_active).orElseThrow());
+  }
+
+  @Test
+  void theZxcfWithItsBanksAndItsRegister() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    ZxcfPeripheral board = plugged(kept, ZxcfPeripheral.class);
+    for (int bank = 0; bank < ZxcfPeripheral.BANKS; bank++) board.contents(bank, pattern(bank * 3, 0x4000));
+    board.setUpload(true);
+    board.memoryControlWrite(0x40 | 37);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.peripheralRegistry.isActive(ZxcfPeripheral.class), "the file plugs it in");
+    assertEquals(described(board), described((ZxcfPeripheral) opened.peripheralRegistry.find(ZxcfPeripheral.class)));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(described(board), Reference.withSnap(file, "szx", snap -> {
+      assertEquals(List.of(1, (long) ZxcfPeripheral.BANKS), List.of(lib.libspectrum_snap_zxcf_active(snap),
+          lib.libspectrum_snap_zxcf_pages(snap).longValue()));
+      List<Object> said = new ArrayList<>(List.of(lib.libspectrum_snap_zxcf_upload(snap) != 0, lib.libspectrum_snap_zxcf_memctl(snap) & 0xff));
+      for (int bank = 0; bank < ZxcfPeripheral.BANKS; bank++) {
+        said.add(Arrays.hashCode(lib.libspectrum_snap_zxcf_ram(snap, bank).getByteArray(0, 0x4000)));
+      }
+      return said;
+    }).orElseThrow());
+  }
+
+  /** libspectrum's ZXCF: uploading, its register 0x37 (bank 0x37, read only, paged in). */
+  @Test
+  void theZxcfOfLibspectrumsOwnFile() throws Exception {
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(Files.readAllBytes(Fixtures.HERE.resolve("libspectrum/szx-chunks/ZXCF.szx")), opened, note -> { });
+
+    assertTrue(opened.peripheralRegistry.isActive(ZxcfPeripheral.class), "the file plugs it in");
+    ZxcfPeripheral board = (ZxcfPeripheral) opened.peripheralRegistry.find(ZxcfPeripheral.class);
+    assertEquals(List.of(true, 0x37, true, 0x37), List.of(board.upload(), board.lastMemoryControl(), board.isPaged(), board.bank()));
+  }
+
+  /** Its upload jumper, its register, and what each bank holds. */
+  private static List<Object> described(ZxcfPeripheral board) {
+    List<Object> said = new ArrayList<>(List.of(board.upload(), board.lastMemoryControl()));
+    for (int bank = 0; bank < ZxcfPeripheral.BANKS; bank++) said.add(Arrays.hashCode(board.contents(bank)));
+    return said;
   }
 
   /** What the machine sees from the bottom of its memory up. */
