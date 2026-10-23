@@ -20,6 +20,7 @@ package com.fpetrola.oozx.mappings;
 import com.fpetrola.emulation.helpers.snapshots.SnapshotException;
 import com.fpetrola.oozx.EmulatorControl;
 import com.fpetrola.oozx.Speccy;
+import com.fpetrola.oozx.config.Configuration;
 import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.plugins.Plugins;
@@ -40,7 +41,6 @@ import com.fpetrola.oozx.speccy.windows.AttachedFrame;
 import com.google.inject.Inject;
 
 import javax.swing.JInternalFrame;
-import java.awt.Component;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -54,9 +54,9 @@ import java.util.stream.Collectors;
  * A machine's window as an SZX: the machine in the format's blocks, and what is around it in one of
  * its own, OOZX, which another emulator passes over. What is around it is text, a key a line: which
  * machine it is exactly and on which ROMs, every setting of the machine and of its devices by the
- * name it is declared under, which devices are plugged into it, where the window is and how it shows
- * the picture, whether it is paused, the file the machine came from, its processor and its turbo, the
- * pokes applied to it, and the equipment clipped onto the window.
+ * name it is declared under, which devices are plugged into it, how the window shows the picture,
+ * whether it is paused, the file the machine came from, its processor and its turbo, the pokes
+ * applied to it, and the equipment clipped onto the window. Where the window is, the desk keeps.
  * <p>
  * The first four are put back as the file is read, before the machine is walked ({@link #plug},
  * asked by {@link SzxMapping}): choosing a machine starts it from cold, and plugging some devices
@@ -89,11 +89,6 @@ public final class SzxSession implements Session {
   public byte[] write(EmulatorWindow window) throws SnapshotException {
     Map<String, String> around = new TreeMap<>();
     Speccy speccy = window.machine();
-    Component place = placeOf(window);
-    around.put("window.x", String.valueOf(place.getX()));
-    around.put("window.y", String.valueOf(place.getY()));
-    around.put("window.width", String.valueOf(place.getWidth()));
-    around.put("window.height", String.valueOf(place.getHeight()));
     if (window.picture() instanceof SpeccyScreen screen) {
       around.put("window.zoom", String.valueOf(screen.getZoom()));
       screen.getScreenSettings().values().forEach((knob, value) -> around.put(LOOK + knob, value));
@@ -112,7 +107,7 @@ public final class SzxSession implements Session {
     for (Settings.Configurable settings : speccy.settings().devices()) {
       for (String property : settings.device().properties()) {
         Object value = settings.values().get(property);
-        if (value != null) around.put(settings.device().name() + "." + property, value instanceof Enum<?> named ? named.name() : String.valueOf(value));
+        if (value != null) around.put(settings.device().name() + "." + property, Configuration.asText(value));
       }
     }
     List<Pluggable> plugged = speccy.peripheralRegistry.allThatAre(Pluggable.class).stream().filter(Pluggable::isPluggedIn).toList();
@@ -137,7 +132,7 @@ public final class SzxSession implements Session {
         String value = around.get(settings.device().name() + "." + property);
         if (value == null) continue;
         try {
-          settings.values().set(property, typed(value, settings.device().typeOf(property)));
+          settings.values().set(property, Configuration.fromText(value, settings.device().typeOf(property)));
         } catch (RuntimeException unreadable) {
           // A value a version that meant something else by it wrote: this one stays as the machine starts.
         }
@@ -195,10 +190,6 @@ public final class SzxSession implements Session {
       if (around.containsKey("turbo")) control.setGeneralOption("turbo", Boolean.parseBoolean(around.get("turbo")));
       if (around.containsKey("paused")) control.setGeneralOption("pause", Boolean.parseBoolean(around.get("paused")));
       control.setFilename(around.get("file"));
-    }
-    if (around.containsKey("window.width")) {
-      placeOf(window).setBounds(Integer.parseInt(around.get("window.x")), Integer.parseInt(around.get("window.y")),
-          Integer.parseInt(around.get("window.width")), Integer.parseInt(around.get("window.height")));
     }
     if (window.picture() instanceof SpeccyScreen screen) {
       Map<String, String> look = new TreeMap<>();
@@ -323,21 +314,5 @@ public final class SzxSession implements Session {
       if (equals > 0) around.put(line.substring(0, equals), line.substring(equals + 1));
     }
     return around;
-  }
-
-  /** The window itself where it is one, and otherwise what it shows the machine on. */
-  private static Component placeOf(EmulatorWindow window) {
-    return window instanceof Component itself ? itself : window.picture();
-  }
-
-  @SuppressWarnings({"unchecked", "rawtypes"})
-  private static Object typed(String value, Class<?> type) {
-    if (type == boolean.class || type == Boolean.class) return Boolean.parseBoolean(value);
-    if (type == int.class || type == Integer.class) return Integer.parseInt(value);
-    if (type == long.class || type == Long.class) return Long.parseLong(value);
-    if (type == double.class || type == Double.class) return Double.parseDouble(value);
-    if (type == float.class || type == Float.class) return Float.parseFloat(value);
-    if (type.isEnum()) return Enum.valueOf((Class) type, value);
-    return value;
   }
 }

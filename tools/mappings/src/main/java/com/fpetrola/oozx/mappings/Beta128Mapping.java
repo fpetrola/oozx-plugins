@@ -73,7 +73,7 @@ public final class Beta128Mapping implements Mapping {
 
   @Override
   public void plug(SnapshotFile file, Speccy speccy) {
-    if (!file.has(B128)) return;
+    if (!file.has(B128) || speccy.machine.current.hasOnBoard(Beta128Peripheral.class)) return;
     speccy.peripheralRegistry.allThatAre(Beta128Peripheral.class).stream()
         .filter(beta -> beta.fitsOn(speccy.machine.current)).forEach(beta -> beta.plugIn(true));
   }

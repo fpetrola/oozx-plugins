@@ -26,15 +26,23 @@ import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.Equipment;
+import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
+import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
+import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
+import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
+import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.melodik.MelodikPeripheral;
 import com.fpetrola.oozx.speccy.devices.mouse.MouseEquipment;
 import com.fpetrola.oozx.speccy.devices.printer.PrinterEquipment;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumEquipment;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
+import com.fpetrola.oozx.speccy.machine.Pentagon;
 import com.fpetrola.oozx.speccy.machine.SpecPlus3;
 import com.fpetrola.oozx.speccy.machine.Tc2048;
 import com.fpetrola.oozx.speccy.modules.display.Picture;
+import com.fpetrola.oozx.speccy.modules.input.Input;
+import com.fpetrola.oozx.speccy.modules.joystick.Joystick;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
@@ -46,13 +54,22 @@ import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
 import com.fpetrola.oozx.speccy.tools.games.GamesFrame;
 import com.fpetrola.oozx.speccy.windows.AttachedFrame;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import java.awt.Rectangle;
+import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -61,6 +78,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.FutureTask;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,9 +86,10 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
  * A machine's window kept as a file of the session and opened again: the machine from the file as
- * any file opens, with its settings and what was plugged into it, and then where its window was and
- * how it showed the picture, whether it was paused, the file it came from, the pokes applied to it
- * and the equipment clipped onto it. Another emulator reads the same file.
+ * any file opens, with its settings and what was plugged into it, and then how its window showed the
+ * picture, whether it was paused, the file it came from, the pokes applied to it and the equipment
+ * clipped onto it. Another emulator reads the same file. And the whole desk, kept and opened again as
+ * the desk does it.
  */
 class AMachineComesBackWithItsWindowTest {
 
@@ -162,6 +181,24 @@ class AMachineComesBackWithItsWindowTest {
       window.setVisible(true);
       return window;
     }
+
+    public EmulatorWindow machineFrom(File file) {
+      Speccy speccy = machine();
+      Snapshots.of(speccy).load(file.getPath());
+      Window window = new Window(speccy);
+      place(window);
+      return window;
+    }
+
+    public void place(JInternalFrame window) {
+      if (window.getParent() == null) pane.add(window);
+      window.setVisible(true);
+      window.toFront();
+    }
+
+    List<JInternalFrame> backToFront() {
+      return List.of(pane.getAllFrames()).reversed();
+    }
   }
 
   /**
@@ -210,7 +247,6 @@ class AMachineComesBackWithItsWindowTest {
     new SzxSession().bringBack(file, window);
 
     assertEquals(MachineDescription.of(kept.machine()), MachineDescription.of(opened));
-    assertEquals(new Rectangle(40, 30, 520, 410), window.getBounds());
     assertTrue(opened.control.isPaused(), "paused");
     assertEquals("/games/banks.tap", opened.control.getFilename());
     assertEquals(37, settings(opened, "sound.volume").values().get("volume"));
@@ -235,15 +271,20 @@ class AMachineComesBackWithItsWindowTest {
     assertEquals(3, window.picture().getZoom());
   }
 
-  @Test
-  void thePokesItHadAppliedCanStillBeUndone() throws Exception {
-    PokesTool pokes = new PokesTool();
-    Window kept = kept();
+  /** A poke applied to bank 8, with what it overwrote. */
+  static PokFile.PokeMod lives() {
     PokFile.PokeMod lives = new PokFile.PokeMod("Infinite lives", "M 8 35136 0 53", "game.pok", "Game");
     lives.getParsedInstruction().setPreviousValue(53);
     lives.getParsedInstruction().setPreviousBank(8);
     lives.getParsedInstruction().setPreviousAddress(35136);
-    pokes.applied(kept, List.of(lives));
+    return lives;
+  }
+
+  @Test
+  void thePokesItHadAppliedCanStillBeUndone() throws Exception {
+    PokesTool pokes = new PokesTool();
+    Window kept = kept();
+    pokes.applied(kept, List.of(lives()));
     byte[] file = new SzxSession(Set.of(pokes)).write(kept);
 
     Speccy opened = machine();
@@ -317,55 +358,6 @@ class AMachineComesBackWithItsWindowTest {
   }
 
   /**
-   * Each piece of equipment clipped onto it comes back to the same side, the same size, folded or
-   * not, and unfolding to the same height; two sharing a side share it in the same order.
-   */
-  @Test
-  void theEquipmentClippedOnItComesBackAsItWasLeft() throws Exception {
-    try {
-      Desktop desk = new Desktop();
-      Window kept = kept();
-      List<MachineFrame> clipped = onTheEventThread(() -> {
-        Desk.isRunBy(desk);
-        desk.pane().add(kept);
-        MachineFrame drum = desk.equipment("SpecDrum");
-        drum.attachTo(kept, AttachedFrame.Dock.BOTTOM);
-        MachineFrame printer = desk.equipment("ZX Printer");
-        printer.setCompact(false, 230);
-        printer.attachTo(kept, AttachedFrame.Dock.BOTTOM);
-        MachineFrame mouse = desk.equipment("Kempston Mouse");
-        mouse.setSize(300, 200);
-        mouse.attachTo(kept, AttachedFrame.Dock.RIGHT);
-        return List.of(drum, printer, mouse);
-      });
-      List<String> left = onTheEventThread(() -> asLeft(clipped.stream()));
-      byte[] file = onTheEventThread(() -> new SzxSession().write(kept));
-
-      Desktop another = new Desktop();
-      Speccy opened = machine();
-      new SzxFormat().read(file, opened, note -> { });
-      Window window = new Window(opened);
-      onTheEventThread(() -> {
-        Desk.isRunBy(another);
-        another.pane().add(window);
-        new SzxSession().bringBack(file, window);
-        return null;
-      });
-
-      assertEquals(left, onTheEventThread(() -> asLeft(another.opened().keySet().stream())));
-      assertTrue(another.opened().keySet().stream().allMatch(on -> on.getMachineWindow() == window), "clipped onto another window");
-    } finally {
-      Desk.isRunBy(null);
-    }
-  }
-
-  /** What there is to see of each window clipped on: which, where, how big, and how it folds. */
-  private static List<String> asLeft(Stream<MachineFrame> windows) {
-    return windows.map(window -> window.getTitle() + " " + window.dockedTo() + " " + window.getBounds()
-        + (window.isCompact() ? " compact" : " expanded") + " to " + window.expandedHeight()).sorted().toList();
-  }
-
-  /**
    * The other windows of the desk: one of equipment comes back folded as it was, and the game
    * browser looking for what it was. One clipped onto a machine goes with the machine, and one the
    * desk did not open is not kept.
@@ -403,6 +395,127 @@ class AMachineComesBackWithItsWindowTest {
     } finally {
       Desk.isRunBy(null);
     }
+  }
+
+  /**
+   * The whole desk exactly as it was left: three machines, each with what is plugged into it and one
+   * with a cartridge in, equipment clipped onto two of them, the game browser minimised, a machine
+   * maximised and a printer on its own. Kept as the desk keeps them and brought back onto another
+   * desk, every window is where it was, as big, in the same state and stacked the same way; kept
+   * again, each machine is the same file byte for byte.
+   */
+  @Test
+  void theDeskComesBackExactlyAsItWasLeft(@TempDir Path folder) throws Exception {
+    try {
+      PokesTool pokes = new PokesTool();
+      SzxSession session = new SzxSession(Set.of(pokes));
+      Desktop desk = new Desktop();
+      onTheEventThread(() -> {
+        Desk.isRunBy(desk);
+        Window banks = kept();
+        desk.place(banks);
+        banks.picture().getScreenSettings().apply(Map.of("scaler", "Sharp bilinear", "scanlines", "0.3", "border", "true"));
+        banks.picture().setZoom(3);
+        pokes.applied(banks, List.of(lives()));
+        desk.equipment("SpecDrum").attachTo(banks, AttachedFrame.Dock.BOTTOM);
+        MachineFrame printer = desk.equipment("ZX Printer");
+        printer.setCompact(false, 230);
+        printer.attachTo(banks, AttachedFrame.Dock.BOTTOM);
+
+        Speccy fortyEight = machine();
+        settings(fortyEight, "melodik").values().set("fitted", true);
+        Input.Setup.Pad sinclair = new Input.Setup.Pad();
+        sinclair.output = Joystick.JoystickType.JOYSTICK_TYPE_SINCLAIR_1;
+        settings(fortyEight, "input").values().set("joystick1", sinclair);
+        WhatIsPluggedInComesBackTest.plugged(fortyEight, Interface2Peripheral.class)
+            .inserted(new Cartridge("Jetpac", WhatIsPluggedInComesBackTest.pattern(70, Cartridge.SIZE), null));
+        fortyEight.peripheralRegistry.allThatAre(MelodikPeripheral.class).get(0).register(7, 0x38);
+        Window jetpac = new Window(fortyEight);
+        desk.place(jetpac);
+        jetpac.setBounds(600, 40, 380, 300);
+        jetpac.picture().getScreenSettings().apply(Map.of("tv", "Aerial (RF)", "shade", "Green phosphor"));
+        MachineFrame mouse = desk.equipment("Kempston Mouse");
+        mouse.setSize(300, 200);
+        mouse.attachTo(jetpac, AttachedFrame.Dock.RIGHT);
+
+        GamesFrame games = (GamesFrame) desk.window("Game Browser");
+        games.search(new GamesFrame.Search("dizzy", "On this machine", "Most known",
+            new KnowsTheGames.Slice(1987, "Arcade: Platform", "ZX-Spectrum 48K"), true, false, false, true, false));
+        games.setBounds(100, 500, 640, 420);
+        games.setIcon(true);
+
+        Speccy pentagon = machine();
+        pentagon.machine.select(pentagon.machine.model(Pentagon.class));
+        ((Beta128Peripheral) pentagon.peripheralRegistry.find(Beta128Peripheral.class)).system(0x3d);
+        WhatIsPluggedInComesBackTest.plugged(pentagon, CovoxPeripheral.class).written(0xc0);
+        Window big = new Window(pentagon);
+        desk.place(big);
+        big.setBounds(300, 200, 500, 400);
+        big.setMaximum(true);
+
+        MachineFrame alone = desk.equipment("ZX Printer");
+        alone.setCompact(false, 180);
+        alone.setBounds(1000, 600, 260, 300);
+        return null;
+      });
+      List<OOZxConfiguration.WindowState> kept = onTheEventThread(() -> desk.keep(session, desk.backToFront(), folder.resolve("left").toFile()));
+      List<String> left = onTheEventThread(() -> seen(desk));
+
+      Desktop another = new Desktop();
+      onTheEventThread(() -> {
+        Desk.isRunBy(another);
+        another.bringBack(session, kept);
+        return null;
+      });
+      List<OOZxConfiguration.WindowState> again = onTheEventThread(() -> another.keep(session, another.backToFront(), folder.resolve("again").toFile()));
+
+      assertEquals(left, onTheEventThread(() -> seen(another)));
+      assertEquals(described(kept), described(again));
+      for (int at = 0; at < kept.size(); at++) {
+        if (kept.get(at).getFilePath() != null) {
+          assertArrayEquals(Files.readAllBytes(Path.of(kept.get(at).getFilePath())), Files.readAllBytes(Path.of(again.get(at).getFilePath())));
+        }
+      }
+    } finally {
+      Desk.isRunBy(null);
+    }
+  }
+
+  /** Every window from the back to the front: which, where, how big, whether maximised or minimised, how it folds and what it is clipped onto. */
+  private static List<String> seen(Desktop desk) {
+    List<JInternalFrame> windows = desk.backToFront();
+    return windows.stream().map(window -> (window instanceof Window machine ? machine.machine().machine.current.getName() : desk.nameOf(window))
+        + " " + window.getNormalBounds() + (window.isMaximum() ? " maximised" : "") + (window.isIcon() ? " minimised" : "")
+        + (window instanceof AttachedFrame folding ? (folding.isCompact() ? " compact" : " expanded") + " to " + folding.expandedHeight() : "")
+        + (window instanceof AttachedFrame clipped && clipped.isAttached() ? " on the " + clipped.dockedTo() + " of " + windows.indexOf(clipped.getMachineWindow()) : ""))
+        .toList();
+  }
+
+  /** What the desk wrote down of each window: where it is, and a machine by the blocks of its file and any other by what it has inside. */
+  private static List<String> described(List<OOZxConfiguration.WindowState> kept) throws Exception {
+    List<String> said = new ArrayList<>();
+    for (OOZxConfiguration.WindowState state : kept) {
+      said.add(state.getType() + " " + new Rectangle(state.getX(), state.getY(), state.getWidth(), state.getHeight())
+          + (state.isMaximum() ? " maximised" : "") + (state.isIcon() ? " minimised" : "") + " " + state.getInside());
+      if (state.getFilePath() != null) said.addAll(blocks(Files.readAllBytes(Path.of(state.getFilePath()))));
+    }
+    return said;
+  }
+
+  /** An SZX block by block: its header, what is around the machine a line each, and the rest by their digest. */
+  private static List<String> blocks(byte[] szx) {
+    List<String> said = new ArrayList<>(List.of(HexFormat.of().formatHex(szx, 0, 8)));
+    ByteBuffer in = ByteBuffer.wrap(szx, 8, szx.length - 8).order(ByteOrder.LITTLE_ENDIAN);
+    while (in.remaining() >= 8) {
+      byte[] id = new byte[4];
+      in.get(id);
+      byte[] payload = new byte[in.getInt()];
+      in.get(payload);
+      String block = new String(id, StandardCharsets.ISO_8859_1);
+      if (block.equals("OOZX")) new String(payload, StandardCharsets.UTF_8).lines().forEach(line -> said.add(block + " " + line));
+      else said.add(block + " " + Fields.digest(payload));
+    }
+    return said;
   }
 
   @Test
