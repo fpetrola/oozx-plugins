@@ -81,6 +81,7 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -355,6 +356,33 @@ class AMachineComesBackWithItsWindowTest {
     assertEquals(0x38, opened.peripheralRegistry.allThatAre(MelodikPeripheral.class).get(0).register(7));
     assertEquals(MachineDescription.of(kept), MachineDescription.of(opened));
     assertFalse(opened.peripheralRegistry.update(), "clipping their windows on now would reset it");
+  }
+
+  /**
+   * What new machines start with, changed while this one is open, is for the machines opened after
+   * it: this one keeps the joystick it had, and comes back with it rather than with the new one.
+   */
+  @Test
+  void theDefaultsChangedWhileItIsOpenAreForTheMachinesOpenedAfterIt() throws Exception {
+    Speccy kept = machine();
+    Settings.Values defaults = Settings.defaults().stream().filter(one -> one.device().name().equals("input"))
+        .findFirst().orElseThrow().values();
+    Object was = defaults.get("joystick1");
+    Input.Setup.Pad sinclair = new Input.Setup.Pad();
+    sinclair.output = Joystick.JoystickType.JOYSTICK_TYPE_SINCLAIR_1;
+    try {
+      defaults.set("joystick1", sinclair);
+      assertNull(Input.of(kept).setup.joystick1.output, "the open one keeps its own");
+
+      byte[] file = new SzxSession().write(new Window(kept));
+      Speccy opened = machine();
+      assertEquals(sinclair.output, Input.of(opened).setup.joystick1.output, "a new one starts with it");
+      new SzxFormat().read(file, opened, note -> { });
+
+      assertNull(Input.of(opened).setup.joystick1.output, "the kept one comes back with its own");
+    } finally {
+      defaults.set("joystick1", was);
+    }
   }
 
   /**
