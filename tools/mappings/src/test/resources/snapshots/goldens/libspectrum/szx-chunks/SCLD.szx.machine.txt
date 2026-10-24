@@ -31,5 +31,6 @@ part = Input
 part = PretendInterface
 part = ScldPeripheral
 part = Snapshots
+part = Tape
 part = TimexMemoryPeripheral
 part = UlaPeripheral

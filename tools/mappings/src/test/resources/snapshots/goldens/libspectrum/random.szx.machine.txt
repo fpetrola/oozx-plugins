@@ -30,5 +30,6 @@ tstates = 3
 part = Input
 part = PretendInterface
 part = Snapshots
+part = Tape
 part = UlaPeripheral
 part = ZxPrinterPeripheral

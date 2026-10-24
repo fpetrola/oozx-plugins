@@ -30,5 +30,6 @@ tstates = 69664
 part = Input
 part = PretendInterface
 part = Snapshots
+part = Tape
 part = UlaPeripheral
 part = UspeechPeripheral

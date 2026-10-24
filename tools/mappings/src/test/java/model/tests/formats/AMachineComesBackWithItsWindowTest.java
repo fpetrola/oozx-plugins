@@ -46,6 +46,7 @@ import com.fpetrola.oozx.speccy.modules.joystick.Joystick;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
+import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
 import com.fpetrola.oozx.speccy.peripherals.MockEmulatorCore;
 import com.fpetrola.oozx.speccy.pokes.PokFile;
@@ -427,7 +428,7 @@ class AMachineComesBackWithItsWindowTest {
 
   /**
    * The whole desk exactly as it was left: three machines, each with what is plugged into it and one
-   * with a cartridge in, equipment clipped onto two of them, the game browser minimised, a machine
+   * with a cartridge and a tape in, equipment clipped onto two of them, the game browser minimised, a machine
    * maximised and a printer on its own. Kept as the desk keeps them and brought back onto another
    * desk, every window is where it was, as big, in the same state and stacked the same way; kept
    * again, each machine is the same file byte for byte.
@@ -458,6 +459,8 @@ class AMachineComesBackWithItsWindowTest {
         WhatIsPluggedInComesBackTest.plugged(fortyEight, Interface2Peripheral.class)
             .inserted(new Cartridge("Jetpac", WhatIsPluggedInComesBackTest.pattern(70, Cartridge.SIZE), null));
         fortyEight.peripheralRegistry.allThatAre(MelodikPeripheral.class).get(0).register(7, 0x38);
+        Tape.of(fortyEight).insert(Files.write(folder.resolve("jetpac.tap"), new byte[]{3, 0, 0, 1, 2, 2, 0, (byte) 0xff, 7}).toFile());
+        Tape.of(fortyEight).setSelectedBlock(1);
         Window jetpac = new Window(fortyEight);
         desk.place(jetpac);
         jetpac.setBounds(600, 40, 380, 300);
@@ -498,6 +501,7 @@ class AMachineComesBackWithItsWindowTest {
       List<OOZxConfiguration.WindowState> again = onTheEventThread(() -> another.keep(session, another.backToFront(), folder.resolve("again").toFile()));
 
       assertEquals(left, onTheEventThread(() -> seen(another)));
+      assertTrue(described(kept).stream().anyMatch(line -> line.startsWith("TAPE ")), "the tape in the 48K's deck is not kept");
       assertEquals(described(kept), described(again));
       for (int at = 0; at < kept.size(); at++) {
         if (kept.get(at).getFilePath() != null) {
@@ -531,7 +535,7 @@ class AMachineComesBackWithItsWindowTest {
   }
 
   /** An SZX block by block: its header, what is around the machine a line each, and the rest by their digest. */
-  private static List<String> blocks(byte[] szx) {
+  static List<String> blocks(byte[] szx) {
     List<String> said = new ArrayList<>(List.of(HexFormat.of().formatHex(szx, 0, 8)));
     ByteBuffer in = ByteBuffer.wrap(szx, 8, szx.length - 8).order(ByteOrder.LITTLE_ENDIAN);
     while (in.remaining() >= 8) {

@@ -32,4 +32,5 @@ ay.registers = 73 03 b1 00 bb 0c 19 0f 1e 07 11 71 6c 0a 2b 41
 part = Input
 part = PretendInterface
 part = Snapshots
+part = Tape
 part = UlaPeripheral

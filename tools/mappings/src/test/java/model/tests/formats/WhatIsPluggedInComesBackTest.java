@@ -49,6 +49,7 @@ import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
 import com.fpetrola.oozx.speccy.machine.Pentagon;
 import com.fpetrola.oozx.speccy.machine.Tc2068;
+import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import org.junit.jupiter.api.Test;
@@ -57,6 +58,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -69,9 +71,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 /**
- * Each device in the blocks SZX has for it: a machine with it writes a file libspectrum reads the same, and a
- * machine that reads the file has it plugged in and as it was. libspectrum's own file of each block reads as its
- * tests say.
+ * Each device, and what is in its drives, in the blocks SZX has for it: a machine with it writes a file libspectrum
+ * reads the same, and a machine that reads the file has it plugged in and as it was. libspectrum's own file of each
+ * block reads as its tests say.
  */
 class WhatIsPluggedInComesBackTest {
 
@@ -687,6 +689,27 @@ class WhatIsPluggedInComesBackTest {
 
     assumeTrue(Reference.present(), "libspectrum is not installed here");
     assertEquals(1, Reference.withSnap(file, name, Libspectrum.INSTANCE::libspectrum_snap_fuller_box_active).orElseThrow());
+  }
+
+  /** The tape in the deck goes by its file, at the block the deck was at: a machine never writes on a tape. */
+  @Test
+  void theTapeInTheDeckAtTheBlockItWasAt() throws Exception {
+    Path tape = Files.createTempDirectory("tapes").resolve("three blocks.tap");
+    Files.write(tape, new byte[]{3, 0, 0, 1, 2, 3, 0, (byte) 0xff, 5, 6, 2, 0, 9, 9});
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    assertFalse(AMachineComesBackWithItsWindowTest.blocks(new SzxFormat().write(kept, note -> { })).stream()
+        .anyMatch(block -> block.startsWith("TAPE")), "an empty deck writes no TAPE");
+    assertTrue(Tape.of(kept).insert(tape.toFile()));
+    Tape.of(kept).setSelectedBlock(2);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertEquals(Arrays.asList(tape.toFile(), 2), Arrays.asList(Tape.of(opened).getTapeFilename(), Tape.of(opened).getSelectedBlock()));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(0, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_machine).orElseThrow(),
+        "libspectrum passes TAPE over and reads the 48K around it");
   }
 
   /** What the machine sees from the bottom of its memory up. */

@@ -22,7 +22,7 @@ import java.util.zip.DataFormatException;
 import java.util.zip.Deflater;
 import java.util.zip.Inflater;
 
-/** How bytes travel in a file: as they are, or packed. Unpacking says how long the result has to be. */
+/** How bytes travel in a file: as they are, or packed. Unpacking says how long the result has to be, or -1 where the file does not say it. */
 public interface Codec {
 
   byte[] decode(byte[] packed, int length);
@@ -49,14 +49,19 @@ public interface Codec {
       Inflater inflater = new Inflater();
       try {
         inflater.setInput(packed);
-        byte[] out = new byte[length];
+        byte[] out = new byte[length < 0 ? 4 * packed.length + 64 : length];
         int made = 0;
-        while (made < length && !inflater.finished()) {
-          int now = inflater.inflate(out, made, length - made);
+        while ((length < 0 || made < length) && !inflater.finished()) {
+          if (made == out.length) out = java.util.Arrays.copyOf(out, 2 * out.length);
+          int now = inflater.inflate(out, made, out.length - made);
           if (now == 0 && (inflater.needsInput() || inflater.needsDictionary())) {
             break;
           }
           made += now;
+        }
+        if (length < 0) {
+          if (!inflater.finished()) throw new Refused("zlib that ends before its stream does");
+          return java.util.Arrays.copyOf(out, made);
         }
         if (made != length) {
           throw new Refused("zlib gave " + made + " bytes where there should be " + length);

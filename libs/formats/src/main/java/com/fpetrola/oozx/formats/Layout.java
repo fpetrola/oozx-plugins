@@ -17,6 +17,7 @@
 
 package com.fpetrola.oozx.formats;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -73,13 +74,20 @@ public final class Layout<P> {
   }
 
   private final List<Place<P>> places;
+  private final Predicate<P> written;
 
-  private Layout(List<Place<P>> places) {
+  private Layout(List<Place<P>> places, Predicate<P> written) {
     this.places = List.copyOf(places);
+    this.written = written;
   }
 
   public static <P> Layout<P> of() {
-    return new Layout<>(List.of());
+    return new Layout<>(List.of(), part -> true);
+  }
+
+  /** The table, written only for a part that has something to say: a deck with no tape writes no TAPE. Read whenever the file has it. */
+  public Layout<P> writtenWhen(Predicate<P> says) {
+    return new Layout<>(places, says);
   }
 
   /** A byte. */
@@ -206,7 +214,7 @@ public final class Layout<P> {
         return List.of(read, other);
       }
     });
-    return new Layout<>(changed);
+    return new Layout<>(changed, written);
   }
 
   /** Every page of the file, to its bank of the part; and every bank the shape has, from the part. */
@@ -273,6 +281,68 @@ public final class Layout<P> {
     return with(new Rest<>(block, lengthAt, length, field, bytes -> true, bytes -> { }));
   }
 
+  /**
+   * What is in a drive, as a block that keeps it says it: the file it came from, or the image itself where no file
+   * has it as it is - a disk the machine wrote on, a blank one - and the number the block gives its kind of image.
+   */
+  public record Medium(String file, byte[] image, int kind) {
+    public static Medium inFile(String file, int kind) {
+      return new Medium(file, null, kind);
+    }
+
+    public static Medium inside(byte[] image, int kind) {
+      return new Medium(null, image, kind);
+    }
+
+    public boolean isInside() {
+      return image != null;
+    }
+  }
+
+  /**
+   * What a block carries after its fields that is the medium in a drive: the name of its file, ended by a nul, or
+   * the image itself packed with zlib, as two bits of the byte at flagsAt say. How long the image is once unpacked
+   * and how long what follows the fields is go at expandedAt and keptAt, in the blocks that say them; the kind of
+   * image goes in the byte at kindAt. A place a block does not have is -1. Nothing is written for a part with nothing
+   * in it.
+   */
+  public Layout<P> medium(Fixed block, int flagsAt, int insideBit, int packedBit, int expandedAt, int keptAt, int kindAt,
+                          Field<P, Medium> field) {
+    return with(new Place<P>() {
+      public void read(SnapshotFile file, P part) {
+        if (!file.has(block, block.length(), 1)) return;
+        Bytes bytes = file.bytes(block);
+        int there = bytes.length() - block.length();
+        byte[] kept = bytes.slice(block.length(), keptAt < 0 ? there : Math.min(bytes.u32(keptAt), there));
+        int kind = kindAt < 0 ? 0 : bytes.u8(kindAt);
+        if ((bytes.u8(flagsAt) >> insideBit & 1) == 0) {
+          String named = new String(kept, StandardCharsets.UTF_8);
+          field.set(part, Medium.inFile(named.indexOf(0) < 0 ? named : named.substring(0, named.indexOf(0)), kind));
+        } else {
+          boolean packed = (bytes.u8(flagsAt) >> packedBit & 1) != 0;
+          field.set(part, Medium.inside(packed ? Codec.ZLIB.decode(kept, expandedAt < 0 ? -1 : bytes.u32(expandedAt)) : kept, kind));
+        }
+      }
+
+      public void write(P part, SnapshotFile file) {
+        Medium medium = field.get(part);
+        if (medium == null || !file.has(block)) return;
+        Bytes bytes = file.bytes(block);
+        byte[] kept = medium.isInside() ? Codec.ZLIB.encode(medium.image()) : (medium.file() + "\0").getBytes(StandardCharsets.UTF_8);
+        if (medium.isInside()) bytes.or(flagsAt, 1 << insideBit | 1 << packedBit);
+        if (expandedAt >= 0) bytes.u32(expandedAt, medium.isInside() ? medium.image().length : kept.length);
+        if (keptAt >= 0) bytes.u32(keptAt, kept.length);
+        if (kindAt >= 0) bytes.u8(kindAt, medium.kind());
+        bytes.append(kept);
+        file.wrote(block);
+      }
+
+      public List<Object> fields() {
+        return List.of(field);
+      }
+    });
+  }
+
   /** The block, written with the part even when there is nothing else to say: that the part is there is what it says. */
   public Layout<P> present(Fixed block) {
     return with(new Place<P>() {
@@ -316,7 +386,7 @@ public final class Layout<P> {
   }
 
   public void write(P part, SnapshotFile file) {
-    places.forEach(place -> place.write(part, file));
+    if (written.test(part)) places.forEach(place -> place.write(part, file));
   }
 
   /** The fields it places, in order: for the tests that hold a table to what it says. */
@@ -327,6 +397,6 @@ public final class Layout<P> {
   private Layout<P> with(Place<P> place) {
     List<Place<P>> more = new ArrayList<>(places);
     more.add(place);
-    return new Layout<>(more);
+    return new Layout<>(more, written);
   }
 }

@@ -28,4 +28,5 @@ tstates = 0
 part = Input
 part = PretendInterface
 part = Snapshots
+part = Tape
 part = UlaPeripheral
