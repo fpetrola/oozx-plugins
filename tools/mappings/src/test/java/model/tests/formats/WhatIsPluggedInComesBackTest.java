@@ -866,7 +866,7 @@ class WhatIsPluggedInComesBackTest {
   }
 
   /** A TR-DOS disk of 80 cylinders and two sides, its sectors a pattern but for the one that says what disk it is. */
-  private static byte[] trd(int seed) {
+  static byte[] trd(int seed) {
     byte[] image = pattern(seed, 80 * 2 * 16 * 256);
     image[8 * 256 + 227] = 0x16;
     image[8 * 256 + 231] = 0x10;

@@ -30,6 +30,7 @@ import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
 import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
+import com.fpetrola.oozx.speccy.devices.disk.Disk;
 import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.melodik.MelodikPeripheral;
@@ -427,8 +428,8 @@ class AMachineComesBackWithItsWindowTest {
   }
 
   /**
-   * The whole desk exactly as it was left: three machines, each with what is plugged into it and one
-   * with a cartridge and a tape in, equipment clipped onto two of them, the game browser minimised, a machine
+   * The whole desk exactly as it was left: three machines, each with what is plugged into it, one with
+   * a cartridge and a tape in and another with a disk, equipment clipped onto two of them, the game browser minimised, a machine
    * maximised and a printer on its own. Kept as the desk keeps them and brought back onto another
    * desk, every window is where it was, as big, in the same state and stacked the same way; kept
    * again, each machine is the same file byte for byte.
@@ -477,7 +478,10 @@ class AMachineComesBackWithItsWindowTest {
 
         Speccy pentagon = machine();
         pentagon.machine.select(pentagon.machine.model(Pentagon.class));
-        ((Beta128Peripheral) pentagon.peripheralRegistry.find(Beta128Peripheral.class)).system(0x3d);
+        Beta128Peripheral beta = (Beta128Peripheral) pentagon.peripheralRegistry.find(Beta128Peripheral.class);
+        beta.system(0x3d);
+        beta.drive(0).insert(Disk.openBuffer("game.trd", WhatIsPluggedInComesBackTest.trd(5)), false);
+        beta.drive(0).disk.write(folder.resolve("game.trd").toFile());
         WhatIsPluggedInComesBackTest.plugged(pentagon, CovoxPeripheral.class).written(0xc0);
         Window big = new Window(pentagon);
         desk.place(big);
@@ -502,6 +506,7 @@ class AMachineComesBackWithItsWindowTest {
 
       assertEquals(left, onTheEventThread(() -> seen(another)));
       assertTrue(described(kept).stream().anyMatch(line -> line.startsWith("TAPE ")), "the tape in the 48K's deck is not kept");
+      assertTrue(described(kept).stream().anyMatch(line -> line.startsWith("BDSK ")), "the disk in the Pentagon's drive is not kept");
       assertEquals(described(kept), described(again));
       for (int at = 0; at < kept.size(); at++) {
         if (kept.get(at).getFilePath() != null) {
