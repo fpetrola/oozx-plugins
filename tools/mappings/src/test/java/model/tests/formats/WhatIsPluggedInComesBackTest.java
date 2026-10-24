@@ -779,6 +779,41 @@ class WhatIsPluggedInComesBackTest {
     }
   }
 
+  /**
+   * The Interface 1's microdrives, as the drives: a cartridge by its file, its motor running and the head where it
+   * was, and a blank one, which has no file, inside.
+   */
+  @Test
+  void theInterfaceOnesCartridgesByTheirFileOrInside() throws Exception {
+    Path game = Files.write(Files.createTempDirectory("cartridges").resolve("game.mdr"), cartridge(51, 180));
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    Interface1Peripheral interface1 = plugged(kept, Interface1Peripheral.class);
+    interface1.insert(0, game.toFile());
+    interface1.drive(0).motorOn = true;
+    interface1.drive(0).headAt(1000);
+    interface1.insertBlank(3);
+    interface1.writeProtect(3, true);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    Interface1Peripheral back = (Interface1Peripheral) opened.peripheralRegistry.find(Interface1Peripheral.class);
+    for (int drive = 0; drive < Interface1Peripheral.DRIVES; drive++) {
+      assertEquals(described(interface1, drive), described(back, drive), "microdrive " + (drive + 1));
+    }
+  }
+
+  /** Whether it has a cartridge, its file, whether it changed since, whether it is write-protected, how long it is, its motor and its head. */
+  private static List<Object> described(Interface1Peripheral interface1, int drive) {
+    return Arrays.asList(interface1.inserted(drive), interface1.cartridgeName(drive), interface1.modified(drive),
+        interface1.writeProtected(drive), interface1.sectors(drive), interface1.motorOn(drive), interface1.drive(drive).head());
+  }
+
+  /** A cartridge of that many sectors as an .mdr keeps it, its sectors a pattern, not write-protected. */
+  private static byte[] cartridge(int seed, int sectors) {
+    return Arrays.copyOf(pattern(seed, sectors * 543), sectors * 543 + 1);
+  }
+
   /** A TR-DOS disk of 80 cylinders and two sides, its sectors a pattern but for the one that says what disk it is. */
   private static byte[] trd(int seed) {
     byte[] image = pattern(seed, 80 * 2 * 16 * 256);

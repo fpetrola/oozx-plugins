@@ -29,7 +29,7 @@ import java.util.Random;
  * 10-zero/two-0xff preamble. One byte per data-port access; gap/sync lines toggle as marks pass.
  * MDR file format: the sectors, then one write-protect byte.
  */
-final class Microdrive {
+public final class Microdrive {
 
   static final int BLOCK = 543;
   static final int HEAD = 15;
@@ -42,10 +42,10 @@ final class Microdrive {
   private byte[] tape = new byte[0];
   private final int[] preamble = new int[2 * 256];
   boolean writeProtected;
-  boolean inserted;
-  boolean modified;
-  boolean motorOn;
-  String filename;
+  public boolean inserted;
+  public boolean modified;
+  public boolean motorOn;
+  public String filename;
   private int head;
   private int transferred;
   private int maxBytes = HEAD;
@@ -53,17 +53,23 @@ final class Microdrive {
   private int gap = GAP_READS;
   private int sync = GAP_READS;
 
-  void insert(File file) throws IOException {
-    byte[] image = Files.readAllBytes(file.toPath());
+  public void insert(File file) throws IOException {
+    insert(file.getName(), Files.readAllBytes(file.toPath()));
+    filename = file.getPath();
+    modified = false;
+  }
+
+  /** A cartridge as an .mdr has it, with no file of its own: one to be saved, as a blank one is. */
+  public void insert(String name, byte[] image) throws IOException {
     if (image.length % BLOCK != 1 || image.length / BLOCK > MAX_SECTORS) {
-      throw new IOException(file.getName() + " is not a Microdrive cartridge");
+      throw new IOException(name + " is not a Microdrive cartridge");
     }
     tape = Arrays.copyOf(image, image.length - 1);
     writeProtected = image[image.length - 1] != 0;
     Arrays.fill(preamble, SYNC_OK);
-    filename = file.getPath();
+    filename = null;
     inserted = true;
-    modified = false;
+    modified = true;
   }
 
   /** A freshly blanked cartridge: all 0xff, no sync marks, ready for FORMAT to lay down. */
@@ -83,18 +89,32 @@ final class Microdrive {
     return 171 + random.nextInt(20) + random.nextInt(20) + random.nextInt(20) + random.nextInt(20);
   }
 
-  void eject() {
+  public void eject() {
     inserted = false;
     filename = null;
     tape = new byte[0];
   }
 
   void save(File file) throws IOException {
-    byte[] image = Arrays.copyOf(tape, tape.length + 1);
-    image[tape.length] = (byte) (writeProtected ? 1 : 0);
-    Files.write(file.toPath(), image);
+    Files.write(file.toPath(), image());
     filename = file.getPath();
     modified = false;
+  }
+
+  /** The cartridge as an .mdr has it: its sectors, then whether it is write-protected. */
+  public byte[] image() {
+    byte[] image = Arrays.copyOf(tape, tape.length + 1);
+    image[tape.length] = (byte) (writeProtected ? 1 : 0);
+    return image;
+  }
+
+  /** Where the head is along the loop of tape. */
+  public int head() {
+    return head;
+  }
+
+  public void headAt(int at) {
+    head = tape.length == 0 ? 0 : Math.floorMod(at, tape.length);
   }
 
   void writeProtect(boolean on) {

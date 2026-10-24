@@ -265,6 +265,10 @@ public class Interface1Peripheral extends PluggablePeripheral {
     if (in) page(); else unpage();
   }
 
+  public Microdrive drive(int which) {
+    return drives[which];
+  }
+
   public boolean motorOn(int which) {
     return drives[which].motorOn;
   }
