@@ -20,7 +20,8 @@ package com.fpetrola.oozx.formats;
 /**
  * A stretch of fixed length, whose bytes the tables of the parts read and write at offsets. A
  * virtual one is not in the file: a rule fills it or empties it, like the PC a 48K SNA keeps on the
- * stack. A paged one is in the file once a page, each page that long.
+ * stack. A paged one is in the file once a page, each page that long, and one for each is in it once
+ * for each of something, its number in it.
  */
 public final class Fixed implements Region {
 
@@ -29,33 +30,40 @@ public final class Fixed implements Region {
   private final int length;
   private final boolean virtual;
   private final boolean paged;
+  private final int numberAt;
 
-  private Fixed(String name, int start, int length, boolean virtual, boolean paged) {
+  private Fixed(String name, int start, int length, boolean virtual, boolean paged, int numberAt) {
     this.name = name;
     this.start = start;
     this.length = length;
     this.virtual = virtual;
     this.paged = paged;
+    this.numberAt = numberAt;
   }
 
   /** A stretch of that length, its offsets counted from where it starts. */
   public static Fixed of(String name, int length) {
-    return new Fixed(name, 0, length, false, false);
+    return new Fixed(name, 0, length, false, false, -1);
   }
 
   /** A stretch from one offset of the file to another, its offsets the file's. */
   public static Fixed span(String name, int from, int to) {
-    return new Fixed(name, from, to - from, false, false);
+    return new Fixed(name, from, to - from, false, false, -1);
   }
 
   /** A stretch no file has, that a rule fills when reading and empties when writing. */
   public static Fixed virtual(String name, int length) {
-    return new Fixed(name, 0, length, true, false);
+    return new Fixed(name, 0, length, true, false, -1);
   }
 
   /** The memory of something plugged in, a page of that length at a time, each by its number. */
   public static Fixed pages(String name, int pageLength) {
-    return new Fixed(name, 0, pageLength, false, true);
+    return new Fixed(name, 0, pageLength, false, true, -1);
+  }
+
+  /** A block that comes once for each of something, told apart by its number in the byte at numberAt: a disk in each drive. */
+  public static Fixed each(String name, int length, int numberAt) {
+    return new Fixed(name, 0, length, false, false, numberAt);
   }
 
   public int length() {
@@ -66,9 +74,17 @@ public final class Fixed implements Region {
     return paged;
   }
 
+  public boolean isEach() {
+    return numberAt >= 0;
+  }
+
+  public int numberAt() {
+    return numberAt;
+  }
+
   /** The same stretch, ending at that offset of the file: what a version of a format that says less has of it. */
   public Fixed upTo(int end) {
-    return new Fixed(name, start, end - start, virtual, paged);
+    return new Fixed(name, start, end - start, virtual, paged, numberAt);
   }
 
   /** Whether it reaches that far: a place past where a version cuts it is not in that version. */

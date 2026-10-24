@@ -20,6 +20,7 @@ package com.fpetrola.oozx.formats;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
@@ -279,6 +280,43 @@ public final class Layout<P> {
   /** The same, always packed, and how long it is packed in four bytes at that place of the block: a cartridge. */
   public Layout<P> packedRest(Fixed block, int lengthAt, int length, Field<P, byte[]> field) {
     return with(new Rest<>(block, lengthAt, length, field, bytes -> true, bytes -> { }));
+  }
+
+  /**
+   * A block for each one of something a part has a number of, as many as it says: a disk in each drive. The table for
+   * one of them reads its block and writes it, numbered from first; one with nothing to say writes none.
+   */
+  public <O> Layout<P> each(Fixed block, ToIntFunction<P> count, int first, BiFunction<P, Integer, O> one, Layout<O> table) {
+    return with(new Place<P>() {
+      public void read(SnapshotFile file, P part) {
+        file.each(block).forEach((number, bytes) -> {
+          if (number < first || number - first >= count.applyAsInt(part)) {
+            file.note("skipped: " + block + " " + number + ", which this part does not have");
+          } else {
+            table.read(alone(file, block, bytes.toBytes()), one.apply(part, number - first));
+          }
+        });
+      }
+
+      public void write(P part, SnapshotFile file) {
+        for (int which = 0; which < count.applyAsInt(part); which++) {
+          SnapshotFile alone = alone(file, block, new byte[block.length()]);
+          table.write(one.apply(part, which), alone);
+          if (alone.isWritten(block)) file.each(block, alone.bytes(block).u8(block.numberAt(), first + which).toBytes());
+        }
+      }
+
+      public List<Object> fields() {
+        return table.fields();
+      }
+    });
+  }
+
+  /** A file with that block alone in it: what the table for one of many reads and writes. */
+  private static SnapshotFile alone(SnapshotFile of, Fixed block, byte[] bytes) {
+    SnapshotFile alone = new SnapshotFile(of.shape());
+    alone.stretch(block, bytes);
+    return alone;
   }
 
   /**

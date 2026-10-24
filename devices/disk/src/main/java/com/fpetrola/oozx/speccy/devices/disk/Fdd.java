@@ -281,6 +281,13 @@ public final class Fdd {
     return cCylinder;
   }
 
+  /** Puts the head over that cylinder, as far as the drive reaches. */
+  public void headAt(int cylinder) {
+    cCylinder = Math.max(0, Math.min(cylinder, fddCylinders - 1));
+    tr00 = cCylinder == 0;
+    setData(0);
+  }
+
   /** Advances the disk one byte and reads or writes it; rotation continues even when idle. */
   private boolean readWriteData(boolean write) {
     if (!selected || !ready || !loadhead || !disk.hasTrack()) {

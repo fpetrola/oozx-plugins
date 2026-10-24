@@ -23,6 +23,7 @@ import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.snapshots.Z80Format;
 import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
 import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
+import com.fpetrola.oozx.speccy.devices.disk.Disk;
 import com.fpetrola.oozx.speccy.devices.disk.Fdd;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
@@ -710,6 +711,52 @@ class WhatIsPluggedInComesBackTest {
     assumeTrue(Reference.present(), "libspectrum is not installed here");
     assertEquals(0, Reference.withSnap(file, "szx", Libspectrum.INSTANCE::libspectrum_snap_machine).orElseThrow(),
         "libspectrum passes TAPE over and reads the 48K around it");
+  }
+
+  /**
+   * The Beta's drives in a Pentagon: a disk by its file with the head where it was, one with no file the machine wrote
+   * on inside, write-protected, and the drive with nothing in it empty. A blank disk not yet formatted is no image of
+   * any kind, and comes back as no disk, without keeping the machine from being written.
+   */
+  @Test
+  void theBetaOneTwoEightsDisksByTheirFileOrInside() throws Exception {
+    Path game = Files.write(Files.createTempDirectory("disks").resolve("game.trd"), trd(11));
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    kept.machine.select(kept.machine.model(Pentagon.class));
+    Beta128Peripheral beta = (Beta128Peripheral) kept.peripheralRegistry.find(Beta128Peripheral.class);
+    beta.drive(0).insert(Disk.open(game.toFile()), false);
+    for (int cylinder = 0; cylinder < 5; cylinder++) beta.drive(0).step(Fdd.Dir.IN);
+    Disk written = Disk.openBuffer("written.trd", trd(23));
+    written.filename = null;
+    written.dirty = true;
+    beta.drive(1).insert(written, false);
+    beta.drive(1).writeProtect(true);
+    beta.insertBlank(2);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    Beta128Peripheral back = (Beta128Peripheral) opened.peripheralRegistry.find(Beta128Peripheral.class);
+    for (int drive : new int[]{0, 1, 3}) assertEquals(described(beta.drive(drive)), described(back.drive(drive)), "drive " + drive);
+    assertFalse(back.drive(2).loaded, "the blank disk");
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    assertEquals(List.of(4, 1), Reference.withSnap(file, "szx", snap -> List.of(Libspectrum.INSTANCE.libspectrum_snap_machine(snap),
+        Libspectrum.INSTANCE.libspectrum_snap_beta_active(snap))).orElseThrow(), "libspectrum passes BDSK over and reads the Pentagon around it");
+  }
+
+  /** A TR-DOS disk of 80 cylinders and two sides, its sectors a pattern but for the one that says what disk it is. */
+  private static byte[] trd(int seed) {
+    byte[] image = pattern(seed, 80 * 2 * 16 * 256);
+    image[8 * 256 + 227] = 0x16;
+    image[8 * 256 + 231] = 0x10;
+    return image;
+  }
+
+  /** Whether it has a disk, which file it came from, whether the machine wrote on it, whether it is write-protected, where the head is and the image. */
+  private static List<Object> described(Fdd drive) throws Exception {
+    return Arrays.asList(drive.loaded, drive.loaded ? drive.disk.filename : null, drive.loaded && drive.disk.dirty, drive.wrprot,
+        drive.cylinder(), drive.loaded ? Arrays.hashCode(drive.disk.toImage()) : 0);
   }
 
   /** What the machine sees from the bottom of its memory up. */

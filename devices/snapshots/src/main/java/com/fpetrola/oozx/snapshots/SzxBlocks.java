@@ -31,7 +31,8 @@ import java.util.List;
 
 /**
  * The blocks of an SZX after its header: each an id of four letters, a length, and its bytes. The
- * ones a part's table knows are kept as stretches by id, or by page where they come a page a block;
+ * ones a part's table knows are kept as stretches by id, by page where they come a page a block, or
+ * by number where one comes for each drive;
  * the pages of RAM go to their banks, packed with zlib or not; the rest are passed over and said.
  * Written, a block goes only if some part wrote into it, one a page for every page written, and the
  * creator always goes first.
@@ -66,6 +67,8 @@ final class SzxBlocks implements Region {
         if (block == null) {
           into.note("skipped: the block " + id.trim() + " (" + length + " bytes)");
           into.carry(id, payload);
+        } else if (block.isEach()) {
+          into.each(block, payload);
         } else if (block.isPaged()) {
           Page page = Page.of(payload, block.length());
           into.page(block, page.number(), page.bytes());
@@ -133,7 +136,7 @@ final class SzxBlocks implements Region {
 
   @Override
   public void prepare(SnapshotFile file) {
-    known.stream().filter(block -> !block.isPaged()).forEach(block -> file.stretch(block, new byte[block.length()]));
+    known.stream().filter(block -> !block.isPaged() && !block.isEach()).forEach(block -> file.stretch(block, new byte[block.length()]));
   }
 
   @Override
@@ -142,6 +145,8 @@ final class SzxBlocks implements Region {
     for (Fixed block : known) {
       if (block.isPaged()) {
         from.pages(block).forEach((number, page) -> block(out, block.toString(), new Page(number, page).block()));
+      } else if (block.isEach()) {
+        from.each(block).values().forEach(bytes -> block(out, block.toString(), bytes.toBytes()));
       } else if (from.isWritten(block)) {
         block(out, block.toString(), from.bytes(block).toBytes());
       }

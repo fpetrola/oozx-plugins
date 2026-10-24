@@ -40,6 +40,7 @@ public final class SnapshotFile {
   private final Set<Fixed> written = new java.util.HashSet<>();
   private final Map<Integer, byte[]> pages = new TreeMap<>();
   private final Map<Fixed, Map<Integer, byte[]>> paged = new HashMap<>();
+  private final Map<Fixed, Map<Integer, Bytes>> each = new HashMap<>();
   private final Set<Integer> placedOrWritten = new LinkedHashSet<>();
   private final List<String> notes = new ArrayList<>();
   private final Map<String, byte[]> carried = new java.util.LinkedHashMap<>();
@@ -142,6 +143,19 @@ public final class SnapshotFile {
       throw new Refused("a page of " + block + " of " + bytes.length + " bytes, where they are " + block.length());
     }
     paged.computeIfAbsent(block, any -> new TreeMap<>()).put(number, bytes.clone());
+  }
+
+  /** The blocks the file has of a kind that comes once for each of something, by their number. */
+  public Map<Integer, Bytes> each(Fixed block) {
+    return java.util.Collections.unmodifiableMap(each.getOrDefault(block, Map.of()));
+  }
+
+  /** One of those blocks, under the number it says. */
+  public void each(Fixed block, byte[] payload) {
+    if (payload.length <= block.numberAt()) {
+      throw new Refused("a " + block + " of " + payload.length + " bytes, which does not say its number");
+    }
+    each.computeIfAbsent(block, any -> new TreeMap<>()).put(payload[block.numberAt()] & 0xff, Bytes.of(0, payload));
   }
 
   /** The RAM from 0x4000 as a 48K sees it, over the file's banks 5, 2 and 0: what a rule reads the stack from. */
