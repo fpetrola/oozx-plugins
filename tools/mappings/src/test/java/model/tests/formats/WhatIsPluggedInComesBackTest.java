@@ -25,6 +25,7 @@ import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
 import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
 import com.fpetrola.oozx.speccy.devices.disk.Disk;
 import com.fpetrola.oozx.speccy.devices.disk.Fdd;
+import com.fpetrola.oozx.speccy.devices.disk.WdDiskInterface;
 import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
 import com.fpetrola.oozx.speccy.devices.fuller.FullerPeripheral;
@@ -743,6 +744,39 @@ class WhatIsPluggedInComesBackTest {
     assumeTrue(Reference.present(), "libspectrum is not installed here");
     assertEquals(List.of(4, 1), Reference.withSnap(file, "szx", snap -> List.of(Libspectrum.INSTANCE.libspectrum_snap_machine(snap),
         Libspectrum.INSTANCE.libspectrum_snap_beta_active(snap))).orElseThrow(), "libspectrum passes BDSK over and reads the Pentagon around it");
+  }
+
+  /** The +D keeps its disks as the Beta does, in PDSK. */
+  @Test
+  void thePlusDsDisksByTheirFileOrInside() throws Exception {
+    disksComeBack(PlusDPeripheral.class, "game.mgt", 2 * 80 * 10 * 512);
+  }
+
+  /** And the Opus, in ODSK. */
+  @Test
+  void theOpussDisksByTheirFileOrInside() throws Exception {
+    disksComeBack(OpusPeripheral.class, "game.opd", 40 * 18 * 256);
+  }
+
+  /** A disk by its file in the first drive, the head three cylinders in, and in the second one with no file the machine wrote on. */
+  private static <T extends WdDiskInterface> void disksComeBack(Class<T> type, String name, int length) throws Exception {
+    Path game = Files.write(Files.createTempDirectory("disks").resolve(name), pattern(41, length));
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    T board = plugged(kept, type);
+    board.drive(0).insert(Disk.open(game.toFile()), false);
+    for (int cylinder = 0; cylinder < 3; cylinder++) board.drive(0).step(Fdd.Dir.IN);
+    Disk written = Disk.openBuffer(name, pattern(43, length));
+    written.filename = null;
+    written.dirty = true;
+    board.drive(1).insert(written, false);
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    T back = type.cast(opened.peripheralRegistry.find(type));
+    for (int drive = 0; drive < board.drives(); drive++) {
+      assertEquals(described(board.drive(drive)), described(back.drive(drive)), name + ", drive " + drive);
+    }
   }
 
   /** A TR-DOS disk of 80 cylinders and two sides, its sectors a pattern but for the one that says what disk it is. */

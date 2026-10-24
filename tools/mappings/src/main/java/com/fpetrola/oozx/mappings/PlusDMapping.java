@@ -19,6 +19,7 @@ package com.fpetrola.oozx.mappings;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.formats.Bindings;
+import com.fpetrola.oozx.formats.Codes;
 import com.fpetrola.oozx.formats.DeclaredFormat;
 import com.fpetrola.oozx.formats.Field;
 import com.fpetrola.oozx.formats.Fixed;
@@ -26,6 +27,7 @@ import com.fpetrola.oozx.formats.Layout;
 import com.fpetrola.oozx.formats.Mapping;
 import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.snapshots.SzxFormat;
+import com.fpetrola.oozx.speccy.devices.disk.Disk;
 import com.fpetrola.oozx.speccy.devices.disk.Fdd;
 import com.fpetrola.oozx.speccy.devices.plusd.MgtDiskInterface;
 import com.fpetrola.oozx.speccy.devices.plusd.PlusDPeripheral;
@@ -35,13 +37,15 @@ import java.util.List;
 
 /**
  * The +D in an SZX: PLSD says whether its ROM is paged in, which way the head was last stepping, its control register,
- * the four registers of its controller, and carries its RAM, its kept length before it. Its ROM is GDOS, not written,
- * and its disks are media. A file with PLSD plugs it in.
+ * the four registers of its controller, and carries its RAM, its kept length before it, and a PDSK for each drive with
+ * a disk in it, as the Beta's. Its ROM is GDOS, not written. A file with PLSD plugs it in.
  */
 @OnlyWith({"device-plusd", "device-disk"})
 public final class PlusDMapping implements Mapping {
 
   static final Fixed PLSD = Fixed.of("PLSD", 19);
+  static final Fixed PDSK = Fixed.each("PDSK", 7, 4);
+  static final Codes<Disk.Type> KINDS = Codes.<Disk.Type>of("+D disk type").is(0, Disk.Type.MGT).is(1, Disk.Type.IMG).otherwise(Disk.Type.MGT);
 
   static final Layout<PlusDPeripheral> TABLE = Layout.<PlusDPeripheral>of()
       .bit(PLSD, 0, 2, Field.of("plusd.seekingLower", plusd -> plusd.fdc().direction == Fdd.Dir.OUT,
@@ -54,7 +58,8 @@ public final class PlusDMapping implements Mapping {
       .u8(PLSD, 18, Field.of("plusd.status", plusd -> plusd.fdc().statusRegister, (plusd, status) -> plusd.fdc().statusRegister = status))
       .u8(PLSD, 13, Field.of("plusd.control", PlusDPeripheral::controlRegister, PlusDPeripheral::control))
       .bit(PLSD, 0, 0, Field.of("plusd.paged", PlusDPeripheral::isPaged, PlusDPeripheral::pagedIn))
-      .rest(PLSD, 0, 1, 4, MgtDiskInterface.RAM_SIZE, Field.of("plusd.ram", PlusDPeripheral::ram, PlusDPeripheral::ram));
+      .rest(PLSD, 0, 1, 4, MgtDiskInterface.RAM_SIZE, Field.of("plusd.ram", PlusDPeripheral::ram, PlusDPeripheral::ram))
+      .each(PDSK, plusd -> MgtDiskInterface.DRIVES, 0, PlusDPeripheral::drive, Beta128Mapping.drive(PDSK, KINDS));
 
   @Override
   public Class<? extends DeclaredFormat> format() {
@@ -68,7 +73,7 @@ public final class PlusDMapping implements Mapping {
 
   @Override
   public List<Fixed> blocks() {
-    return List.of(PLSD);
+    return List.of(PLSD, PDSK);
   }
 
   @Override

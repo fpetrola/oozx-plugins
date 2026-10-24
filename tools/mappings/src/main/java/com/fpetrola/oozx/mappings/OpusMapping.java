@@ -20,6 +20,7 @@ package com.fpetrola.oozx.mappings;
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.formats.Bindings;
 import com.fpetrola.oozx.formats.Bytes;
+import com.fpetrola.oozx.formats.Codes;
 import com.fpetrola.oozx.formats.DeclaredFormat;
 import com.fpetrola.oozx.formats.Encoding;
 import com.fpetrola.oozx.formats.Field;
@@ -28,6 +29,7 @@ import com.fpetrola.oozx.formats.Layout;
 import com.fpetrola.oozx.formats.Mapping;
 import com.fpetrola.oozx.formats.SnapshotFile;
 import com.fpetrola.oozx.snapshots.SzxFormat;
+import com.fpetrola.oozx.speccy.devices.disk.Disk;
 import com.fpetrola.oozx.speccy.devices.disk.Fdd;
 import com.fpetrola.oozx.speccy.devices.opus.OpusPeripheral;
 import dev.crystal.plugins.api.OnlyWith;
@@ -36,13 +38,15 @@ import java.util.List;
 
 /**
  * The Opus Discovery in an SZX: OPUS says whether its ROM is paged in, which way the head was last stepping, the six
- * registers of its PIA, the four of its controller, and carries its RAM, its kept length before it. Its ROM is not
- * written, and its disks are media. A file with OPUS plugs it in.
+ * registers of its PIA, the four of its controller, and carries its RAM, its kept length before it, and an ODSK for
+ * each drive with a disk in it, as the Beta's. Its ROM is not written. A file with OPUS plugs it in.
  */
 @OnlyWith({"device-opus", "device-disk"})
 public final class OpusMapping implements Mapping {
 
   static final Fixed OPUS = Fixed.of("OPUS", 23);
+  static final Fixed ODSK = Fixed.each("ODSK", 7, 4);
+  static final Codes<Disk.Type> KINDS = Codes.<Disk.Type>of("Opus disk type").is(0, Disk.Type.OPD).is(1, Disk.Type.OPD).otherwise(Disk.Type.OPD);
 
   static final Layout<OpusPeripheral> TABLE = Layout.<OpusPeripheral>of()
       .bit(OPUS, 0, 2, Field.of("opus.seekingLower", opus -> opus.fdc().direction == Fdd.Dir.OUT,
@@ -55,7 +59,8 @@ public final class OpusMapping implements Mapping {
       .u8(OPUS, 21, Field.of("opus.data", opus -> opus.fdc().dataRegister, (opus, data) -> opus.fdc().dataRegister = data))
       .u8(OPUS, 22, Field.of("opus.status", opus -> opus.fdc().statusRegister, (opus, status) -> opus.fdc().statusRegister = status))
       .bit(OPUS, 0, 0, Field.of("opus.paged", OpusPeripheral::isPaged, OpusPeripheral::pagedIn))
-      .rest(OPUS, 0, 1, 4, OpusPeripheral.RAM_SIZE, Field.of("opus.ram", OpusPeripheral::ram, OpusPeripheral::ram));
+      .rest(OPUS, 0, 1, 4, OpusPeripheral.RAM_SIZE, Field.of("opus.ram", OpusPeripheral::ram, OpusPeripheral::ram))
+      .each(ODSK, opus -> OpusPeripheral.DRIVES, 0, OpusPeripheral::drive, Beta128Mapping.drive(ODSK, KINDS));
 
   /** The PIA's six, in the order OPUS keeps them: side A's control, data and direction, then side B's. */
   static final class Registers implements Encoding<OpusPeripheral> {
@@ -86,7 +91,7 @@ public final class OpusMapping implements Mapping {
 
   @Override
   public List<Fixed> blocks() {
-    return List.of(OPUS);
+    return List.of(OPUS, ODSK);
   }
 
   @Override
