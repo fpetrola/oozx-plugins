@@ -37,5 +37,12 @@
             <artifactId>device-tape</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- The formats a test tape is read in. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-tapes</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

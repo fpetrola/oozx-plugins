@@ -132,7 +132,8 @@ public class CassetteFrame extends MachineFrame implements Opens {
    * The machine this is clipped to changed, so the lead now goes somewhere else.
    * <p>
    * Unplugged, the tape stops turning: a deck carried away from the computer is not still
-   * loading it. Nothing is played by plugging in - that is what the play button is for.
+   * loading it. Nothing is played by plugging in - that is what the play button is for. With no
+   * cassette of its own, it takes the one in the deck, as a machine that came back with one has it.
    */
   @Override
   protected void machineChanged(Speccy was, Speccy now) {
@@ -149,6 +150,7 @@ public class CassetteFrame extends MachineFrame implements Opens {
     // from the browser - this is what makes the table follow it without anybody pressing play.
     if (deck != null) {
       deck.addListener(watching);
+      if (tapeFile == null && deck.getTapeFilename() != null) open(deck.getTapeFilename());
     }
     currentBlock = -1;
     paused = false;

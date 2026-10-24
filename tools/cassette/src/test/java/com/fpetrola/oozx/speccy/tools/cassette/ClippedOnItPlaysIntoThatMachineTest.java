@@ -101,4 +101,16 @@ class ClippedOnItPlaysIntoThatMachineTest {
     window.setMachineWindow(null);
     assertNull(window.deck(), "carried away, it plays into nothing");
   }
+
+  /** Clipped with no cassette of its own onto a machine with a tape in its deck, it is that tape's: a machine that came back with one is played from here. */
+  @Test
+  void clippedOnAMachineWithATapeInItsDeckItHasThatTape() throws IOException {
+    Speccy speccy = speccy();
+    assertTrue(Tape.of(speccy).insert(aTape()), "the deck took the tape");
+    CassetteFrame window = new CassetteFrame();
+
+    window.setMachineWindow(windowOf(speccy));
+
+    assertTrue(window.hasTape(), "its play button had nothing to play");
+  }
 }
