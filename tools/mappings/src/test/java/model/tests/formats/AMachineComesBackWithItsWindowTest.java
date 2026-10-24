@@ -19,6 +19,8 @@ package model.tests.formats;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.api.KnowsTheGames;
+import com.fpetrola.oozx.config.Configuration;
+import com.fpetrola.oozx.config.RomFiles;
 import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.formats.CoreFields;
 import com.fpetrola.oozx.mappings.SzxSession;
@@ -334,7 +336,9 @@ class AMachineComesBackWithItsWindowTest {
   void romsThatAreNotHereLeaveItOnItsOwnAndSaySo() throws Exception {
     Speccy kept = machine();
     kept.machine.select(kept.machine.model(SpecPlus3.class));
-    byte[] file = new SzxFormat().write(kept, Map.of("OOZX", "roms=Version 4.1".getBytes()), note -> { });
+    kept.roms.chooseSet(kept.machine.current, "Version 4.1");
+    List<String> notHere = kept.roms.running(kept.machine.current);
+    byte[] file = new SzxSession().write(new Window(kept));
 
     Speccy opened = machine();
     List<String> notes = new java.util.ArrayList<>();
@@ -342,7 +346,7 @@ class AMachineComesBackWithItsWindowTest {
 
     assertEquals(SpecPlus3.class, opened.machine.current.getClass());
     assertEquals("Version 4.0", opened.roms.chosenSet(opened.machine.current));
-    assertTrue(notes.stream().anyMatch(note -> note.contains("Version 4.1")), String.valueOf(notes));
+    assertTrue(notes.stream().anyMatch(note -> note.contains(notHere.get(0))), String.valueOf(notes));
   }
 
   /**
@@ -370,6 +374,24 @@ class AMachineComesBackWithItsWindowTest {
     assertEquals(0x38, opened.peripheralRegistry.allThatAre(MelodikPeripheral.class).get(0).register(7));
     assertEquals(MachineDescription.of(kept), MachineDescription.of(opened));
     assertFalse(opened.peripheralRegistry.update(), "clipping their windows on now would reset it");
+  }
+
+  /**
+   * A machine on ROMs of its own comes back on them, from where they are, and what new machines start with stays
+   * as it was: a machine's ROMs are its own, as its settings are.
+   */
+  @Test
+  void theRomsAMachineRunsOnComeBackWithItAndNoOtherTakesThem() throws Exception {
+    Speccy kept = machine();
+    Path own = Files.write(Files.createTempDirectory("roms").resolve("own.rom"), kept.roms.of(kept.machine.current, 0, 0x4000));
+    List<String> newOnes = Configuration.shared().of(RomFiles.class).running(kept.machine.current);
+    kept.roms.runOn(kept.machine.current, List.of(own.toString()));
+    byte[] file = new SzxSession().write(new Window(kept));
+
+    Speccy opened = machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertEquals(List.of(own.toString()), opened.roms.running(opened.machine.current));
+    assertEquals(newOnes, Configuration.shared().of(RomFiles.class).running(opened.machine.current), "what new machines start on");
   }
 
   static Stream<Class<? extends IdeInterface>> boardsWithDisks() {

@@ -53,10 +53,11 @@ import java.util.stream.Collectors;
 /**
  * A machine's window as an SZX: the machine in the format's blocks, and what is around it in one of
  * its own, OOZX, which another emulator passes over. What is around it is text, a key a line: which
- * machine it is exactly and on which ROMs, every setting of the machine and of its devices by the
- * name it is declared under, which devices are plugged into it, how the window shows the picture,
- * whether it is paused, the file the machine came from, its processor and its turbo, the pokes
- * applied to it, and the equipment clipped onto the window. Where the window is, the desk keeps.
+ * machine it is exactly and the ROMs it and its boards run on, every setting of the machine and of
+ * its devices by the name it is declared under, which devices are plugged into it, how the window
+ * shows the picture, whether it is paused, the file the machine came from, its processor and its
+ * turbo, the pokes applied to it, and the equipment clipped onto the window. Where the window is,
+ * the desk keeps.
  * <p>
  * The first four are put back as the file is read, before the machine is walked ({@link #plug},
  * asked by {@link SzxMapping}): choosing a machine starts it from cold, and plugging some devices
@@ -95,8 +96,7 @@ public final class SzxSession implements Session {
     }
     Spectrum machine = speccy.machine.current;
     around.put("machine", machine.shortName());
-    String roms = speccy.roms.chosenSet(machine);
-    if (roms != null) around.put("roms", roms);
+    around.put("roms", Configuration.asText(speccy.roms.files));
     EmulatorControl control = speccy.control;
     if (control != null) {
       around.put("paused", String.valueOf(control.isPaused()));
@@ -154,7 +154,7 @@ public final class SzxSession implements Session {
       file.note("this build has no " + named + ": loaded into the " + was.getName());
       machine = was;
     }
-    boolean otherRoms = runsOn(around.get("roms"), machine, speccy, file);
+    boolean otherRoms = runsOn(roms(around.get("roms")), machine, speccy, file);
     if (machine == was && !otherRoms) return;
     try {
       speccy.machine.select(machine);
@@ -164,17 +164,28 @@ public final class SzxSession implements Session {
     }
   }
 
-  /** Whether the machine is to run on other ROMs than it does: a set it has, and whose ROMs are here. */
-  private static boolean runsOn(String roms, Spectrum machine, Speccy speccy, SnapshotFile file) {
-    if (roms == null || roms.equals(speccy.roms.chosenSet(machine))) return false;
-    if (!speccy.roms.setsFor(machine).containsKey(roms)) {
-      file.note("the " + machine.getName() + " has no ROMs called " + roms + " here");
-      return false;
+  /** The ROMs the machine and its boards ran on, by what each is; nothing from a session that did not say them. */
+  @SuppressWarnings("unchecked")
+  private static Map<String, List<String>> roms(String kept) {
+    try {
+      return kept == null ? null : (Map<String, List<String>>) Configuration.fromText(kept, Map.class);
+    } catch (RuntimeException saidOtherwise) {
+      return null;
     }
+  }
+
+  /**
+   * Whether the machine is to run on other ROMs than it does: its own and its boards', as they were, in place of
+   * what it started with, where the machine's are here. They are this machine's, and no other's.
+   */
+  private static boolean runsOn(Map<String, List<String>> roms, Spectrum machine, Speccy speccy, SnapshotFile file) {
+    if (roms == null) return false;
     List<String> before = speccy.roms.running(machine);
-    speccy.roms.chooseSet(machine, roms);
+    speccy.roms.files.clear();
+    roms.forEach((key, files) -> speccy.roms.files.put(key, List.copyOf(files)));
+    if (speccy.roms.running(machine).equals(before)) return false;
     if (speccy.roms.missingFor(machine).isEmpty()) return true;
-    file.note("the ROMs " + roms + " are not here: the " + machine.getName() + " runs on its own");
+    file.note("the ROMs " + speccy.roms.running(machine) + " are not here: the " + machine.getName() + " runs on its own");
     speccy.roms.runOn(machine, before);
     return false;
   }
