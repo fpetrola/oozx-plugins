@@ -253,6 +253,19 @@ class AMachineComesBackWithItsWindowTest {
     return window;
   }
 
+  /**
+   * A machine kept paused is paused as soon as its file is read, before it has a window: the desk starts a machine
+   * running when it builds it, and one paused only by its window came back some frames on from where it was left.
+   */
+  @Test
+  void aMachineKeptPausedRunsNotAFrameBeforeItIsBack() throws Exception {
+    byte[] file = new SzxSession().write(kept());
+
+    Speccy opened = machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertTrue(opened.loop.isPaused(), "it runs until its window says it is paused");
+  }
+
   @Test
   void itsMachineAndWhatWasAroundItComeBack() throws Exception {
     Window kept = kept();

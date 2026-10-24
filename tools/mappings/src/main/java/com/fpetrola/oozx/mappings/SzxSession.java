@@ -61,7 +61,8 @@ import java.util.stream.Collectors;
  * <p>
  * The first four are put back as the file is read, before the machine is walked ({@link #plug},
  * asked by {@link SzxMapping}): choosing a machine starts it from cold, and plugging some devices
- * in resets it. The rest needs the window, and comes back once there is one.
+ * in resets it. So is the pause: the desk starts a machine running when it builds it, before its
+ * window. The rest needs the window, and comes back once there is one.
  */
 public final class SzxSession implements Session {
 
@@ -127,6 +128,7 @@ public final class SzxSession implements Session {
   static void plug(byte[] block, Speccy speccy, SnapshotFile file) {
     Map<String, String> around = around(block);
     becomes(around, speccy, file);
+    if (around.containsKey("paused")) speccy.loop.setPaused(Boolean.parseBoolean(around.get("paused")));
     for (Settings.Configurable settings : speccy.settings().devices()) {
       for (String property : settings.device().properties()) {
         String value = around.get(settings.device().name() + "." + property);
