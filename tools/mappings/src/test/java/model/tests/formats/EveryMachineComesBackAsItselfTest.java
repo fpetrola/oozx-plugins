@@ -23,19 +23,24 @@ import com.fpetrola.oozx.formats.CoreFields;
 import com.fpetrola.oozx.formats.Shape;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.machine.RomNotLoadedException;
+import com.fpetrola.oozx.speccy.machine.Spec128;
+import com.fpetrola.oozx.speccy.machine.Spec48;
 import com.fpetrola.oozx.speccy.machine.Spectrum;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestFactory;
 
 import java.util.Arrays;
+import java.util.List;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -94,6 +99,39 @@ class EveryMachineComesBackAsItselfTest {
     } finally {
       kept.end();
       opened.end();
+    }
+  }
+
+  /**
+   * A machine whose ROM is not the one the build makes it with - a set or a file of its own, or a byte written over it
+   * - comes back with that ROM, in ROM, which libspectrum reads as the machine's own; one on the build's says nothing.
+   */
+  @Test
+  void aRomOfItsOwnComesBackWithItAndTheBuildsGoesUnsaid() throws Exception {
+    for (Class<? extends Spectrum> model : List.of(Spec48.class, Spec128.class)) {
+      Speccy kept = machine(), opened = machine(), plain = machine();
+      try {
+        kept.machine.select(kept.machine.model(model));
+        plain.machine.select(plain.machine.model(model));
+        kept.banks.rom(0).bytes[5] ^= (byte) 0xff;
+        byte[] file = new SzxFormat().write(kept, note -> { });
+        byte[] plainFile = new SzxFormat().write(plain, note -> { });
+
+        new SzxFormat().read(file, opened, note -> { });
+        assertArrayEquals(kept.banks.rom(0).bytes, opened.banks.rom(0).bytes, model.getSimpleName() + "'s ROM");
+        assertFalse(AMachineComesBackWithItsWindowTest.blocks(plainFile).stream().anyMatch(block -> block.startsWith("ROM")),
+            model.getSimpleName() + " on the build's ROM says it has one of its own");
+
+        if (Reference.present()) {
+          Libspectrum lib = Libspectrum.INSTANCE;
+          assertEquals(List.of(1, Arrays.hashCode(kept.banks.rom(0).bytes)), Reference.withSnap(file, "szx", snap -> List.of(
+              lib.libspectrum_snap_custom_rom(snap), Arrays.hashCode(lib.libspectrum_snap_roms(snap, 0).getByteArray(0, 0x4000)))).orElseThrow());
+        }
+      } finally {
+        kept.end();
+        opened.end();
+        plain.end();
+      }
     }
   }
 }

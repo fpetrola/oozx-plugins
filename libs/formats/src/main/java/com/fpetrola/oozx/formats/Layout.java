@@ -273,13 +273,19 @@ public final class Layout<P> {
    * else's, as the ROM after the RAM of a disk interface.
    */
   public Layout<P> rest(Fixed block, int flagAt, int bit, int lengthAt, int length, Field<P, byte[]> field) {
-    return with(new Rest<>(block, lengthAt, length, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0,
+    return with(new Rest<>(block, lengthAt, length, -1, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0,
         bytes -> bytes.or(flagAt, 1 << bit)));
   }
 
   /** The same, always packed, and how long it is packed in four bytes at that place of the block: a cartridge. */
   public Layout<P> packedRest(Fixed block, int lengthAt, int length, Field<P, byte[]> field) {
-    return with(new Rest<>(block, lengthAt, length, field, bytes -> true, bytes -> { }));
+    return with(new Rest<>(block, lengthAt, length, -1, field, bytes -> true, bytes -> { }));
+  }
+
+  /** The same, as long once unpacked as four bytes at sizeAt say: a ROM, as long as the machine's is. */
+  public Layout<P> sizedRest(Fixed block, int flagAt, int bit, int sizeAt, Field<P, byte[]> field) {
+    return with(new Rest<>(block, -1, -1, sizeAt, field, bytes -> (bytes.u8(flagAt) >> bit & 1) != 0,
+        bytes -> bytes.or(flagAt, 1 << bit)));
   }
 
   /**
@@ -391,17 +397,18 @@ public final class Layout<P> {
   }
 
   /**
-   * The bytes after a block's fields, what in the block says whether they are packed, and where it says how many
-   * there are, or -1 for all there are.
+   * The bytes after a block's fields, what in the block says whether they are packed, where it says how many there
+   * are, or -1 for all there are, and where how long they are unpacked, or -1 where that is always the same.
    */
-  private record Rest<P>(Fixed block, int lengthAt, int length, Field<P, byte[]> field, Predicate<Bytes> isPacked,
+  private record Rest<P>(Fixed block, int lengthAt, int length, int sizeAt, Field<P, byte[]> field, Predicate<Bytes> isPacked,
                          Consumer<Bytes> saysPacked) implements Place<P> {
     public void read(SnapshotFile file, P part) {
       if (!file.has(block, block.length(), 1)) return;
       Bytes bytes = file.bytes(block);
       int there = bytes.length() - block.length();
       byte[] kept = bytes.slice(block.length(), lengthAt < 0 ? there : Math.min(bytes.u32(lengthAt), there));
-      field.set(part, isPacked.test(bytes) ? Codec.ZLIB.decode(kept, length) : Codec.RAW.decode(kept, length));
+      int unpacked = sizeAt < 0 ? length : bytes.u32(sizeAt);
+      field.set(part, isPacked.test(bytes) ? Codec.ZLIB.decode(kept, unpacked) : Codec.RAW.decode(kept, unpacked));
     }
 
     public void write(P part, SnapshotFile file) {
@@ -410,6 +417,7 @@ public final class Layout<P> {
       byte[] packed = Codec.ZLIB.encode(rest);
       saysPacked.accept(file.bytes(block));
       if (lengthAt >= 0) file.bytes(block).u32(lengthAt, packed.length);
+      if (sizeAt >= 0) file.bytes(block).u32(sizeAt, rest.length);
       file.bytes(block).append(packed);
       file.wrote(block);
     }
