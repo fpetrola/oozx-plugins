@@ -266,6 +266,17 @@ class AMachineComesBackWithItsWindowTest {
     assertTrue(opened.loop.isPaused(), "it runs until its window says it is paused");
   }
 
+  /** And shows what its screen had, as the desk loads it, without a frame having run to paint it. */
+  @Test
+  void aMachineKeptPausedShowsItsScreenAsSoonAsItIsBack() throws Exception {
+    Path file = Files.write(Files.createTempDirectory("session").resolve("0.szx"), new SzxSession().write(kept()));
+
+    Speccy opened = machine();
+    opened.picture.active = true;
+    Snapshots.of(opened).load(file.toString());
+    assertTrue(Arrays.stream(opened.picture.pixels).distinct().count() > 2, "the picture is blank until a frame runs");
+  }
+
   @Test
   void itsMachineAndWhatWasAroundItComeBack() throws Exception {
     Window kept = kept();
