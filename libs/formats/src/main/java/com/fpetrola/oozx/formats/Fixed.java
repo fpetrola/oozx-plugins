@@ -31,14 +31,24 @@ public final class Fixed implements Region {
   private final boolean virtual;
   private final boolean paged;
   private final int numberAt;
+  private final Only only;
+
+  /** The bits of a byte of the block that tell it apart from others of its name, as DOCK's say its bank. */
+  private record Only(int at, int mask, int value) {
+  }
 
   private Fixed(String name, int start, int length, boolean virtual, boolean paged, int numberAt) {
+    this(name, start, length, virtual, paged, numberAt, null);
+  }
+
+  private Fixed(String name, int start, int length, boolean virtual, boolean paged, int numberAt, Only only) {
     this.name = name;
     this.start = start;
     this.length = length;
     this.virtual = virtual;
     this.paged = paged;
     this.numberAt = numberAt;
+    this.only = only;
   }
 
   /** A stretch of that length, its offsets counted from where it starts. */
@@ -78,13 +88,28 @@ public final class Fixed implements Region {
     return numberAt >= 0;
   }
 
+  /** The same, for the blocks of its name whose byte at that place has those bits so: DOCK's pages of the dock, apart from those of the EXROM. */
+  public Fixed only(int at, int mask, int value) {
+    return new Fixed(name, start, length, virtual, paged, numberAt, new Only(at, mask, value));
+  }
+
+  /** Whether a block of its name is one of these. */
+  public boolean takes(byte[] payload) {
+    return only == null || payload.length > only.at() && (payload[only.at()] & only.mask()) == only.value();
+  }
+
+  /** The bytes of one of these, saying which of its name it is. */
+  Bytes said(Bytes bytes) {
+    return only == null ? bytes : bytes.u8(only.at(), bytes.u8(only.at()) & ~only.mask() | only.value());
+  }
+
   public int numberAt() {
     return numberAt;
   }
 
   /** The same stretch, ending at that offset of the file: what a version of a format that says less has of it. */
   public Fixed upTo(int end) {
-    return new Fixed(name, start, end - start, virtual, paged, numberAt);
+    return new Fixed(name, start, end - start, virtual, paged, numberAt, only);
   }
 
   /** Whether it reaches that far: a place past where a version cuts it is not in that version. */
@@ -92,15 +117,15 @@ public final class Fixed implements Region {
     return offset >= start && offset + count <= start + length;
   }
 
-  /** The same stretch whatever version cut it: by name and where it starts. */
+  /** The same stretch whatever version cut it: by name, where it starts and which of its name it is. */
   @Override
   public boolean equals(Object other) {
-    return other instanceof Fixed fixed && fixed.name.equals(name) && fixed.start == start;
+    return other instanceof Fixed fixed && fixed.name.equals(name) && fixed.start == start && java.util.Objects.equals(fixed.only, only);
   }
 
   @Override
   public int hashCode() {
-    return name.hashCode() * 31 + start;
+    return (name.hashCode() * 31 + start) * 31 + java.util.Objects.hashCode(only);
   }
 
   Bytes empty() {

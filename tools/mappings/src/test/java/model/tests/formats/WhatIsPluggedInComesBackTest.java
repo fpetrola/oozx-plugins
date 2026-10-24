@@ -49,8 +49,11 @@ import com.fpetrola.oozx.speccy.devices.uspeech.UspeechPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
+import com.fpetrola.oozx.speccy.machine.DockCartridge;
 import com.fpetrola.oozx.speccy.machine.Pentagon;
 import com.fpetrola.oozx.speccy.machine.Tc2068;
+import com.fpetrola.oozx.speccy.modules.memory.MemoryPart;
+import com.fpetrola.oozx.speccy.modules.memory.Storage;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
@@ -812,6 +815,54 @@ class WhatIsPluggedInComesBackTest {
   /** A cartridge of that many sectors as an .mdr keeps it, its sectors a pattern, not write-protected. */
   private static byte[] cartridge(int seed, int sectors) {
     return Arrays.copyOf(pattern(seed, sectors * 543), sectors * 543 + 1);
+  }
+
+  /**
+   * A Timex's dock: every page its cartridge brings, of the dock and of the EXROM behind it, RAM or ROM, inside, as
+   * libspectrum reads them. The cartridge comes back with no file, and with what the machine wrote in its RAM.
+   */
+  @Test
+  void theTimexDockWithItsCartridgeInside() throws Exception {
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    kept.machine.select(kept.machine.model(Tc2068.class));
+    Tc2068 timex = (Tc2068) kept.machine.current;
+    timex.insert(DockCartridge.read("game", dck()));
+    kept.machine.reset(false);
+    ((Storage) timex.cartridge().bank(DockCartridge.DOCK)[3]).bytes[5] = 0x77;
+    byte[] file = new SzxFormat().write(kept, note -> { });
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertEquals(described(timex), described((Tc2068) opened.machine.current));
+
+    assumeTrue(Reference.present(), "libspectrum is not installed here");
+    Libspectrum lib = Libspectrum.INSTANCE;
+    assertEquals(List.of(1, false, true, false, Arrays.hashCode(((Storage) timex.cartridge().bank(DockCartridge.DOCK)[3]).bytes)),
+        Reference.withSnap(file, "szx", snap -> List.of(lib.libspectrum_snap_dock_active(snap), lib.libspectrum_snap_dock_ram(snap, 0) != 0,
+            lib.libspectrum_snap_dock_ram(snap, 3) != 0, lib.libspectrum_snap_exrom_ram(snap, 1) != 0,
+            Arrays.hashCode(lib.libspectrum_snap_dock_cart(snap, 3).getByteArray(0, 0x2000)))).orElseThrow());
+  }
+
+  /** A .dck with a ROM in page 0 of the dock and RAM with something on it in its page 3, and a ROM in page 1 of the EXROM. */
+  private static byte[] dck() {
+    java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+    out.writeBytes(new byte[]{0, 2, 0, 0, 3, 0, 0, 0, 0});
+    out.writeBytes(pattern(61, 0x2000));
+    out.writeBytes(pattern(62, 0x2000));
+    out.writeBytes(new byte[]{(byte) 254, 0, 2, 0, 0, 0, 0, 0, 0});
+    out.writeBytes(pattern(63, 0x2000));
+    return out.toByteArray();
+  }
+
+  /** What each page of the dock and of the EXROM is - nothing, RAM or ROM - what it has, and whether it waits for the ULA. */
+  private static List<Object> described(Tc2068 timex) {
+    List<Object> said = new ArrayList<>();
+    for (int bank : new int[]{DockCartridge.DOCK, DockCartridge.EXROM}) {
+      for (MemoryPart page : timex.cartridge() == null ? new MemoryPart[8] : timex.cartridge().bank(bank)) {
+        said.add(page == null ? "nothing" : page.getClass().getSimpleName() + " " + Arrays.hashCode(((Storage) page).bytes) + (page.contended ? " contended" : ""));
+      }
+    }
+    return said;
   }
 
   /** A TR-DOS disk of 80 cylinders and two sides, its sectors a pattern but for the one that says what disk it is. */

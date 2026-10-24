@@ -179,7 +179,13 @@
             <groupId>com.fpetrola</groupId>
             <artifactId>device-timex</artifactId>
             <version>${project.version}</version>
-            <scope>test</scope>
+        </dependency>
+        <!-- A Timex is a 48K underneath, and the 48K is the emulator's own. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>machines</artifactId>
+            <version>${project.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>

@@ -48,7 +48,8 @@ public final class DockCartridge {
   private final String name;
   private final Map<Integer, MemoryPart[]> banks = new HashMap<>();
 
-  private DockCartridge(String name) {
+  /** A cartridge with nothing in it yet, its pages put in one at a time. */
+  public DockCartridge(String name) {
     this.name = name;
   }
 
@@ -77,19 +78,24 @@ public final class DockCartridge {
       at += 1 + PAGES;
       if (at + bringing * PAGE > file.length) throw new IOException(name + " ends before the pages it says it brings");
       if (bank == HOME && (types[0] != NOTHING || types[1] != NOTHING)) throw new IOException(name + " brings the machine's own ROM, which no dock replaces");
-      MemoryPart[] pages = cartridge.banks.computeIfAbsent(bank, nothingYet -> new MemoryPart[PAGES]);
       for (int page = 0; page < PAGES; page++) {
         if (types[page] == NOTHING) continue;
-        Storage part = types[page] == ROM ? new Rom(PAGE) : new Ram(PAGE);
+        Storage part = cartridge.page(bank, page, types[page] != ROM);
         if (types[page] != EMPTY_RAM) {
           System.arraycopy(file, at, part.bytes, 0, PAGE);
           at += PAGE;
         }
-        part.contended = bank != HOME && (page == 2 || page == 3);
-        pages[page] = part;
       }
     }
     return cartridge;
+  }
+
+  /** A page of eight K the cartridge brings in that bank, RAM or ROM, with nothing on it yet. */
+  public Storage page(int bank, int page, boolean ram) {
+    Storage part = ram ? new Ram(PAGE) : new Rom(PAGE);
+    part.contended = bank != HOME && (page == 2 || page == 3);
+    banks.computeIfAbsent(bank, nothingYet -> new MemoryPart[PAGES])[page] = part;
+    return part;
   }
 
   /** What the cartridge puts in that bank, eight K at a time, with nulls where it puts nothing. */

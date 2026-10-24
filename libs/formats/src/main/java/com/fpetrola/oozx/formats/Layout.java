@@ -302,7 +302,7 @@ public final class Layout<P> {
         for (int which = 0; which < count.applyAsInt(part); which++) {
           SnapshotFile alone = alone(file, block, new byte[block.length()]);
           table.write(one.apply(part, which), alone);
-          if (alone.isWritten(block)) file.each(block, alone.bytes(block).u8(block.numberAt(), first + which).toBytes());
+          if (alone.isWritten(block)) file.each(block, block.said(alone.bytes(block).u8(block.numberAt(), first + which)).toBytes());
         }
       }
 

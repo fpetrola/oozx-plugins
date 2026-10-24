@@ -63,7 +63,7 @@ final class SzxBlocks implements Region {
       } else if (id.equals("CRTR")) {
         swapsAf = swapsAf(payload);
       } else {
-        Fixed block = known.stream().filter(one -> one.toString().equals(id)).findFirst().orElse(null);
+        Fixed block = known.stream().filter(one -> one.toString().equals(id) && one.takes(payload)).findFirst().orElse(null);
         if (block == null) {
           into.note("skipped: the block " + id.trim() + " (" + length + " bytes)");
           into.carry(id, payload);
