@@ -18,6 +18,9 @@ package com.fpetrola.oozx.speccy.devices.ide;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * A mass storage interface as the desk sees it: some slots that take images, and a line about
@@ -32,6 +35,26 @@ public interface IdeInterface {
   void insert(int unit, File image) throws IOException;
 
   void eject(int unit);
+
+  /** The file of the image in each unit, null where there is none. */
+  default List<String> getDisks() {
+    List<String> disks = new ArrayList<>();
+    for (int unit = 0; unit < units(); unit++) disks.add(drive(unit).present() ? drive(unit).filename() : null);
+    return disks;
+  }
+
+  /** Those images in its units, from their files: a unit given what it has keeps it as it is, and one given a file that is not there any more is left empty. */
+  default void setDisks(List<String> disks) {
+    for (int unit = 0; unit < units(); unit++) {
+      String file = disks != null && unit < disks.size() ? disks.get(unit) : null;
+      if (Objects.equals(file, getDisks().get(unit))) continue;
+      eject(unit);
+      try {
+        if (file != null) insert(unit, new File(file));
+      } catch (IOException leftEmpty) {
+      }
+    }
+  }
 
   /** Whether its memory is over the machine's just now, for a lamp; false for a board without any. */
   boolean isPaged();

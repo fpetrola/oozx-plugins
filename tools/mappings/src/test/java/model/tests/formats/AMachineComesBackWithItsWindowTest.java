@@ -30,14 +30,22 @@ import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.devices.covox.CovoxPeripheral;
 import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
+import com.fpetrola.oozx.speccy.devices.divide.DivIdePeripheral;
+import com.fpetrola.oozx.speccy.devices.divmmc.DivMmcPeripheral;
+import com.fpetrola.oozx.speccy.devices.ide.IdeChannel;
+import com.fpetrola.oozx.speccy.devices.ide.IdeInterface;
 import com.fpetrola.oozx.speccy.devices.disk.Disk;
 import com.fpetrola.oozx.speccy.devices.interface2.Cartridge;
 import com.fpetrola.oozx.speccy.devices.interface2.Interface2Peripheral;
 import com.fpetrola.oozx.speccy.devices.melodik.MelodikPeripheral;
+import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
 import com.fpetrola.oozx.speccy.devices.mouse.MouseEquipment;
 import com.fpetrola.oozx.speccy.devices.printer.PrinterEquipment;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumEquipment;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
+import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
+import com.fpetrola.oozx.speccy.devices.zxcf.ZxcfPeripheral;
+import com.fpetrola.oozx.speccy.devices.zxmmc.ZxmmcPeripheral;
 import com.fpetrola.oozx.speccy.machine.Pentagon;
 import com.fpetrola.oozx.speccy.machine.SpecPlus3;
 import com.fpetrola.oozx.speccy.machine.Tc2048;
@@ -50,6 +58,8 @@ import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
 import com.fpetrola.oozx.speccy.peripherals.MockEmulatorCore;
+import com.fpetrola.oozx.speccy.peripherals.Peripheral;
+import com.fpetrola.oozx.speccy.peripherals.Pluggable;
 import com.fpetrola.oozx.speccy.pokes.PokFile;
 import com.fpetrola.oozx.speccy.pokes.PokesTool;
 import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
@@ -57,6 +67,8 @@ import com.fpetrola.oozx.speccy.tools.games.GamesFrame;
 import com.fpetrola.oozx.speccy.windows.AttachedFrame;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 import javax.swing.JDesktopPane;
 import javax.swing.JInternalFrame;
@@ -358,6 +370,39 @@ class AMachineComesBackWithItsWindowTest {
     assertEquals(0x38, opened.peripheralRegistry.allThatAre(MelodikPeripheral.class).get(0).register(7));
     assertEquals(MachineDescription.of(kept), MachineDescription.of(opened));
     assertFalse(opened.peripheralRegistry.update(), "clipping their windows on now would reset it");
+  }
+
+  static Stream<Class<? extends IdeInterface>> boardsWithDisks() {
+    return Stream.of(DivIdePeripheral.class, DivMmcPeripheral.class, ZxataspPeripheral.class, ZxcfPeripheral.class,
+        SimpleIdePeripheral.class, ZxmmcPeripheral.class);
+  }
+
+  /**
+   * The disks of an IDE or MMC interface, which no block of SZX has, go by their file as a setting of the
+   * board, as Fuse keeps them: the machine comes back with each in its unit.
+   */
+  @ParameterizedTest
+  @MethodSource("boardsWithDisks")
+  void theDisksOfABoardComeBackByTheirFile(Class<? extends IdeInterface> type) throws Exception {
+    File image = Files.createTempDirectory("disks").resolve("work.hdf").toFile();
+    IdeChannel.createHdf(image, 64);
+    Speccy kept = machine();
+    IdeInterface board = type.cast(kept.peripheralRegistry.find(type.asSubclass(Peripheral.class)));
+    ((Pluggable) board).plugIn(true);
+    if (kept.peripheralRegistry.update()) kept.machine.reset(true);
+    board.insert(board.units() - 1, image);
+    byte[] file = new SzxSession().write(new Window(kept));
+
+    Speccy opened = machine();
+    new SzxFormat().read(file, opened, note -> { });
+    assertEquals(disksOf(board), disksOf(type.cast(opened.peripheralRegistry.find(type.asSubclass(Peripheral.class)))));
+  }
+
+  /** The file of the image in each unit, null where there is none. */
+  private static List<String> disksOf(IdeInterface board) {
+    List<String> disks = new ArrayList<>();
+    for (int unit = 0; unit < board.units(); unit++) disks.add(board.drive(unit).present() ? board.drive(unit).filename() : null);
+    return disks;
   }
 
   /**

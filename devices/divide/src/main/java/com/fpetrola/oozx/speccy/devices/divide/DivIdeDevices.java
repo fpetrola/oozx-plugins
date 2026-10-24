@@ -24,7 +24,7 @@ import com.google.inject.multibindings.Multibinder;
 /** The DivIDE: an EPROM, 32K of RAM and an IDE channel behind the automapper. */
 public class DivIdeDevices extends AbstractModule implements Extension {
   protected void configure() {
-    com.fpetrola.oozx.config.Settings.mirror(binder(), "divide", DivIdePeripheral.class, "writeProtect");
+    com.fpetrola.oozx.config.Settings.mirror(binder(), "divide", DivIdePeripheral.class, "writeProtect", "disks");
     Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(DivIdePeripheral.class);
   }
 }

@@ -25,6 +25,7 @@ import com.google.inject.multibindings.Multibinder;
 /** The ZXMMC: a card slot on two ports. */
 public class ZxmmcDevices extends AbstractModule implements Extension {
   protected void configure() {
+    com.fpetrola.oozx.config.Settings.mirror(binder(), "zxmmc", ZxmmcPeripheral.class, "disks");
     Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ZxmmcPeripheral.class);
   }
 }

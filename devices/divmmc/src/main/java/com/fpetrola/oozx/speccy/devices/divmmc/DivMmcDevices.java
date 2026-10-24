@@ -25,7 +25,7 @@ import com.google.inject.multibindings.Multibinder;
 /** The DivMMC: the automapper of the DivIDE with a card slot instead of a channel. */
 public class DivMmcDevices extends AbstractModule implements Extension {
   protected void configure() {
-    com.fpetrola.oozx.config.Settings.mirror(binder(), "divmmc", DivMmcPeripheral.class, "writeProtect");
+    com.fpetrola.oozx.config.Settings.mirror(binder(), "divmmc", DivMmcPeripheral.class, "writeProtect", "disks");
     Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(DivMmcPeripheral.class);
   }
 }

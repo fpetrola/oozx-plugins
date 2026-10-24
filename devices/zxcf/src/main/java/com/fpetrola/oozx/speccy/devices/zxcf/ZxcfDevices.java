@@ -25,7 +25,7 @@ import com.google.inject.multibindings.Multibinder;
 /** The ZXCF: 1M of banked RAM and a CompactFlash card. */
 public class ZxcfDevices extends AbstractModule implements Extension {
   protected void configure() {
-    com.fpetrola.oozx.config.Settings.mirror(binder(), "zxcf", ZxcfPeripheral.class, "upload");
+    com.fpetrola.oozx.config.Settings.mirror(binder(), "zxcf", ZxcfPeripheral.class, "upload", "disks");
     Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ZxcfPeripheral.class);
   }
 }

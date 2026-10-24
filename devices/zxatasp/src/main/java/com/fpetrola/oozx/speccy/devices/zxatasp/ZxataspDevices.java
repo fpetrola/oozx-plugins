@@ -25,7 +25,7 @@ import com.google.inject.multibindings.Multibinder;
 /** The ZXATASP: 512K of banked RAM and an IDE channel behind an 8255. */
 public class ZxataspDevices extends AbstractModule implements Extension {
   protected void configure() {
-    com.fpetrola.oozx.config.Settings.mirror(binder(), "zxatasp", ZxataspPeripheral.class, "writeProtect", "upload");
+    com.fpetrola.oozx.config.Settings.mirror(binder(), "zxatasp", ZxataspPeripheral.class, "writeProtect", "upload", "disks");
     Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ZxataspPeripheral.class);
   }
 }
