@@ -38,5 +38,6 @@ ay.registers = 10 01 12 03 14 05 16 17 18 19 1a 1b 1c 0d 1e 1f
 part = Input
 part = Snapshots
 part = Spec128MemoryPeripheral
+part = Spec256Peripheral
 part = Tape
 part = UlaPeripheral

@@ -91,6 +91,27 @@ public final class Planes {
     romColoured = true;
   }
 
+  /** The colours of the RAM as they stand now, as a file has them: what {@link #take} takes. */
+  public byte[] file() {
+    return unsliced(RAM, SIZE);
+  }
+
+  /** And those of the ROM: what {@link #takeTheRom} takes. */
+  public byte[] romFile() {
+    return unsliced(0, RAM);
+  }
+
+  /** A stretch as a file has it: the eight colours of each address, the rightmost pixel first. */
+  private byte[] unsliced(int from, int to) {
+    byte[] file = new byte[(to - from) * PLANES];
+    for (int address = from; address < to; address++) {
+      for (int fromTheRight = 0; fromTheRight < PLANES; fromTheRight++) {
+        file[(address - from) * PLANES + fromTheRight] = (byte) colourOf(address, 7 - fromTheRight);
+      }
+    }
+    return file;
+  }
+
   /** Whether the ROM has colours of its own, or is read from the machine as it stands. */
   public boolean romColoured() {
     return romColoured;

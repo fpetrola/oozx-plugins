@@ -30,5 +30,6 @@ tstates = 34943
 part = Input
 part = PretendInterface
 part = Snapshots
+part = Spec256Peripheral
 part = Tape
 part = UlaPeripheral

@@ -31,5 +31,6 @@ part = DivMmcPeripheral
 part = Input
 part = PretendInterface
 part = Snapshots
+part = Spec256Peripheral
 part = Tape
 part = UlaPeripheral

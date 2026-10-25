@@ -20,8 +20,10 @@ package com.fpetrola.oozx.formats;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
@@ -384,6 +386,18 @@ public final class Layout<P> {
       public List<Object> fields() {
         return List.of(field);
       }
+    });
+  }
+
+  /**
+   * What a part keeps beside a snapshot, carried by the file under the names it has there. Nothing is read: the part
+   * finds them in what the file carries, as it does in any snapshot that brings them.
+   */
+  public Layout<P> carried(Function<P, Map<String, byte[]>> files) {
+    return with(new Place<P>() {
+      public void read(SnapshotFile file, P part) { }
+      public void write(P part, SnapshotFile file) { files.apply(part).forEach(file::carry); }
+      public List<Object> fields() { return List.of(); }
     });
   }
 

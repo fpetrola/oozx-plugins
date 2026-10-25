@@ -31,5 +31,6 @@ part = Input
 part = Interface1Peripheral
 part = PretendInterface
 part = Snapshots
+part = Spec256Peripheral
 part = Tape
 part = UlaPeripheral

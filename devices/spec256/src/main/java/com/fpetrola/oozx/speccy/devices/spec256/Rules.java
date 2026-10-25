@@ -22,7 +22,10 @@ package com.fpetrola.oozx.speccy.devices.spec256;
 import com.google.inject.Singleton;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Locale;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * What a game says about how its colours meet the machine's own, in the file EmuZWin writes
@@ -96,6 +99,25 @@ public final class Rules {
     return colour < mixedFromTheBottom || colour > 255 - mixedFromTheTop;
   }
 
+  /** A key a game's file says, what these rules say for it, and what it sets when a file says it. */
+  private record Key(String name, Function<Rules, Object> said, BiConsumer<Rules, String> says) {
+  }
+
+  /** The keys EmuZWin reads, and one of this emulator's own, which a window sets and EmuZWin passes over. */
+  private static final List<Key> KEYS = List.of(
+      new Key("BkOverFF", rules -> rules.backgroundOverTheLast, (rules, value) -> rules.backgroundOverTheLast = on(value)),
+      new Key("Paper00InkFF", rules -> rules.paperForNoneInkForAll, (rules, value) -> rules.paperForNoneInkForAll = on(value)),
+      new Key("HideSameInkPaper", rules -> rules.hiddenWhereInkIsPaper, (rules, value) -> rules.hiddenWhereInkIsPaper = on(value)),
+      new Key("BkThroughFlash", rules -> rules.pictureThroughTheFlash, (rules, value) -> rules.pictureThroughTheFlash = on(value)),
+      new Key("UpColorsMixed", rules -> rules.mixedFromTheTop, (rules, value) -> rules.mixedFromTheTop = rules.saying(value, rules.mixedFromTheTop)),
+      new Key("DownColorsMixed", rules -> rules.mixedFromTheBottom, (rules, value) -> rules.mixedFromTheBottom = number(value, rules.mixedFromTheBottom)),
+      new Key("UseBrightInMix", rules -> rules.brightInTheMix, (rules, value) -> rules.brightInTheMix = on(value)),
+      new Key("GFXLeveledOR", rules -> rules.levelledOr, (rules, value) -> rules.levelledOr = on(value)),
+      new Key("GFXLeveledAND", rules -> rules.levelledAnd, (rules, value) -> rules.levelledAnd = on(value)),
+      new Key("GFXLeveledXOR", rules -> rules.levelledXor, (rules, value) -> rules.levelledXor = on(value)),
+      new Key("ZXPAlignRegs", rules -> rules.registersTaken, (rules, value) -> rules.registersTaken = value),
+      new Key("ReadsWhereTheMachineReads", rules -> rules.readingWhereTheMachineReads, (rules, value) -> rules.readingWhereTheMachineReads = on(value)));
+
   /**
    * A game's own file, if it brought one. Whatever it says that is not one of these is some other
    * emulator's business, and whatever it says badly is left at its default.
@@ -105,26 +127,20 @@ public final class Rules {
     if (said == null) return;
     for (String line : new String(said, StandardCharsets.ISO_8859_1).split("\\R")) {
       int equals = line.indexOf('=');
-      if (equals > 0) says(line.substring(0, equals).trim(), line.substring(equals + 1).trim());
+      if (equals <= 0) continue;
+      String key = line.substring(0, equals).trim(), value = line.substring(equals + 1).trim();
+      KEYS.stream().filter(one -> one.name.equalsIgnoreCase(key)).forEach(one -> one.says.accept(this, value));
     }
   }
 
-  private void says(String key, String value) {
-    switch (key.toLowerCase(Locale.ROOT)) {
-      case "bkoverff" -> backgroundOverTheLast = on(value);
-      case "paper00inkff" -> paperForNoneInkForAll = on(value);
-      case "hidesameinkpaper" -> hiddenWhereInkIsPaper = on(value);
-      case "bkthroughflash" -> pictureThroughTheFlash = on(value);
-      case "upcolorsmixed" -> mixedFromTheTop = saying(value, mixedFromTheTop);
-      case "downcolorsmixed" -> mixedFromTheBottom = number(value, mixedFromTheBottom);
-      case "usebrightinmix" -> brightInTheMix = on(value);
-      case "gfxleveledor" -> levelledOr = on(value);
-      case "gfxleveledand" -> levelledAnd = on(value);
-      case "gfxleveledxor" -> levelledXor = on(value);
-      case "zxpalignregs" -> registersTaken = value;
-      default -> {
-      }
-    }
+  /** These rules as a game's file says them, which read back are these rules again. */
+  public byte[] said() {
+    return KEYS.stream().map(key -> key.name + "=" + inAFile(key.said.apply(this))).collect(Collectors.joining("\n"))
+        .getBytes(StandardCharsets.ISO_8859_1);
+  }
+
+  private static String inAFile(Object value) {
+    return value instanceof Boolean yes ? yes ? "1" : "0" : String.valueOf(value);
   }
 
   private static boolean on(String value) {

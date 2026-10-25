@@ -31,5 +31,6 @@ part = Input
 part = PluggedBeta128Peripheral
 part = PretendInterface
 part = Snapshots
+part = Spec256Peripheral
 part = Tape
 part = UlaPeripheral

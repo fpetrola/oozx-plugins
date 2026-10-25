@@ -66,7 +66,7 @@ final class SzxBlocks implements Region {
         Fixed block = known.stream().filter(one -> one.toString().equals(id) && one.takes(payload)).findFirst().orElse(null);
         if (block == null) {
           into.note("skipped: the block " + id.trim() + " (" + length + " bytes)");
-          into.carry(id, payload);
+          into.carry(id.replaceFirst("\0+$", ""), payload);
         } else if (block.isEach()) {
           into.each(block, payload);
         } else if (block.isPaged()) {
@@ -157,7 +157,7 @@ final class SzxBlocks implements Region {
     from.carried().forEach((name, payload) -> block(out, fourLetters(name), payload));
   }
 
-  /** A block's name is four bytes: a shorter one is filled with NULs, as "AY\0\0" is. */
+  /** A block's name is four bytes: a shorter one is filled with NULs, as "AY\0\0" is, and carried back without them. */
   private static String fourLetters(String name) {
     if (name.isEmpty() || name.length() > 4) {
       throw new IllegalArgumentException("an SZX block is named in one to four letters, and not '" + name + "'");

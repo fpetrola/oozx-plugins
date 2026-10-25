@@ -225,6 +225,12 @@
             <scope>test</scope>
         </dependency>
         <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>device-spec256</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>net.java.dev.jna</groupId>
             <artifactId>jna</artifactId>
             <version>5.14.0</version>

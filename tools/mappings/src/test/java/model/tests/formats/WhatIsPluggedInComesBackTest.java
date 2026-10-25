@@ -44,6 +44,8 @@ import com.fpetrola.oozx.speccy.devices.printer.ZxPrinterPeripheral;
 import com.fpetrola.oozx.speccy.devices.scld.ScldPeripheral;
 import com.fpetrola.oozx.speccy.devices.scld.TimexMemoryPeripheral;
 import com.fpetrola.oozx.speccy.devices.simpleide.SimpleIdePeripheral;
+import com.fpetrola.oozx.speccy.devices.spec256.Spec256Core;
+import com.fpetrola.oozx.speccy.devices.spec256.Spec256Peripheral;
 import com.fpetrola.oozx.speccy.devices.specdrum.SpecDrumPeripheral;
 import com.fpetrola.oozx.speccy.devices.uspeech.UspeechPeripheral;
 import com.fpetrola.oozx.speccy.devices.zxatasp.ZxataspPeripheral;
@@ -54,9 +56,11 @@ import com.fpetrola.oozx.speccy.machine.Pentagon;
 import com.fpetrola.oozx.speccy.machine.Tc2068;
 import com.fpetrola.oozx.speccy.modules.memory.MemoryPart;
 import com.fpetrola.oozx.speccy.modules.memory.Storage;
+import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.fpetrola.oozx.speccy.peripherals.Pluggable;
+import model.harness.MachineTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -70,6 +74,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -863,6 +868,35 @@ class WhatIsPluggedInComesBackTest {
       }
     }
     return said;
+  }
+
+  /**
+   * A game in 256 colours opened from an EZX and played a while: its colours as the followers left them, the ROM's,
+   * what it says and its name go in the SZX as an EZX carries them. The machine that opens the file is on the nine
+   * again and shows the same picture, before it has run a frame.
+   */
+  @Test
+  void aGameInTwoHundredAndFiftySixColoursInTheColoursItWasLeftIn() throws Exception {
+    Path where = Files.createTempDirectory("spec256");
+    Path exolon = Files.copy(Path.of("../../devices/snapshots/src/test/resources/ezx/exolon.ezx"), where.resolve("exolon.ezx"));
+    Speccy kept = AMachineComesBackWithItsWindowTest.machine();
+    kept.picture.active = true;
+    Snapshots.of(kept).load(exolon.toString());
+    kept.loop.applyWhatWasDeferred();
+    kept.display.paintNow();
+    int[] asItCame = kept.picture.pixels.clone();
+    MachineTest.runFrames(kept, 50);
+    kept.display.paintNow();
+    assertFalse(Arrays.equals(asItCame, kept.picture.pixels), "the game moved on from the file it came in");
+    Path file = Files.write(where.resolve("0.szx"), new SzxFormat().write(kept, note -> { }));
+
+    Speccy opened = AMachineComesBackWithItsWindowTest.machine();
+    opened.picture.active = true;
+    Snapshots.of(opened).load(file.toString());
+    opened.loop.applyWhatWasDeferred();
+    Spec256Peripheral game = (Spec256Peripheral) opened.peripheralRegistry.find(Spec256Peripheral.class);
+    assertEquals(Arrays.asList(Spec256Core.NAME, "exolon.ezx"), Arrays.asList(opened.processors.current(), game.playing()));
+    assertArrayEquals(kept.picture.pixels, opened.picture.pixels, "the same picture, in the colours it was left in");
   }
 
   /** A TR-DOS disk of 80 cylinders and two sides, its sectors a pattern but for the one that says what disk it is. */

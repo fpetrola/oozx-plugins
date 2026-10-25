@@ -34,13 +34,15 @@ import com.fpetrola.oozx.speccy.devices.ay.AyPeripheral;
 import com.fpetrola.oozx.speccy.devices.ulaplus.UlaPlusPeripheral;
 import com.fpetrola.oozx.speccy.machine.RomNotLoadedException;
 import com.fpetrola.oozx.speccy.machine.Spectrum;
+import com.fpetrola.oozx.speccy.peripherals.FilesOfItsOwn;
 
 import java.util.Arrays;
 import java.util.List;
 
 /**
  * What an SZX carries beyond the machine it names: the AY in its block AY, the ULAplus in PLTT, a ROM of the machine's
- * own in ROM, and what a session kept around the machine.
+ * own in ROM, what a device keeps beside a snapshot (the colours of a game in 256 colours) in a block for each under
+ * its name, and what a session kept around the machine.
  */
 public final class SzxMapping implements Mapping {
 
@@ -89,7 +91,8 @@ public final class SzxMapping implements Mapping {
 
   @Override
   public Bindings bindings() {
-    return Bindings.of().on(AyPeripheral.class, AY_TABLE).on(UlaPlusPeripheral.class, ULAPLUS).on(Spectrum.class, CUSTOM_ROM);
+    return Bindings.of().on(AyPeripheral.class, AY_TABLE).on(UlaPlusPeripheral.class, ULAPLUS).on(Spectrum.class, CUSTOM_ROM)
+        .on(FilesOfItsOwn.class, Layout.<FilesOfItsOwn>of().carried(FilesOfItsOwn::files));
   }
 
   @Override

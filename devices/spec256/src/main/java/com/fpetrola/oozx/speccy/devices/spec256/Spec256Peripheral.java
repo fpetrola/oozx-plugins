@@ -34,10 +34,12 @@ import com.google.inject.Singleton;
 
 import com.fpetrola.oozx.formats.SnapshotFormat;
 import java.io.File;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -65,6 +67,9 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
    */
   private static final String[] ROM_COLOURS = {"gfb", "gfa"};
   private static final String ANY_ROM = "rom0.gfx";
+  private static final String BACKGROUND = "b%02d";
+  /** Which game the colours are, where a snapshot that carries them says so. */
+  private static final String NAME = "name";
   /** A background is 320 by 200 of a colour each, laid under the screen and centred on it. */
   private static final int BACKGROUND_WIDTH = 320, BACKGROUND_HEIGHT = 200;
   private static final int BACKGROUND_SIZE = BACKGROUND_WIDTH * BACKGROUND_HEIGHT;
@@ -127,7 +132,8 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
       return;
     }
     File apart = withTheSameName(url, "." + COLOURS);
-    playing = (apart != null ? apart : new File(url)).getName();
+    byte[] name = beside.apply(NAME);
+    playing = name != null ? new String(name, StandardCharsets.UTF_8) : (apart != null ? apart : new File(url)).getName();
     romBeside(beside, url);
     backgroundsBeside(beside);
     rules.read(beside.apply(SAYS));
@@ -135,6 +141,22 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
     if (wasOn == null) wasOn = processors.current();
     processors.use(Spec256Core.NAME);
     paintFromThePlanes(inItsColours);
+  }
+
+  /**
+   * What this game keeps beside a snapshot as it stands now, under the endings they are looked for by: its colours as
+   * the followers left them, the ROM's, what it says and the pictures under it, and which game it is.
+   */
+  @Override
+  public Map<String, byte[]> files() {
+    if (playing == null) return Map.of();
+    Map<String, byte[]> files = new LinkedHashMap<>();
+    files.put(NAME, playing.getBytes(StandardCharsets.UTF_8));
+    files.put(COLOURS, planes.file());
+    if (planes.romColoured()) files.put(ROM_COLOURS[0], planes.romFile());
+    files.put(SAYS, rules.said());
+    for (int number = 0; number < backgrounds.size(); number++) files.put(BACKGROUND.formatted(number), backgrounds.get(number));
+    return files;
   }
 
   /** Whether the screen is the game's colours or the ones the machine itself would show. */
@@ -316,7 +338,7 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
     backgrounds.clear();
     showing = 0;
     for (int number = 0; number < 100; number++) {
-      byte[] picture = beside.apply("b%02d".formatted(number));
+      byte[] picture = beside.apply(BACKGROUND.formatted(number));
       if (picture != null && picture.length == BACKGROUND_SIZE) backgrounds.add(picture);
     }
   }
