@@ -70,6 +70,8 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
   private static final String BACKGROUND = "b%02d";
   /** Which game the colours are, where a snapshot that carries them says so. */
   private static final String NAME = "name";
+  /** What each follower had in its registers, where a snapshot taken while they ran says so. */
+  private static final String REGISTERS = "regs";
   /** A background is 320 by 200 of a colour each, laid under the screen and centred on it. */
   private static final int BACKGROUND_WIDTH = 320, BACKGROUND_HEIGHT = 200;
   private static final int BACKGROUND_SIZE = BACKGROUND_WIDTH * BACKGROUND_HEIGHT;
@@ -78,6 +80,7 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
 
   private final Planes planes;
   private final Processors processors;
+  private final Spec256Core nine;
   private final Display display;
   private final SpectrumMemory banks;
   private final Alignment alignment;
@@ -91,11 +94,12 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
   private boolean inItsColours = true;
 
   @Inject
-  public Spec256Peripheral(Planes planes, Processors processors, Display display, SpectrumMemory banks,
+  public Spec256Peripheral(Planes planes, Processors processors, Spec256Core nine, Display display, SpectrumMemory banks,
                            Alignment alignment, Rules rules) {
     super(List.of());
     this.planes = planes;
     this.processors = processors;
+    this.nine = nine;
     this.display = display;
     this.banks = banks;
     this.alignment = alignment;
@@ -138,6 +142,7 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
     backgroundsBeside(beside);
     rules.read(beside.apply(SAYS));
     takeWhatTheGameAsksFor();
+    nine.followersStartFrom(beside.apply(REGISTERS));
     if (wasOn == null) wasOn = processors.current();
     processors.use(Spec256Core.NAME);
     paintFromThePlanes(inItsColours);
@@ -145,7 +150,8 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
 
   /**
    * What this game keeps beside a snapshot as it stands now, under the endings they are looked for by: its colours as
-   * the followers left them, the ROM's, what it says and the pictures under it, and which game it is.
+   * the followers left them, the ROM's, what it says and the pictures under it, which game it is, and what each
+   * follower has in its registers.
    */
   @Override
   public Map<String, byte[]> files() {
@@ -156,6 +162,8 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
     if (planes.romColoured()) files.put(ROM_COLOURS[0], planes.romFile());
     files.put(SAYS, rules.said());
     for (int number = 0; number < backgrounds.size(); number++) files.put(BACKGROUND.formatted(number), backgrounds.get(number));
+    byte[] registers = nine.followers();
+    if (registers != null) files.put(REGISTERS, registers);
     return files;
   }
 

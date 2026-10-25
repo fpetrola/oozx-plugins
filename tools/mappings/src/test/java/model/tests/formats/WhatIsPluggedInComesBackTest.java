@@ -873,7 +873,8 @@ class WhatIsPluggedInComesBackTest {
   /**
    * A game in 256 colours opened from an EZX and played a while: its colours as the followers left them, the ROM's,
    * what it says and its name go in the SZX as an EZX carries them. The machine that opens the file is on the nine
-   * again and shows the same picture, before it has run a frame.
+   * again and shows the same picture, before it has run a frame. And it goes on in the colours it would have: what
+   * each follower had in its registers comes back too, or a colour one was carrying there is written without it.
    */
   @Test
   void aGameInTwoHundredAndFiftySixColoursInTheColoursItWasLeftIn() throws Exception {
@@ -885,7 +886,7 @@ class WhatIsPluggedInComesBackTest {
     kept.loop.applyWhatWasDeferred();
     kept.display.paintNow();
     int[] asItCame = kept.picture.pixels.clone();
-    MachineTest.runFrames(kept, 50);
+    MachineTest.runFrames(kept, 400);
     kept.display.paintNow();
     assertFalse(Arrays.equals(asItCame, kept.picture.pixels), "the game moved on from the file it came in");
     Path file = Files.write(where.resolve("0.szx"), new SzxFormat().write(kept, note -> { }));
@@ -897,6 +898,11 @@ class WhatIsPluggedInComesBackTest {
     Spec256Peripheral game = (Spec256Peripheral) opened.peripheralRegistry.find(Spec256Peripheral.class);
     assertEquals(Arrays.asList(Spec256Core.NAME, "exolon.ezx"), Arrays.asList(opened.processors.current(), game.playing()));
     assertArrayEquals(kept.picture.pixels, opened.picture.pixels, "the same picture, in the colours it was left in");
+
+    MachineTest.runFrames(kept, 1);
+    MachineTest.runFrames(opened, 1);
+    assertArrayEquals(((Spec256Peripheral) kept.peripheralRegistry.find(Spec256Peripheral.class)).files().get("gfx"),
+        game.files().get("gfx"), "and a frame later, the colours it would have");
   }
 
   /** A TR-DOS disk of 80 cylinders and two sides, its sectors a pattern but for the one that says what disk it is. */

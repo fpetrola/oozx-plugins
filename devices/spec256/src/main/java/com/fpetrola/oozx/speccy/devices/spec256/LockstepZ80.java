@@ -19,6 +19,9 @@
 package com.fpetrola.oozx.speccy.devices.spec256;
 
 import com.fpetrola.z80.cpu.OOZ80;
+import com.fpetrola.z80.registers.RegisterName;
+
+import java.util.function.Supplier;
 
 /**
  * Nine processors where a machine has one: the machine's own, and eight that follow it a step
@@ -33,13 +36,21 @@ import com.fpetrola.z80.cpu.OOZ80;
  * The eight go first and the machine last.
  */
 public final class LockstepZ80 extends OOZ80 {
+  /** What a follower has of its own, in this order and two bytes each in what {@link #registers} says. */
+  private static final RegisterName[] ITS_OWN = {RegisterName.AF, RegisterName.BC, RegisterName.DE, RegisterName.HL,
+      RegisterName.IX, RegisterName.IY, RegisterName.SP, RegisterName.AFx, RegisterName.BCx, RegisterName.DEx,
+      RegisterName.HLx, RegisterName.MEMPTR};
+
   private final OOZ80[] followers;
   private final Alignment.Aligned[] aligned;
+  /** What the followers start from over the copy of the machine, asked each time they start. */
+  private final Supplier<byte[]> startingFrom;
   private boolean following;
 
-  public LockstepZ80(OOZ80 one, OOZ80[] followers, Alignment alignment) {
+  public LockstepZ80(OOZ80 one, OOZ80[] followers, Alignment alignment, Supplier<byte[]> startingFrom) {
     super(one);
     this.followers = followers;
+    this.startingFrom = startingFrom;
     aligned = new Alignment.Aligned[followers.length];
     for (int i = 0; i < followers.length; i++) aligned[i] = alignment.between(state, followers[i].getState());
   }
@@ -70,13 +81,43 @@ public final class LockstepZ80 extends OOZ80 {
     following = false;
   }
 
+  /** The followers start again before the next instruction. */
+  public void startAgain() {
+    following = false;
+  }
+
+  /** What the eight have in their registers, as they start from it; nothing before they start, when they are the machine's. */
+  public byte[] registers() {
+    if (!following) return null;
+    byte[] all = new byte[followers.length * ITS_OWN.length * 2];
+    int at = 0;
+    for (OOZ80 follower : followers) {
+      for (RegisterName name : ITS_OWN) {
+        int value = follower.getState().getRegister(name).read();
+        all[at++] = (byte) value;
+        all[at++] = (byte) (value >> 8);
+      }
+    }
+    return all;
+  }
+
   /**
    * Followers start out as copies of the processor they follow, and do it here rather than when
    * they were built: a machine moved onto this processor is given the registers it had afterwards.
+   * What a snapshot said each had of its own goes over the copy.
    */
   private void startFollowing() {
     following = true;
     for (OOZ80 follower : followers) follower.getState().takeFrom(state);
+    byte[] said = startingFrom.get();
+    if (said == null || said.length != followers.length * ITS_OWN.length * 2) return;
+    int at = 0;
+    for (OOZ80 follower : followers) {
+      for (RegisterName name : ITS_OWN) {
+        follower.getState().getRegister(name).write(said[at] & 0xff | (said[at + 1] & 0xff) << 8);
+        at += 2;
+      }
+    }
   }
 
   private void takenByAll(java.util.function.Consumer<OOZ80> what) {

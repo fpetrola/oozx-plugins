@@ -56,6 +56,9 @@ public class Spec256Core implements Core {
   private final Alignment alignment;
   private final Rules rules;
   private Permutations permutations;
+  private LockstepZ80 nine;
+  /** What the followers start from the next time they do, where a snapshot said: once, and then copies again. */
+  private byte[] startingFrom;
 
   @Inject
   public Spec256Core(Planes planes, Alignment alignment, Rules rules) {
@@ -110,7 +113,24 @@ public class Spec256Core implements Core {
       State own = new State(DEAF, ordinary.bank(null, DEAF), planes.plane(plane, state.getMemory()));
       followers[plane] = ordinary.cpu(own, null, new LevelledInstructions(own, rules, state, alignment));
     }
-    return new LockstepZ80(ordinary.cpu(state, contention), followers, alignment);
+    nine = new LockstepZ80(ordinary.cpu(state, contention), followers, alignment, this::startingFromOnce);
+    return nine;
   }
 
+  /** The followers start again before the next instruction: as copies of the machine, with these registers over them if any. */
+  public void followersStartFrom(byte[] registers) {
+    startingFrom = registers;
+    if (nine != null) nine.startAgain();
+  }
+
+  /** What the followers have in their registers, as they start from it; nothing where they are copies of the machine. */
+  public byte[] followers() {
+    return startingFrom != null || nine == null ? startingFrom : nine.registers();
+  }
+
+  private byte[] startingFromOnce() {
+    byte[] once = startingFrom;
+    startingFrom = null;
+    return once;
+  }
 }
