@@ -49,9 +49,10 @@ import java.util.List;
  * beside it puts the machine on the nine processors, and anything else puts it back where it was.
  * <p>
  * It has no ports and no machine has it on board. What it is, is a session: it starts when the
- * colours arrive and ends at a reset, at a change of machine, or at a snapshot that brought none.
- * While it lasts it is also who paints the screen, because the pixels are on its planes and not
- * in the machine's memory.
+ * colours arrive and ends at a reset, at a change of machine, or at the next snapshot, which
+ * starts another on nine processors built for it if it brings colours of its own. While it lasts
+ * it is also who paints the screen, because the pixels are on its planes and not in the machine's
+ * memory.
  */
 @Singleton
 public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsOwn, Painting.Line {
@@ -124,15 +125,12 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
   public void beside(String url) {
     Function<String, byte[]> beside = besideOf(url);
     byte[] colours = beside.apply(COLOURS);
-    if (colours == null) {
-      over();
-      return;
-    }
+    over();
+    if (colours == null) return;
     try {
       planes.take(colours);
     } catch (IllegalArgumentException notColoursAfterAll) {
       TellsThePerson.that("%s has something called its colours that are not a game's colours: %s".formatted(url, notColoursAfterAll.getMessage()));
-      over();
       return;
     }
     File apart = withTheSameName(url, "." + COLOURS);
@@ -143,7 +141,7 @@ public class Spec256Peripheral extends AbstractPeripheral implements FilesOfItsO
     rules.read(beside.apply(SAYS));
     takeWhatTheGameAsksFor();
     nine.followersStartFrom(beside.apply(REGISTERS));
-    if (wasOn == null) wasOn = processors.current();
+    wasOn = processors.current();
     processors.use(Spec256Core.NAME);
     paintFromThePlanes(inItsColours);
   }

@@ -53,7 +53,12 @@ class TheSessionOfAGameTest extends MachineTest {
   }
 
   private String snapshot(String name) throws IOException {
-    byte[] sna = new byte[27 + 0xc000];
+    return snapshot(name, 27 + 0xc000);
+  }
+
+  /** As long as a 128K one is, with the PC and the paging after the first three banks, and the other five: 131103. */
+  private String snapshot(String name, int length) throws IOException {
+    byte[] sna = new byte[length];
     sna[23] = 0x00;
     sna[24] = 0x40;                                  // the stack points somewhere harmless
     Path file = where.resolve(name + ".sna");
@@ -85,6 +90,50 @@ class TheSessionOfAGameTest extends MachineTest {
     assertEquals("Spec256", speccy.processors.current(), "the colours are there, so the machine carries them");
     assertEquals("game.GFX", session().playing(), "and it says which game's they are");
     assertNotEquals("Spec256", was, "which is not where it started");
+  }
+
+  /**
+   * A game for another machine loaded while one plays: the change of machine ends the first, and the second is on
+   * the nine all the same. What is left when it ends is where the machine was before either.
+   */
+  @Test
+  void aGameForAnotherMachineLoadedWhileOnePlaysIsOnTheNineToo() throws IOException {
+    machine();
+    String was = speccy.processors.current();
+    coloursFor("game", Planes.LENGTH);
+    load(snapshot("game"));
+    coloursFor("bigger", Planes.LENGTH);
+
+    load(snapshot("bigger", 131103));
+
+    assertTrue(speccy.machine.current.pagesThrough7ffd(), "it is a 128K now");
+    assertEquals(java.util.List.of("Spec256", "bigger.GFX"), java.util.List.of(speccy.processors.current(), session().playing()));
+    load(snapshot("plain"));
+    assertEquals(was, speccy.processors.current(), "back where it was before the first, not on the nine");
+  }
+
+  /**
+   * A game loaded while another plays goes on as it does on a machine that has just opened it: the nine are built
+   * for it, not kept from the one before.
+   */
+  @Test
+  void aGameLoadedWhileAnotherPlaysGoesOnAsOnAMachineThatJustOpenedIt() throws IOException {
+    Path exolon = Files.copy(Path.of("../snapshots/src/test/resources/ezx/exolon.ezx"), where.resolve("exolon.ezx"));
+    Speccy again = machine();
+    load(exolon.toString());
+    runFrames(again, 400);
+    load(exolon.toString());
+    Speccy fresh = machine();
+    load(exolon.toString());
+
+    runFrames(again, 10);
+    runFrames(fresh, 10);
+
+    assertArrayEquals(colours(fresh), colours(again));
+  }
+
+  private static byte[] colours(Speccy speccy) {
+    return ((Spec256Peripheral) speccy.peripheralRegistry.find(Spec256Peripheral.class)).files().get("gfx");
   }
 
   @Test
