@@ -291,7 +291,7 @@ public class RzxSession {
    * The state the recording starts from, on disk. It is loaded through the ordinary snapshot
    * path rather than decoded here: the format reader deliberately knows nothing about snapshots.
    */
-  private static Path snapshotFileOf(RzxFile recording) {
+  static Path snapshotFileOf(RzxFile recording) {
     try {
       String extension = recording.getSnapshotBlock().getSnapshotExtension();
       Path file = Files.createTempFile("rzx-snapshot", "." + (extension == null ? "z80" : extension));
