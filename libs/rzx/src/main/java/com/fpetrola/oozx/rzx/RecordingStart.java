@@ -23,6 +23,9 @@ import com.fpetrola.z80.cpu.MemorySetter;
 import com.fpetrola.z80.cpu.State;
 import com.fpetrola.z80.ide.rzx.RzxFile;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 /**
  * The state a recording starts from, for a processor that replays it WITHOUT the machine around it: an analysis
  * that runs the recording one instruction at a time and watches every byte, with no screen, no sound and no
@@ -45,10 +48,20 @@ public final class RecordingStart {
   public static RecordingStart of(RzxFile recording) {
     if (recording.getSnapshotBlock() == null || recording.getSnapshotBlock().getSnapshotData() == null)
       throw new IllegalArgumentException("the recording carries no snapshot, so there is no state to start it from");
+    return ofSnapshot(RzxSession.snapshotFileOf(recording));
+  }
+
+  /**
+   * The state a snapshot file holds -- one not inside a recording, the way a bench or a translated game starts --
+   * read through the machine's snapshot path like a recording's own: z80, szx, sna or sp by its extension.
+   */
+  public static RecordingStart ofSnapshot(Path snapshot) {
+    if (!Files.isRegularFile(snapshot))
+      throw new IllegalArgumentException("there is no snapshot at " + snapshot);
     Speccy speccy = Speccy.create();
     try {
       speccy.init();
-      Snapshots.of(speccy).load(RzxSession.snapshotFileOf(recording).toAbsolutePath().toString());
+      Snapshots.of(speccy).load(snapshot.toAbsolutePath().toString());
       State loaded = speccy.cpu.getOoz80().getState();
       int[] memory = new int[0x10000];
       for (int address = 0; address < memory.length; address++)

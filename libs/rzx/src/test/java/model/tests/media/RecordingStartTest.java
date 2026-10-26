@@ -27,10 +27,13 @@ import com.fpetrola.z80.registers.RegisterName;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * The state a recording starts from, handed to a processor that runs without the machine around it -- the way an
@@ -106,5 +109,34 @@ class RecordingStartTest {
     handed[40000] ^= 0x55;
 
     assertNotEquals(handed[40000], start.memory()[40000], "changing the copy leaves the start as it was");
+  }
+
+  /**
+   * A snapshot that is not inside a recording -- a .z80 of a game, the way a bench or a translated game starts -- is
+   * read through the same path: the recording's own snapshot, written to a file of its own, gives the same start.
+   */
+  @Test
+  void a_loose_snapshot_starts_where_the_recording_carrying_it_starts() throws Exception {
+    var recording = new RzxParser().parseFile(recording().getAbsolutePath());
+    Path loose = Files.createTempFile("loose", "." + recording.getSnapshotBlock().getSnapshotExtension());
+    loose.toFile().deleteOnExit();
+    Files.write(loose, recording.getSnapshotBlock().getSnapshotData());
+
+    RecordingStart fromRecording = RecordingStart.of(recording), fromFile = RecordingStart.ofSnapshot(loose);
+
+    assertArrayEquals(fromRecording.memory(), fromFile.memory());
+    State expected = new State(new MockedIO(), new MockedMemory(true)), bare = new State(new MockedIO(), new MockedMemory(true));
+    fromRecording.applyTo(expected);
+    fromFile.applyTo(bare);
+    for (RegisterName name : RegisterName.values())
+      assertEquals(expected.getRegister(name).read(), bare.getRegister(name).read(), name.name());
+    assertEquals(expected.getInterruptionMode(), bare.getInterruptionMode());
+    assertEquals(expected.isIff1(), bare.isIff1());
+    assertEquals(expected.isHalted(), bare.isHalted());
+  }
+
+  @Test
+  void a_snapshot_file_that_is_not_there_is_refused() {
+    assertThrows(IllegalArgumentException.class, () -> RecordingStart.ofSnapshot(Path.of("/nowhere/game.z80")));
   }
 }
