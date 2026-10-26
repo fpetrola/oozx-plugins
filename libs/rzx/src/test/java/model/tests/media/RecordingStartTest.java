@@ -80,6 +80,25 @@ class RecordingStartTest {
     assertEquals(bare.isHalted() ? State.RunState.STATE_STOPPED_NORMAL : State.RunState.STATE_RUNNING, bare.getRunState());
   }
 
+  /** What a replay needs in one call: the 64K written into the processor's memory, and its state. */
+  @Test
+  void starting_a_processor_writes_its_memory_and_its_state() {
+    RecordingStart start = RecordingStart.of(new RzxParser().parseFile(recording().getAbsolutePath()));
+    State bare = new State(new MockedIO(), new MockedMemory(true));
+    State expected = new State(new MockedIO(), new MockedMemory(true));
+    start.applyTo(expected);
+
+    start.startOn(bare);
+
+    int[] seen = new int[0x10000];
+    for (int address = 0; address < seen.length; address++)
+      seen[address] = bare.getMemory().read(address) & 0xff;
+    assertArrayEquals(start.memory(), seen);
+    for (RegisterName name : RegisterName.values())
+      assertEquals(expected.getRegister(name).read(), bare.getRegister(name).read(), name.name());
+    assertEquals(0, bare.clock.getTStates(), "the clock at the start of the recording");
+  }
+
   @Test
   void the_memory_handed_out_is_a_copy() {
     RecordingStart start = RecordingStart.of(new RzxParser().parseFile(recording().getAbsolutePath()));

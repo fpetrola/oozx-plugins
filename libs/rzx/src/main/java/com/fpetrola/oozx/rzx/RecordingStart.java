@@ -19,6 +19,7 @@ package com.fpetrola.oozx.rzx;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
+import com.fpetrola.z80.cpu.MemorySetter;
 import com.fpetrola.z80.cpu.State;
 import com.fpetrola.z80.ide.rzx.RzxFile;
 
@@ -56,6 +57,18 @@ public final class RecordingStart {
     } finally {
       speccy.end();
     }
+  }
+
+  /**
+   * A bare processor at the start of the recording: its state, and the 64K written into its memory the way a
+   * snapshot always was -- with the write listeners off and the clock at zero ({@link MemorySetter}).
+   */
+  public void startOn(State processor) {
+    applyTo(processor);
+    byte[] bytes = new byte[memory.length];
+    for (int address = 0; address < memory.length; address++)
+      bytes[address] = (byte) memory[address];
+    new MemorySetter(processor.getMemory(), bytes, processor).setData(bytes);
   }
 
   /** The 64K the processor sees when the recording starts, ROM included; a copy. */
