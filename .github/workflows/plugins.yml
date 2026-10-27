@@ -10,6 +10,7 @@ on:
     paths:
       - 'devices/**'
       - 'tools/**'
+      - 'libs/**'
       - 'pom.xml'
       - '.github/workflows/plugins.yml'
   workflow_dispatch:
