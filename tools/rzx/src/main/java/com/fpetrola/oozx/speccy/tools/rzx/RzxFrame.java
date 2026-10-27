@@ -97,6 +97,8 @@ public class RzxFrame extends MachineFrame implements Opens {
       Widgets.iconButton("1F579.svg", "Take Over", null);
   private final JToggleButton loopButton =
       Widgets.iconToggle("1F501.svg", "Loop", "Start again when the recording ends");
+  private final JButton saveButton =
+      Widgets.iconButton("slot-save.svg", "Save...", "Save a copy of this recording to a file");
   private final PartsTableModel model = new PartsTableModel();
   private final JTable table = new JTable(model);
   /** The list of parts, which is everything the compact form hides. */
@@ -138,6 +140,8 @@ public class RzxFrame extends MachineFrame implements Opens {
         Widgets.iconButton("2B50.svg", "Favorite", "Keep this recording");
     favoriteButton.addActionListener(e -> keep());
     controls.add(favoriteButton);
+    saveButton.addActionListener(e -> save());
+    controls.add(saveButton);
     fetching.setIndeterminate(true);
     fetching.setStringPainted(true);
     fetching.setPreferredSize(new java.awt.Dimension(260, openButton.getPreferredSize().height));
@@ -251,6 +255,23 @@ public class RzxFrame extends MachineFrame implements Opens {
 
   private void keep() {
     Desk.theOne().keepRecording(sourceUrl, sourceEntry, getRecordingName());
+  }
+
+  /**
+   * A copy of the file being played, where the person says. A fetched recording sits under the
+   * desk's downloads next to everything else that came down, and the one being watched is worth
+   * a place of its own.
+   */
+  private void save() {
+    Widgets.saveFile(this, "Save the recording",
+        new javax.swing.filechooser.FileNameExtensionFilter("Recordings (*.rzx)", "rzx"), file.getName(), chosen -> {
+          try {
+            java.nio.file.Files.copy(file.toPath(), chosen.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+          } catch (java.io.IOException failure) {
+            JOptionPane.showMessageDialog(this, "Could not save " + chosen.getName() + ".\n\n"
+                + Widgets.reason(failure), "Save recording", JOptionPane.ERROR_MESSAGE);
+          }
+        });
   }
 
   /**
@@ -490,6 +511,7 @@ public class RzxFrame extends MachineFrame implements Opens {
     playPauseButton.setToolTipText(playing ? "Pause the recording" : "Play the recording");
     playPauseButton.setEnabled(loaded && mode != Mode.TAKEN_OVER);
     stopButton.setEnabled(loaded);
+    saveButton.setEnabled(file != null);
     takeOverButton.setEnabled(loaded && mode != Mode.TAKEN_OVER);
 
     if (busy != null) {

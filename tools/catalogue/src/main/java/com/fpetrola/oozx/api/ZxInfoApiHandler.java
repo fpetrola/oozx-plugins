@@ -210,7 +210,7 @@ public class ZxInfoApiHandler implements KnowsTheGames {
 
   /** Whether ZXDB keeps this one where it may not hand it out, which is what /denied/ means. */
   public static boolean denied(String path) {
-    return path != null && path.toLowerCase().contains("/denied/");
+    return path != null && !com.fpetrola.oozx.speccy.media.DownloadAndUnzip.available(path);
   }
 
   /**
