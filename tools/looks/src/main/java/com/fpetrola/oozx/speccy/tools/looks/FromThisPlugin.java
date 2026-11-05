@@ -17,7 +17,7 @@
 
 package com.fpetrola.oozx.speccy.tools.looks;
 
-import com.fpetrola.oozx.speccy.devices.Look;
+import dev.plugdesk.desk.Look;
 
 import javax.swing.LookAndFeel;
 import javax.swing.UIManager;
