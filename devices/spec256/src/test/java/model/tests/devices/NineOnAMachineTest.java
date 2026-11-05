@@ -31,13 +31,13 @@ class NineOnAMachineTest extends MachineTest {
   private static final int INSTRUCTIONS = 1000;
 
   private Speccy startedOn(String core) {
-    com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "processor", core);
+    dev.plugdesk.app.Configuration.shared().setValue("machine", "processor", core);
     try {
       Speccy speccy = silentMachine();
       select(speccy, speccy.machine.model(Spec48.class));
       return speccy;
     } finally {
-      com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "processor", null);
+      dev.plugdesk.app.Configuration.shared().setValue("machine", "processor", null);
     }
   }
 

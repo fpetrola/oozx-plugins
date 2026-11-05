@@ -17,7 +17,7 @@
 
 package com.fpetrola.oozx.speccy.modules.tape.cassette;
 
-import com.fpetrola.oozx.plugins.Plugins;
+import dev.plugdesk.app.Plugins;
 
 import java.io.File;
 import java.io.IOException;

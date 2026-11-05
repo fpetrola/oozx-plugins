@@ -107,7 +107,7 @@ public class GamesFrame extends JInternalFrame {
   public static Gson gson = new Gson();
   private final RzxArchive archive = new RzxArchive();
   private final com.fpetrola.oozx.speccy.config.OOZxConfiguration config =
-      com.fpetrola.oozx.config.Configuration.shared().of(com.fpetrola.oozx.speccy.config.OOZxConfiguration.class);
+      dev.plugdesk.app.Configuration.shared().of(com.fpetrola.oozx.speccy.config.OOZxConfiguration.class);
 
   /** What a file brings beside itself - colours, for one - said by whoever can recognise it. */
   private static String besides(String file) {

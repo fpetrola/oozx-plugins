@@ -29,7 +29,7 @@ class RzxCoreMeasurement extends MachineTest {
   @Test
   void framesAndInstructionsPerSecondOnEachCore() throws Exception {
     for (String processor : new String[]{"Generated", "OOP"}) {
-      com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "processor", processor);
+      dev.plugdesk.app.Configuration.shared().setValue("machine", "processor", processor);
       measure();
     }
   }

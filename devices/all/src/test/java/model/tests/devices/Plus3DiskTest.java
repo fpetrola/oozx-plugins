@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.disk.Disk;
 import com.fpetrola.oozx.speccy.devices.disk.Fdd;
 import com.fpetrola.oozx.speccy.devices.disk.Upd765Peripheral;
 import model.harness.MachineTest;
-import com.fpetrola.oozx.config.Configuration;
+import dev.plugdesk.app.Configuration;
 import org.junit.jupiter.api.Test;
 import java.nio.file.Files;
 import java.nio.file.Path;

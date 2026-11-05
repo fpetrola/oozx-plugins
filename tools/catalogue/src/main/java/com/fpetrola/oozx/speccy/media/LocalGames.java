@@ -20,7 +20,7 @@ import com.fpetrola.emulation.helpers.snapshots.SnapshotFactory;
 import com.fpetrola.oozx.api.GameFingerprint;
 import com.fpetrola.oozx.api.GameLibrary;
 import com.fpetrola.oozx.api.GameSummary;
-import com.fpetrola.oozx.config.Configuration;
+import dev.plugdesk.app.Configuration;
 
 import java.io.IOException;
 import java.nio.file.Files;

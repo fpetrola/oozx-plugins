@@ -99,16 +99,16 @@ class SettingsWithNoMachineTest {
   /** What a new machine becomes comes from the binding, and the binding comes from the file. */
   @Test
   void aNewMachineStartsAsWhatTheFileNames() {
-    Object was = com.fpetrola.oozx.config.Configuration.shared().valueOf("machine", "model", String.class);
+    Object was = dev.plugdesk.app.Configuration.shared().valueOf("machine", "model", String.class);
     try {
-      com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "model", "Pentagon");
+      dev.plugdesk.app.Configuration.shared().setValue("machine", "model", "Pentagon");
       assertEquals("Pentagon", com.fpetrola.oozx.Speccy.create().machine.defaultModel());
 
-      com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "model", "no such machine");
+      dev.plugdesk.app.Configuration.shared().setValue("machine", "model", "no such machine");
       assertEquals("Spectrum 48K", com.fpetrola.oozx.Speccy.create().machine.defaultModel(),
           "nothing this build has by that name, so a Spectrum is a 48K");
     } finally {
-      com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "model", was);
+      dev.plugdesk.app.Configuration.shared().setValue("machine", "model", was);
     }
   }
 

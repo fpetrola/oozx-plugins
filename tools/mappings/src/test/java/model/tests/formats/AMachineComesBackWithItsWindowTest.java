@@ -19,7 +19,7 @@ package model.tests.formats;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.api.KnowsTheGames;
-import com.fpetrola.oozx.config.Configuration;
+import dev.plugdesk.app.Configuration;
 import com.fpetrola.oozx.config.RomFiles;
 import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.formats.CoreFields;

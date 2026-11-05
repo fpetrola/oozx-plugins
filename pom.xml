@@ -70,6 +70,10 @@
                 <exclusions>
                     <exclusion>
                         <groupId>dev.crystal.plugins</groupId>
+                        <artifactId>framework-runtime</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>dev.crystal.plugins</groupId>
                         <artifactId>framework-guice</artifactId>
                     </exclusion>
                 </exclusions>

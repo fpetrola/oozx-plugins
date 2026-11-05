@@ -55,7 +55,7 @@ class AFormatAnswersForWhatItReadsTest {
 
   @TestFactory
   Stream<DynamicTest> everyFormatThatWalksTheMachine() {
-    return com.fpetrola.oozx.plugins.Plugins.found(com.fpetrola.oozx.formats.SnapshotFormat.class).stream()
+    return dev.plugdesk.app.Plugins.found(com.fpetrola.oozx.formats.SnapshotFormat.class).stream()
         .map(format -> dynamicTest(format.label(), () -> {
           Set<String> answers = Arrays.stream(format.getClass().getAnnotationsByType(Answers.class))
               .flatMap(answer -> Arrays.stream(answer.value())).collect(Collectors.toSet());

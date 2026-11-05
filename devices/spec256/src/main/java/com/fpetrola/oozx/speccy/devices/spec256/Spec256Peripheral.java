@@ -18,7 +18,7 @@
 
 package com.fpetrola.oozx.speccy.devices.spec256;
 
-import com.fpetrola.oozx.TellsThePerson;
+import dev.plugdesk.app.TellsThePerson;
 
 import com.fpetrola.oozx.speccy.machine.SpectrumMachine;
 import com.fpetrola.oozx.speccy.modules.display.Colouring;

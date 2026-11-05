@@ -17,7 +17,7 @@
 
 package com.fpetrola.oozx.api;
 
-import com.fpetrola.oozx.TellsThePerson;
+import dev.plugdesk.app.TellsThePerson;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,7 +46,7 @@ public final class Catalogues {
     List<KnowsTheGames> asking = new ArrayList<>();
     asking.add(new ZxInfoApiHandler());
     asking.add(new Zxdb());
-    com.fpetrola.oozx.plugins.Plugins.found(KnowsTheGames.class).stream()
+    dev.plugdesk.app.Plugins.found(KnowsTheGames.class).stream()
         .filter(one -> asking.stream().noneMatch(already -> already.getClass() == one.getClass()))
         .forEach(asking::add);
     return asking;

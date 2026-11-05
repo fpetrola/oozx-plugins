@@ -19,7 +19,7 @@ package com.fpetrola.oozx.speccy.media;
 
 import com.fpetrola.emulation.helpers.snapshots.SnapshotFactory;
 import com.fpetrola.oozx.formats.SnapshotFormat;
-import com.fpetrola.oozx.plugins.Plugins;
+import dev.plugdesk.app.Plugins;
 
 import java.io.File;
 import java.io.IOException;

@@ -56,7 +56,7 @@ class TheRomsAMachineRunsOnTest extends MachineTest {
 
   private static RomFiles asTheBuildCarriesThem() {
     RomFiles mine = new RomFiles();
-    mine.files.putAll(com.fpetrola.oozx.config.Configuration.shipped().of(RomFiles.class).files);
+    mine.files.putAll(dev.plugdesk.app.Configuration.shipped().of(RomFiles.class).files);
     return mine;
   }
 

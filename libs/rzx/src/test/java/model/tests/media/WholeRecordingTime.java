@@ -40,7 +40,7 @@ import java.util.concurrent.TimeUnit;
 class WholeRecordingTime extends MachineTest {
   @Test
   void theWholeThing() throws Exception {
-    com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "processor", "Generated");
+    dev.plugdesk.app.Configuration.shared().setValue("machine", "processor", "Generated");
     RzxSession session = RzxSession.open(model.harness.TestFiles.testFile("/rzx/jsw-full.rzx"));
     session.getSpeccy().picture.active = false;
     session.getSpeccy().sound.output.enabled = false;
@@ -52,6 +52,6 @@ class WholeRecordingTime extends MachineTest {
     System.out.printf("TOTAL %d frames, %d instrucciones, %.2f s, %.1f MIPS%n",
         frames, playback.getInstructions(), seconds, playback.getInstructions() / seconds / 1e6);
     session.release();
-    com.fpetrola.oozx.config.Configuration.shared().setValue("machine", "processor", null);
+    dev.plugdesk.app.Configuration.shared().setValue("machine", "processor", null);
   }
 }

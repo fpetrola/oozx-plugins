@@ -51,12 +51,26 @@ jobs:
           fi
           echo "crystal-plugins at $ref"
           echo "ref=$ref" >> "$GITHUB_OUTPUT"
+          base=$(grep -A3 'repository: fpetrola/plugdesk' oozx/.github/workflows/maven.yml \
+            | sed -n 's/^ *ref: *//p' | head -1)
+          if [ -z "$base" ]; then
+            echo "::error::oozx/.github/workflows/maven.yml no dice a que tag de plugdesk compila"
+            exit 1
+          fi
+          echo "plugdesk at $base"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
 
       - uses: actions/checkout@v4
         with:
           repository: fpetrola/crystal-plugins
           ref: ${{ steps.framework.outputs.ref }}
           path: crystal-plugins
+
+      - uses: actions/checkout@v4
+        with:
+          repository: fpetrola/plugdesk
+          ref: ${{ steps.framework.outputs.base }}
+          path: plugdesk
 
       - uses: actions/setup-java@v4
         with:
@@ -73,6 +87,9 @@ jobs:
       # what compiling them produced.
       - name: Build the plugin framework
         run: mvn -B -U -DskipTests install -f crystal-plugins/pom.xml
+
+      - name: Build the application base
+        run: mvn -B -U -DskipTests install -f plugdesk/pom.xml
 
       # Sin meter los plugins adentro de su jar: son los que se construyen aca, despues, y
       # todavia no estan en ~/.m2. Lo que se compila contra el emulador no necesita ese bundle.

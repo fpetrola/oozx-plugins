@@ -78,7 +78,7 @@ public abstract class DeclaredFormat implements SnapshotFormat {
 
   /** The mappings for this format, found where whoever knows the parts put them. */
   protected final List<Mapping> mappings() {
-    return com.fpetrola.oozx.plugins.Plugins.found(Mapping.class).stream()
+    return dev.plugdesk.app.Plugins.found(Mapping.class).stream()
         .filter(mapping -> mapping.format().isInstance(this)).toList();
   }
 
@@ -165,7 +165,7 @@ public abstract class DeclaredFormat implements SnapshotFormat {
     if (model.isEmpty()) {
       String running = speccy.machine.current == null ? "machine" : speccy.machine.current.getName();
       file.note("this build has no " + wanted.getLongModelName() + ": loaded into the " + running + " that was running");
-      com.fpetrola.oozx.TellsThePerson.thisBuildCannot(("This snapshot was taken on a %s, and this build carries no machine that runs its code. "
+      dev.plugdesk.app.TellsThePerson.thisBuildCannot(("This snapshot was taken on a %s, and this build carries no machine that runs its code. "
           + "It was loaded into the %s that was already running, where it will most likely show nothing at all.")
           .formatted(wanted.getLongModelName(), running), wanted.name());
     } else if (speccy.machine.current != model.get()) {

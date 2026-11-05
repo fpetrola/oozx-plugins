@@ -19,7 +19,7 @@ package model.tests.formats;
 
 import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.formats.SnapshotFormat;
-import com.fpetrola.oozx.plugins.Plugins;
+import dev.plugdesk.app.Plugins;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
 import com.fpetrola.oozx.speccy.modules.sound.SoundCard;
 import com.fpetrola.oozx.speccy.modules.z80.SpectrumZ80Clock;
