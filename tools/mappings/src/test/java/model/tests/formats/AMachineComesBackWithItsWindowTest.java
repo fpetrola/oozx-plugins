@@ -171,7 +171,7 @@ class AMachineComesBackWithItsWindowTest {
       pane.setSize(1600, 1200);
     }
 
-    public String nameOf(JInternalFrame window) {
+    public String nameOf(javax.swing.JComponent window) {
       return opened.containsKey(window) ? opened.get(window) : ofTheDesk.get(window);
     }
 

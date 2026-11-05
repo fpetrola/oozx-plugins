@@ -21,7 +21,9 @@ import com.fpetrola.oozx.api.KnowsTheGames;
 import com.fpetrola.oozx.speccy.tools.games.GamesFrame;
 import dev.crystal.plugins.api.OnlyWith;
 
-import javax.swing.JInternalFrame;
+import dev.plugdesk.desk.WindowInside;
+
+import javax.swing.JComponent;
 import java.util.Map;
 
 /** The game browser: what it is looking for, which comes back as a single search. */
@@ -31,7 +33,7 @@ public final class GamesWindowMapping implements WindowInside {
   private static final String SEARCH = "search.";
 
   @Override
-  public void keep(JInternalFrame window, Map<String, String> kept) {
+  public void keep(JComponent window, Map<String, String> kept) {
     if (!(window instanceof GamesFrame games)) return;
     GamesFrame.Search search = games.search();
     kept.put(SEARCH + "words", search.words());
@@ -49,7 +51,7 @@ public final class GamesWindowMapping implements WindowInside {
   }
 
   @Override
-  public void bringBack(JInternalFrame window, Map<String, String> kept) {
+  public void bringBack(JComponent window, Map<String, String> kept) {
     if (!(window instanceof GamesFrame games) || !kept.containsKey(SEARCH + "words")) return;
     String year = kept.get(SEARCH + "year");
     games.search(new GamesFrame.Search(kept.get(SEARCH + "words"), kept.get(SEARCH + "where"), kept.get(SEARCH + "order"),

@@ -23,7 +23,6 @@ import com.fpetrola.oozx.Speccy;
 import dev.plugdesk.app.Configuration;
 import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.formats.SnapshotFile;
-import dev.plugdesk.app.Plugins;
 import com.fpetrola.oozx.snapshots.SzxFormat;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
@@ -283,20 +282,17 @@ public final class SzxSession implements Session {
    */
   @Override
   public Map<String, String> keep(JInternalFrame window) {
-    String kind = Desk.theOne().nameOf(window);
-    if (kind == null || window instanceof AttachedFrame clipped && clipped.isAttached()) return Map.of();
-    Map<String, String> kept = new TreeMap<>(Map.of("kind", kind));
-    if (window instanceof AttachedFrame folding) keepFolding(folding, "", kept);
-    Plugins.found(WindowInside.class).forEach(inside -> inside.keep(window, kept));
+    if (window instanceof AttachedFrame clipped && clipped.isAttached()) return Map.of();
+    Map<String, String> kept = new TreeMap<>(Desk.theOne().inside(window));
+    if (!kept.isEmpty() && window instanceof AttachedFrame folding) keepFolding(folding, "", kept);
     return kept;
   }
 
   @Override
   public JInternalFrame bringBack(Map<String, String> kept) {
-    JInternalFrame window = kept.containsKey("kind") ? Desk.theOne().window(kept.get("kind")) : null;
+    javax.swing.JComponent window = Desk.theOne().bringBack(kept);
     if (window instanceof AttachedFrame folding) fold(folding, "", kept);
-    if (window != null) Plugins.found(WindowInside.class).forEach(inside -> inside.bringBack(window, kept));
-    return window;
+    return window instanceof JInternalFrame frame ? frame : null;
   }
 
   private static void keepFolding(AttachedFrame window, String key, Map<String, String> around) {
