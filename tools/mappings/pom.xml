@@ -200,6 +200,14 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- What loads the plugins, which the real desk needs to be built, and only the tests have: on what the plugin is
+             compiled with it would bring PF4J's processor, which overwrites the index of the extensions. -->
+        <dependency>
+            <groupId>dev.crystal.plugins</groupId>
+            <artifactId>framework-guice</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>device-scorpion</artifactId>
