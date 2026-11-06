@@ -72,7 +72,8 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import javax.swing.JDesktopPane;
+import com.fpetrola.oozx.speccy.desktop.ZXSpectrumDesktopApp;
+import com.fpetrola.oozx.speccy.peripherals.SpeccyEmulatorCore;
 import javax.swing.JInternalFrame;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
@@ -157,65 +158,28 @@ class AMachineComesBackWithItsWindowTest {
   }
 
   /**
-   * A desk offering a few pieces of equipment and the game browser, on a desktop of its own, that
-   * keeps the windows it opened of each: what the application's does with them and nothing more. It
-   * hands back the ones clipped onto a machine in no particular order, as the application's do:
-   * newest first here.
+   * The application's desk, which builds a machine for a file the way the launcher has it built: here, silent, from
+   * the snapshot in that file, and known to the desk.
    */
-  record Desktop(JDesktopPane pane, Map<MachineFrame, String> opened, Map<JInternalFrame, String> ofTheDesk) implements Desk {
-    static final Map<String, Equipment> OFFERED = Map.of("SpecDrum", new SpecDrumEquipment(),
-        "ZX Printer", new PrinterEquipment(), "Kempston Mouse", new MouseEquipment());
-
-    Desktop() {
-      this(new JDesktopPane(), new LinkedHashMap<>(), new LinkedHashMap<>());
-      pane.setSize(1600, 1200);
-    }
-
-    public String nameOf(javax.swing.JComponent window) {
-      return opened.containsKey(window) ? opened.get(window) : ofTheDesk.get(window);
-    }
-
-    public JInternalFrame window(String name) {
-      if (!name.equals("Game Browser")) return equipment(name);
-      GamesFrame window = new GamesFrame();
-      ofTheDesk.put(window, name);
-      pane.add(window);
-      window.setVisible(true);
-      return window;
-    }
-
-    public Map<MachineFrame, String> equipmentOn(EmulatorWindow machine) {
-      Map<MachineFrame, String> on = new LinkedHashMap<>();
-      opened.keySet().stream().filter(window -> window.isAttached() && window.getMachineWindow() == machine)
-          .toList().reversed().forEach(window -> on.put(window, opened.get(window)));
-      return on;
-    }
-
-    public MachineFrame equipment(String name) {
-      MachineFrame window = OFFERED.get(name).open();
-      opened.put(window, name);
-      pane.add(window);
-      window.setVisible(true);
-      return window;
-    }
-
-    public EmulatorWindow machineFrom(File file) {
+  static ZXSpectrumDesktopApp desk() throws Exception {
+    ZXSpectrumDesktopApp[] made = new ZXSpectrumDesktopApp[1];
+    return onTheEventThread(() -> made[0] = new ZXSpectrumDesktopApp((file, model) -> {
       Speccy speccy = machine();
-      Snapshots.of(speccy).load(file.getPath());
-      Window window = new Window(speccy);
-      place(window);
-      return window;
-    }
+      if (file != null && !file.isBlank()) Snapshots.of(speccy).load(file);
+      SpeccyEmulatorCore core = new SpeccyEmulatorCore(speccy);
+      speccy.control = core;
+      made[0].registerMachine(core, speccy);
+      return core;
+    }, session -> null));
+  }
 
-    public void place(JInternalFrame window) {
-      if (window.getParent() == null) pane.add(window);
-      window.setVisible(true);
-      window.toFront();
-    }
-
-    List<JInternalFrame> backToFront() {
-      return List.of(pane.getAllFrames()).reversed();
-    }
+  /** The 128K with its banks paged, on that desk, where {@link #kept()} puts it and paused with its file. */
+  static JInternalFrame keptOn(ZXSpectrumDesktopApp desk) {
+    Speccy speccy = banks();
+    JInternalFrame window = (JInternalFrame) desk.show(speccy, "banks", null);
+    pausedWithItsFile(speccy);
+    window.setBounds(40, 30, 520, 410);
+    return window;
   }
 
   /**
@@ -242,15 +206,26 @@ class AMachineComesBackWithItsWindowTest {
 
   /** A 128K with its banks paged, in a window put somewhere, paused, quieter and muted. */
   static Window kept() {
-    Speccy speccy = machine();
-    Snapshots.of(speccy).load(Fixtures.HERE.resolve("banks.z80").toString());
+    Speccy speccy = banks();
+    pausedWithItsFile(speccy);
     Window window = new Window(speccy);
     window.setBounds(40, 30, 520, 410);
-    speccy.control.setGeneralOption("pause", true);
-    speccy.control.setFilename("/games/banks.tap");
+    return window;
+  }
+
+  /** A 128K with its banks paged, quieter and muted. */
+  static Speccy banks() {
+    Speccy speccy = machine();
+    Snapshots.of(speccy).load(Fixtures.HERE.resolve("banks.z80").toString());
     settings(speccy, "sound.volume").values().set("volume", 37);
     settings(speccy, "sound").values().set("enabled", false);
-    return window;
+    return speccy;
+  }
+
+  /** Paused, and loaded from a file of its own: what its control says, so after the desk gives it one. */
+  static void pausedWithItsFile(Speccy speccy) {
+    speccy.control.setGeneralOption("pause", true);
+    speccy.control.setFilename("/games/banks.tap");
   }
 
   /**
@@ -486,30 +461,29 @@ class AMachineComesBackWithItsWindowTest {
   @Test
   void theOtherWindowsOfTheDeskComeBackAsTheyWereLeft() throws Exception {
     try {
-      Desktop desk = new Desktop();
+      ZXSpectrumDesktopApp desk = desk();
       GamesFrame.Search looking = new GamesFrame.Search("dizzy", "On this machine", "Most known",
           new KnowsTheGames.Slice(1987, "Arcade: Platform", "ZX-Spectrum 48K"), true, false, false, true, false);
       List<Map<String, String>> kept = onTheEventThread(() -> {
         Desk.isRunBy(desk);
         desk.equipment("ZX Printer").setCompact(false, 230);
         ((GamesFrame) desk.window("Game Browser")).search(looking);
-        Window machine = kept();
-        desk.pane().add(machine);
+        JInternalFrame machine = keptOn(desk);
         desk.equipment("SpecDrum").attachTo(machine, AttachedFrame.Dock.BOTTOM);
-        desk.pane().add(new JInternalFrame("Loose"));
+        desk.place(new JInternalFrame("Loose"));
         SzxSession session = new SzxSession();
-        return Stream.of(desk.pane().getAllFrames()).map(session::keep).filter(inside -> !inside.isEmpty()).toList();
+        return desk.backToFront().stream().map(session::keep).filter(inside -> !inside.isEmpty()).toList();
       });
       assertEquals(2, kept.size(), "the printer and the browser: " + kept);
 
-      Desktop another = new Desktop();
+      ZXSpectrumDesktopApp another = desk();
       List<JInternalFrame> back = onTheEventThread(() -> {
         Desk.isRunBy(another);
         SzxSession session = new SzxSession();
         return kept.stream().map(session::bringBack).toList();
       });
       MachineFrame printer = back.stream().filter(MachineFrame.class::isInstance).map(MachineFrame.class::cast).findFirst().orElseThrow();
-      assertEquals("ZX Printer expanded to 230", another.opened().get(printer)
+      assertEquals("ZX Printer expanded to 230", another.nameOf(printer)
           + (printer.isCompact() ? " compact" : " expanded") + " to " + printer.expandedHeight());
       GamesFrame games = back.stream().filter(GamesFrame.class::isInstance).map(GamesFrame.class::cast).findFirst().orElseThrow();
       assertEquals(looking, onTheEventThread(games::search));
@@ -530,14 +504,14 @@ class AMachineComesBackWithItsWindowTest {
     try {
       PokesTool pokes = new PokesTool();
       SzxSession session = new SzxSession(Set.of(pokes));
-      Desktop desk = new Desktop();
+      ZXSpectrumDesktopApp desk = desk();
       onTheEventThread(() -> {
         Desk.isRunBy(desk);
-        Window banks = kept();
-        desk.place(banks);
-        banks.picture().getScreenSettings().apply(Map.of("scaler", "Sharp bilinear", "scanlines", "0.3", "border", "true"));
-        banks.picture().setZoom(3);
-        pokes.applied(banks, List.of(lives()));
+        JInternalFrame banks = keptOn(desk);
+        SpeccyScreen banksScreen = (SpeccyScreen) ((EmulatorWindow) banks).picture();
+        banksScreen.getScreenSettings().apply(Map.of("scaler", "Sharp bilinear", "scanlines", "0.3", "border", "true"));
+        banksScreen.setZoom(3);
+        pokes.applied((EmulatorWindow) banks, List.of(lives()));
         desk.equipment("SpecDrum").attachTo(banks, AttachedFrame.Dock.BOTTOM);
         MachineFrame printer = desk.equipment("ZX Printer");
         printer.setCompact(false, 230);
@@ -553,10 +527,9 @@ class AMachineComesBackWithItsWindowTest {
         fortyEight.peripheralRegistry.allThatAre(MelodikPeripheral.class).get(0).register(7, 0x38);
         Tape.of(fortyEight).insert(Files.write(folder.resolve("jetpac.tap"), new byte[]{3, 0, 0, 1, 2, 2, 0, (byte) 0xff, 7}).toFile());
         Tape.of(fortyEight).setSelectedBlock(1);
-        Window jetpac = new Window(fortyEight);
-        desk.place(jetpac);
+        JInternalFrame jetpac = (JInternalFrame) desk.show(fortyEight, "jetpac", null);
         jetpac.setBounds(600, 40, 380, 300);
-        jetpac.picture().getScreenSettings().apply(Map.of("tv", "Aerial (RF)", "shade", "Green phosphor"));
+        ((SpeccyScreen) ((EmulatorWindow) jetpac).picture()).getScreenSettings().apply(Map.of("tv", "Aerial (RF)", "shade", "Green phosphor"));
         MachineFrame mouse = desk.equipment("Kempston Mouse");
         mouse.setSize(300, 200);
         mouse.attachTo(jetpac, AttachedFrame.Dock.RIGHT);
@@ -574,8 +547,7 @@ class AMachineComesBackWithItsWindowTest {
         beta.drive(0).insert(Disk.openBuffer("game.trd", WhatIsPluggedInComesBackTest.trd(5)), false);
         beta.drive(0).disk.write(folder.resolve("game.trd").toFile());
         WhatIsPluggedInComesBackTest.plugged(pentagon, CovoxPeripheral.class).written(0xc0);
-        Window big = new Window(pentagon);
-        desk.place(big);
+        JInternalFrame big = (JInternalFrame) desk.show(pentagon, "pentagon", null);
         big.setBounds(300, 200, 500, 400);
         big.setMaximum(true);
 
@@ -587,7 +559,7 @@ class AMachineComesBackWithItsWindowTest {
       List<OOZxConfiguration.WindowState> kept = onTheEventThread(() -> desk.keep(session, desk.backToFront(), folder.resolve("left").toFile()));
       List<String> left = onTheEventThread(() -> seen(desk));
 
-      Desktop another = new Desktop();
+      ZXSpectrumDesktopApp another = desk();
       onTheEventThread(() -> {
         Desk.isRunBy(another);
         another.bringBack(session, kept);
@@ -610,9 +582,9 @@ class AMachineComesBackWithItsWindowTest {
   }
 
   /** Every window from the back to the front: which, where, how big, whether maximised or minimised, how it folds and what it is clipped onto. */
-  private static List<String> seen(Desktop desk) {
+  private static List<String> seen(ZXSpectrumDesktopApp desk) {
     List<JInternalFrame> windows = desk.backToFront();
-    return windows.stream().map(window -> (window instanceof Window machine ? machine.machine().machine.current.getName() : desk.nameOf(window))
+    return windows.stream().map(window -> (window instanceof EmulatorWindow machine ? machine.machine().machine.current.getName() : desk.nameOf(window))
         + " " + window.getNormalBounds() + (window.isMaximum() ? " maximised" : "") + (window.isIcon() ? " minimised" : "")
         + (window instanceof AttachedFrame folding ? (folding.isCompact() ? " compact" : " expanded") + " to " + folding.expandedHeight() : "")
         + (window instanceof AttachedFrame clipped && clipped.isAttached() ? " on the " + clipped.dockedTo() + " of " + windows.indexOf(clipped.getMachineWindow()) : ""))

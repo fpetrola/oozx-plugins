@@ -193,6 +193,13 @@
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- The real desk, for the test that keeps it and brings it back: no copy of it stands in. -->
+        <dependency>
+            <groupId>com.fpetrola</groupId>
+            <artifactId>app</artifactId>
+            <version>${project.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>com.fpetrola</groupId>
             <artifactId>device-scorpion</artifactId>
