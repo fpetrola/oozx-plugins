@@ -191,7 +191,7 @@ public class SettingsPanel extends JPanel {
       JComboBox<Object> offered = new JComboBox<>(choices.toArray());
       offered.setSelectedItem(value);
       offered.setEnabled(choices.size() > 1);
-      com.fpetrola.oozx.speccy.windows.Widgets.whenChosen(offered,
+      dev.plugdesk.desk.Widgets.whenChosen(offered,
           () -> device.values().get(property), chosen -> {
             device.values().set(property, chosen);
             // What it is now, which is not what was asked for when a machine's ROMs did not arrive.

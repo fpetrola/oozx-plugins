@@ -22,7 +22,7 @@ import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JPopupMenu;
 import javax.swing.JSlider;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 import javax.swing.SwingUtilities;
 import java.awt.GraphicsEnvironment;
 import java.awt.event.MouseEvent;

@@ -21,7 +21,7 @@ import com.fpetrola.oozx.rzx.RzxSession;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.devices.Opens;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 import com.fpetrola.z80.ide.rzx.CreatorInfo;
 import com.fpetrola.z80.ide.rzx.InputRecordingBlock;
 import com.fpetrola.z80.ide.rzx.RzxFile;

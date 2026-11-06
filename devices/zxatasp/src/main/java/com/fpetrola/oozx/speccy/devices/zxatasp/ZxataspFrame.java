@@ -17,7 +17,7 @@
 package com.fpetrola.oozx.speccy.devices.zxatasp;
 
 import com.fpetrola.oozx.speccy.devices.IdeBayFrame;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.JToggleButton;
 

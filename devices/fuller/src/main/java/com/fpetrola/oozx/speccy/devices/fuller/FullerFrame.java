@@ -19,7 +19,7 @@ package com.fpetrola.oozx.speccy.devices.fuller;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.modules.input.Input;
 import com.fpetrola.oozx.speccy.modules.joystick.Joystick.JoystickType;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;

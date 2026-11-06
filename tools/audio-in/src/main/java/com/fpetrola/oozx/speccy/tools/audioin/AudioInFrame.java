@@ -21,7 +21,7 @@ import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.modules.sound.AudioIn;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.*;
 import javax.swing.event.InternalFrameAdapter;

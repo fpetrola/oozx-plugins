@@ -17,7 +17,7 @@
 package com.fpetrola.oozx.speccy.devices.parallelprinter;
 
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.JButton;
 import javax.swing.JFileChooser;

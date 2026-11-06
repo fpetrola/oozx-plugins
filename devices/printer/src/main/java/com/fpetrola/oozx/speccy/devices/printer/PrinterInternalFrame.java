@@ -18,7 +18,7 @@
 package com.fpetrola.oozx.speccy.devices.printer;
 
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.Box;
 import javax.swing.JButton;

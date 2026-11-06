@@ -21,7 +21,7 @@ import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.devices.Opens;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
 
 import javax.swing.*;

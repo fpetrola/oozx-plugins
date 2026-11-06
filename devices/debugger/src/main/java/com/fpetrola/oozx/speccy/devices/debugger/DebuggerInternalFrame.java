@@ -21,7 +21,7 @@ import com.fpetrola.oozx.Speccy;
 import com.fpetrola.oozx.speccy.devices.InstructionListing;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 import com.fpetrola.oozx.speccy.modules.z80.Disassembly;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 import com.fpetrola.z80.registers.RegisterName;
 
 import javax.swing.BorderFactory;

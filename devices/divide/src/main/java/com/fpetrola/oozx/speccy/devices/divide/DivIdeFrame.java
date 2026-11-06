@@ -17,7 +17,7 @@
 package com.fpetrola.oozx.speccy.devices.divide;
 
 import com.fpetrola.oozx.speccy.devices.IdeBayFrame;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.JButton;
 import javax.swing.JToggleButton;

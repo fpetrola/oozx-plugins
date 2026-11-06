@@ -20,7 +20,7 @@ package com.fpetrola.oozx.speccy.tools.controls;
 import dev.crystal.plugins.api.Offers;
 
 import com.fpetrola.oozx.speccy.devices.DeskEquipment;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.Icon;
 import javax.swing.JInternalFrame;

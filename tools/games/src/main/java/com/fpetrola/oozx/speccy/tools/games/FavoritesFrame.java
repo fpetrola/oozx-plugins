@@ -19,7 +19,7 @@ package com.fpetrola.oozx.speccy.tools.games;
 
 import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.Desk;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.AbstractListModel;
 import javax.swing.BorderFactory;

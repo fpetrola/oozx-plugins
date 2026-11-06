@@ -19,7 +19,7 @@ package com.fpetrola.oozx.speccy.devices.uspeech;
 
 import com.fpetrola.oozx.speccy.devices.DacFrame;
 import com.fpetrola.oozx.speccy.modules.sound.Dac;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 import javax.swing.JButton;
 

@@ -21,7 +21,7 @@ import dev.crystal.plugins.api.Offers;
 
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 import com.fpetrola.oozx.speccy.devices.MachineTool;
-import com.fpetrola.oozx.speccy.windows.Widgets;
+import dev.plugdesk.desk.Widgets;
 
 /** Apagar y prender la maquina. */
 @Offers("Reset the machine")
