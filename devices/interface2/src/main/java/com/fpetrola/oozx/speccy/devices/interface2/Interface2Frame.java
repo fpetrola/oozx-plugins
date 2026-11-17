@@ -69,7 +69,7 @@ public class Interface2Frame extends DeviceFrame<Interface2Peripheral> {
   protected void plugged(Interface2Peripheral device) {
     slot.show(device == null || device.cartridge() == null ? null : device.cartridge().name());
     JoystickType type = device == null ? JoystickType.JOYSTICK_TYPE_NONE
-        : Input.of(machine()).setup.keyboard.output;
+        : Input.of(machine()).setup().keyboard().getOutput();
     socket1.setSelected(type == JoystickType.JOYSTICK_TYPE_SINCLAIR_1);
     socket2.setSelected(type == JoystickType.JOYSTICK_TYPE_SINCLAIR_2);
     slot.setEnabled(device != null);
@@ -102,7 +102,7 @@ public class Interface2Frame extends DeviceFrame<Interface2Peripheral> {
 
   private void plugJoystick(JoystickType where) {
     if (machine() != null) {
-      Input.of(machine()).setup.keyboard.output = where;
+      Input.of(machine()).setup().keyboard().setOutput(where);
     }
     socket1.setSelected(where == JoystickType.JOYSTICK_TYPE_SINCLAIR_1);
     socket2.setSelected(where == JoystickType.JOYSTICK_TYPE_SINCLAIR_2);

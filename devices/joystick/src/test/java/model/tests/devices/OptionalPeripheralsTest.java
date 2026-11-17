@@ -43,7 +43,7 @@ class OptionalPeripheralsTest {
         binder -> binder.bind(SoundCard.class).to(SilentSoundDevice.class));
     speccy.init();
     speccy.picture.active = false;
-    Input.of(speccy).setup.kempstonJoystick = kempstonWanted;
+    Input.of(speccy).setup().setKempstonJoystick(kempstonWanted);
     speccy.machine.selectDefault();
     return speccy;
   }

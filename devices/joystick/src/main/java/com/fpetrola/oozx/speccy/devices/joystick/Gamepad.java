@@ -99,12 +99,12 @@ public class Gamepad {
       move(driving, held, false);
       driving = machine;
       if (machine != null) {
-        Input.of(machine).setup.kempstonJoystick = true;
+        Input.of(machine).setup().setKempstonJoystick(true);
         machine.peripheralRegistry.update();
       }
       move(machine, held, true);
     }
-    if (machine != null) Input.of(machine).setup.keyboard.standInForAPad(!pad.isConnected);
+    if (machine != null) Input.of(machine).setup().keyboard().standInForAPad(!pad.isConnected);
     EnumSet<JoystickButton> now = pressed(pad);
     for (JoystickButton button : JoystickButton.values()) {
       if (now.contains(button) != held.contains(button)) move(machine, EnumSet.of(button), now.contains(button));

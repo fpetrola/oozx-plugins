@@ -53,6 +53,7 @@ import com.fpetrola.oozx.speccy.machine.SpecPlus3;
 import com.fpetrola.oozx.speccy.machine.Tc2048;
 import com.fpetrola.oozx.speccy.modules.display.Picture;
 import com.fpetrola.oozx.speccy.modules.input.Input;
+import com.fpetrola.oozx.speccy.modules.input.InputSetup;
 import com.fpetrola.oozx.speccy.modules.joystick.Joystick;
 import com.fpetrola.oozx.speccy.modules.snapshot.Snapshots;
 import com.fpetrola.oozx.speccy.modules.sound.SilentSoundDevice;
@@ -168,7 +169,6 @@ class AMachineComesBackWithItsWindowTest {
       if (file != null && !file.isBlank()) Snapshots.of(speccy).load(file);
       SpeccyEmulatorCore core = new SpeccyEmulatorCore(speccy);
       speccy.control = core;
-      made[0].registerMachine(core, speccy);
       return core;
     }, session -> null));
   }
@@ -436,18 +436,18 @@ class AMachineComesBackWithItsWindowTest {
     Settings.Values defaults = Settings.defaults().stream().filter(one -> one.device().name().equals("input"))
         .findFirst().orElseThrow().values();
     Object was = defaults.get("joystick1");
-    Input.Setup.Pad sinclair = new Input.Setup.Pad();
-    sinclair.output = Joystick.JoystickType.JOYSTICK_TYPE_SINCLAIR_1;
+    InputSetup.Pad sinclair = new InputSetup.Pad();
+    sinclair.setOutput(Joystick.JoystickType.JOYSTICK_TYPE_SINCLAIR_1);
     try {
       defaults.set("joystick1", sinclair);
-      assertNull(Input.of(kept).setup.joystick1.output, "the open one keeps its own");
+      assertNull(Input.of(kept).setup().joystick1().getOutput(), "the open one keeps its own");
 
       byte[] file = new SzxSession().write(new Window(kept));
       Speccy opened = machine();
-      assertEquals(sinclair.output, Input.of(opened).setup.joystick1.output, "a new one starts with it");
+      assertEquals(sinclair.getOutput(), Input.of(opened).setup().joystick1().getOutput(), "a new one starts with it");
       new SzxFormat().read(file, opened, note -> { });
 
-      assertNull(Input.of(opened).setup.joystick1.output, "the kept one comes back with its own");
+      assertNull(Input.of(opened).setup().joystick1().getOutput(), "the kept one comes back with its own");
     } finally {
       defaults.set("joystick1", was);
     }
@@ -519,8 +519,8 @@ class AMachineComesBackWithItsWindowTest {
 
         Speccy fortyEight = machine();
         settings(fortyEight, "melodik").values().set("fitted", true);
-        Input.Setup.Pad sinclair = new Input.Setup.Pad();
-        sinclair.output = Joystick.JoystickType.JOYSTICK_TYPE_SINCLAIR_1;
+        InputSetup.Pad sinclair = new InputSetup.Pad();
+        sinclair.setOutput(Joystick.JoystickType.JOYSTICK_TYPE_SINCLAIR_1);
         settings(fortyEight, "input").values().set("joystick1", sinclair);
         WhatIsPluggedInComesBackTest.plugged(fortyEight, Interface2Peripheral.class)
             .inserted(new Cartridge("Jetpac", WhatIsPluggedInComesBackTest.pattern(70, Cartridge.SIZE), null));

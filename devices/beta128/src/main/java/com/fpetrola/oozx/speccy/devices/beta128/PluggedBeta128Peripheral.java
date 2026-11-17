@@ -26,7 +26,7 @@ import com.fpetrola.oozx.speccy.modules.z80.Cpu;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
 import com.fpetrola.oozx.speccy.devices.disk.Fdd;
-import com.fpetrola.oozx.speccy.modules.input.Input;
+import com.fpetrola.oozx.speccy.modules.input.InputSetup;
 
 /**
  * The same board as the Pentagon's, bought and plugged into a 48K or a 128: it brings its own
@@ -37,7 +37,7 @@ public class PluggedBeta128Peripheral extends Beta128Peripheral {
 
   @Inject
   public PluggedBeta128Peripheral(MemoryBus memory, Cpu cpu, Beta128Peripheral.TrDos trdos, Fdd.Limits floppy, Scheduler events,
-                                  Machine machine, Joystick joystick, com.fpetrola.oozx.speccy.machine.Roms roms, Input.Setup input) {
+                                  Machine machine, Joystick joystick, com.fpetrola.oozx.speccy.machine.Roms roms, InputSetup input) {
     super(memory, cpu, trdos, floppy, events, machine, joystick, roms, input);
   }
 

@@ -69,7 +69,7 @@ class PeripheralPresenceTest extends MachineTest {
   private Speccy speccy(boolean wantOptionals) {
     Speccy speccy = silentMachine();
     ((MelodikPeripheral) speccy.peripheralRegistry.find(MelodikPeripheral.class)).setFitted(wantOptionals);
-    Input.of(speccy).setup.kempstonJoystick = wantOptionals;
+    Input.of(speccy).setup().setKempstonJoystick(wantOptionals);
     return speccy;
   }
 

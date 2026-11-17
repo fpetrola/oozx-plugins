@@ -118,7 +118,7 @@ public class JoystickFrame extends MachineFrame {
     Speccy machine = machine();
     setTitle((machine == null ? "Joystick" : Input.of(machine).joystick().JOYSTICK_NAME[showing(machine).ordinal()])
         + ": " + (pad == null ? "no gamepad" : pad));
-    reading.setText(machine == null ? "No machine" : Input.of(machine).setup.kempstonJoystick ? "Kempston on" : "Kempston off");
+    reading.setText(machine == null ? "No machine" : Input.of(machine).setup().kempstonJoystick() ? "Kempston on" : "Kempston off");
     stick.show(pressed());
   }
 

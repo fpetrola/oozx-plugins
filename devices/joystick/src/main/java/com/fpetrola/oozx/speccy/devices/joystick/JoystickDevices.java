@@ -24,7 +24,7 @@ import com.google.inject.Provides;
 import com.google.inject.Singleton;
 import com.google.inject.multibindings.Multibinder;
 import com.fpetrola.oozx.Extension;
-import com.fpetrola.oozx.speccy.modules.input.Input;
+import com.fpetrola.oozx.speccy.modules.input.InputSetup;
 
 /** The Kempston interface. */
 public class JoystickDevices extends AbstractModule implements Extension {
@@ -35,8 +35,8 @@ public class JoystickDevices extends AbstractModule implements Extension {
 
   @Provides
   @Singleton
-  KempstonStrictPeripheral strict(Joystick joystick, Input.Setup input) {
-    return new KempstonStrictPeripheral(joystick, () -> input.kempstonJoystick);
+  KempstonStrictPeripheral strict(Joystick joystick, InputSetup input) {
+    return new KempstonStrictPeripheral(joystick, () -> input.kempstonJoystick());
   }
 
 }

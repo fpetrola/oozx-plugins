@@ -36,7 +36,7 @@ import com.google.inject.Inject;
 import com.google.inject.Singleton;
 
 import java.util.List;
-import com.fpetrola.oozx.speccy.modules.input.Input;
+import com.fpetrola.oozx.speccy.modules.input.InputSetup;
 
 /**
  * Beta 128 disk interface: an FD1793 with up to 4 drives and a 16K TR-DOS ROM that pages in over
@@ -46,7 +46,7 @@ import com.fpetrola.oozx.speccy.modules.input.Input;
 @Singleton
 public class Beta128Peripheral extends PluggablePeripheral implements DiskInterface {
   private final Roms roms;
-  private final Input.Setup input;
+  private final InputSetup input;
 
   public static final int ROM_SIZE = 0x4000;
   public static final int DRIVES = 4;
@@ -74,7 +74,7 @@ public class Beta128Peripheral extends PluggablePeripheral implements DiskInterf
 
   @Inject
   public Beta128Peripheral(MemoryBus memory, Cpu cpu, TrDos trdos, Fdd.Limits floppy, Scheduler events,
-                           Machine machine, Joystick joystick, Roms roms, Input.Setup input) {
+                           Machine machine, Joystick joystick, Roms roms, InputSetup input) {
     super(List.of());
     this.roms = roms;
     this.input = input;
@@ -101,7 +101,7 @@ public class Beta128Peripheral extends PluggablePeripheral implements DiskInterf
               return BusAnswer.of(fdc.srRead());
             }
             // On a Pentagon this port is shared with Kempston, answered only when TR-DOS is unpaged.
-            if (builtIn() && input.kempstonJoystick) {
+            if (builtIn() && input.kempstonJoystick()) {
               return joystick.kempstonRead(port);
             }
             return BusAnswer.NONE;

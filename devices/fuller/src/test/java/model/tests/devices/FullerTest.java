@@ -73,7 +73,7 @@ class FullerTest {
   @Test
   void itsJoystickReadsOnPort0x7fActiveLow() {
     Speccy speccy = aFortyEightWithAFuller();
-    Input.of(speccy).setup.keyboard.output = Joystick.JoystickType.JOYSTICK_TYPE_FULLER;
+    Input.of(speccy).setup().keyboard().setOutput(Joystick.JoystickType.JOYSTICK_TYPE_FULLER);
     assertEquals(0xff, speccy.ports.read(0x7f) & 0xff, "nothing pressed reads all high");
     Input.of(speccy).joystick().press(Input.of(speccy).joystick().JOYSTICK_KEYBOARD, Joystick.JoystickButton.JOYSTICK_BUTTON_FIRE, true);
     assertEquals(0x7f, speccy.ports.read(0x7f) & 0xff, "fire pulls bit 7 low");

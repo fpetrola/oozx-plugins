@@ -56,7 +56,7 @@ public class AudioInFrame extends MachineFrame {
     super("Audio in");
     setSize(820, 360);
 
-    for (String input : AudioIn.inputs()) {
+    for (String input : audio.inputs()) {
       inputs.addItem(input);
     }
     inputs.setToolTipText("Which input the cassette player is plugged into");

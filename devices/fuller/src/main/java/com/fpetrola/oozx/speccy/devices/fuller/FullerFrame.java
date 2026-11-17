@@ -51,8 +51,7 @@ public class FullerFrame extends DeviceFrame<FullerPeripheral> {
     chip.setToolTipText("Lit while a program is writing to the sound chip");
     socket.addActionListener(e -> {
       if (machine() != null) {
-        Input.of(machine()).setup.keyboard.output =
-            socket.isSelected() ? JoystickType.JOYSTICK_TYPE_FULLER : JoystickType.JOYSTICK_TYPE_NONE;
+        Input.of(machine()).setup().keyboard().setOutput(socket.isSelected() ? JoystickType.JOYSTICK_TYPE_FULLER : JoystickType.JOYSTICK_TYPE_NONE);
       }
     });
     controls.add(chip);
@@ -76,7 +75,7 @@ public class FullerFrame extends DeviceFrame<FullerPeripheral> {
   protected void plugged(FullerPeripheral device) {
     socket.setEnabled(device != null);
     socket.setSelected(device != null
-        && Input.of(machine()).setup.keyboard.output == JoystickType.JOYSTICK_TYPE_FULLER);
+        && Input.of(machine()).setup().keyboard().getOutput() == JoystickType.JOYSTICK_TYPE_FULLER);
     refresh();
   }
 

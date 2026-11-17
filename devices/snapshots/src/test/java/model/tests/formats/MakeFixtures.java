@@ -17,7 +17,7 @@
 
 package model.tests.formats;
 
-import com.fpetrola.emulation.helpers.machine.Keyboard.JoystickModel;
+import com.fpetrola.emulation.helpers.machine.JoystickModel;
 import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fpetrola.emulation.helpers.snapshots.AY8912State;
 import com.fpetrola.emulation.helpers.snapshots.MemoryState;
