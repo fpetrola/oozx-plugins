@@ -43,22 +43,17 @@ jobs:
       - name: Which framework the emulator is built on
         id: framework
         run: |
-          ref=$(grep -A3 'repository: fpetrola/crystal-plugins' oozx/.github/workflows/maven.yml \
-            | sed -n 's/^ *ref: *//p' | head -1)
-          if [ -z "$ref" ]; then
-            echo "::error::oozx/.github/workflows/maven.yml no dice a que tag de crystal-plugins compila"
-            exit 1
-          fi
-          echo "crystal-plugins at $ref"
-          echo "ref=$ref" >> "$GITHUB_OUTPUT"
-          base=$(grep -A3 'repository: fpetrola/plugdesk' oozx/.github/workflows/maven.yml \
-            | sed -n 's/^ *ref: *//p' | head -1)
-          if [ -z "$base" ]; then
-            echo "::error::oozx/.github/workflows/maven.yml no dice a que tag de plugdesk compila"
-            exit 1
-          fi
-          echo "plugdesk at $base"
-          echo "base=$base" >> "$GITHUB_OUTPUT"
+          for pin in crystal-plugins:ref plugdesk:base cerco:gate; do
+            repo=${pin%%:*}
+            at=$(grep -A3 "repository: fpetrola/$repo" oozx/.github/workflows/maven.yml \
+              | sed -n 's/^ *ref: *//p' | head -1)
+            if [ -z "$at" ]; then
+              echo "::error::oozx/.github/workflows/maven.yml no dice a que tag de $repo compila"
+              exit 1
+            fi
+            echo "$repo at $at"
+            echo "${pin#*:}=$at" >> "$GITHUB_OUTPUT"
+          done
 
       - uses: actions/checkout@v4
         with:
@@ -71,6 +66,12 @@ jobs:
           repository: fpetrola/plugdesk
           ref: ${{ steps.framework.outputs.base }}
           path: plugdesk
+
+      - uses: actions/checkout@v4
+        with:
+          repository: fpetrola/cerco
+          ref: ${{ steps.framework.outputs.gate }}
+          path: cerco
 
       - uses: actions/setup-java@v4
         with:
@@ -91,11 +92,14 @@ jobs:
       - name: Build the application base
         run: mvn -B -U -DskipTests install -f plugdesk/pom.xml
 
+      # El cerco de diseño, que el build del emulador corre en cada modulo.
+      - name: Build the design gate
+        run: mvn -B -U -DskipTests install -f cerco/pom.xml
+
       # Sin meter los plugins adentro de su jar: son los que se construyen aca, despues, y
       # todavia no estan en ~/.m2. Lo que se compila contra el emulador no necesita ese bundle.
-      # Sin translation/translator: depende de libs y devices de este repositorio, que todavia no estan construidos.
       - name: Build the emulator these plug into
-        run: mvn -B -U -DskipTests -Dcrystal.bundleGroupId= install -f oozx/pom.xml -pl '!translation/translator'
+        run: mvn -B -U -DskipTests -Dcrystal.bundleGroupId= install -f oozx/pom.xml
 
       # The whole reactor once: a plugin jar is small, but it is compiled against the machine.
       # Running the tests is the other workflow's job; this one only produces the artefacts.
