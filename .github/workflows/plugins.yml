@@ -43,7 +43,7 @@ jobs:
       - name: Which framework the emulator is built on
         id: framework
         run: |
-          for pin in crystal-plugins:ref plugdesk:base cerco:gate; do
+          for pin in crystal-plugins:ref plugdesk:base; do
             repo=${pin%%:*}
             at=$(grep -A3 "repository: fpetrola/$repo" oozx/.github/workflows/maven.yml \
               | sed -n 's/^ *ref: *//p' | head -1)
@@ -67,12 +67,6 @@ jobs:
           ref: ${{ steps.framework.outputs.base }}
           path: plugdesk
 
-      - uses: actions/checkout@v4
-        with:
-          repository: fpetrola/cerco
-          ref: ${{ steps.framework.outputs.gate }}
-          path: cerco
-
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -91,10 +85,6 @@ jobs:
 
       - name: Build the application base
         run: mvn -B -U -DskipTests install -f plugdesk/pom.xml
-
-      # El cerco de diseño, que el build del emulador corre en cada modulo.
-      - name: Build the design gate
-        run: mvn -B -U -DskipTests install -f cerco/pom.xml
 
       # Sin meter los plugins adentro de su jar: son los que se construyen aca, despues, y
       # todavia no estan en ~/.m2. Lo que se compila contra el emulador no necesita ese bundle.
