@@ -32,40 +32,11 @@ jobs:
 
       # The emulator these are built against. Its artefacts are not published anywhere, so the
       # tree they come from is built here: a few minutes, and always the one main has today.
+      # crystal-plugins and plugdesk come from JitPack, at the versions its poms name.
       - uses: actions/checkout@v4
         with:
           repository: fpetrola/oozx
           path: oozx
-
-      # Y el framework contra el que los dos se compilan, que tampoco publica artefactos. Al tag
-      # que el emulador dice en su propio CI: escrito aca tambien, cada vez que el emulador pasaba
-      # a uno nuevo esto seguia en el viejo y dejaba de compilar.
-      - name: Which framework the emulator is built on
-        id: framework
-        run: |
-          for pin in crystal-plugins:ref plugdesk:base; do
-            repo=${pin%%:*}
-            at=$(grep -A3 "repository: fpetrola/$repo" oozx/.github/workflows/maven.yml \
-              | sed -n 's/^ *ref: *//p' | head -1)
-            if [ -z "$at" ]; then
-              echo "::error::oozx/.github/workflows/maven.yml no dice a que tag de $repo compila"
-              exit 1
-            fi
-            echo "$repo at $at"
-            echo "${pin#*:}=$at" >> "$GITHUB_OUTPUT"
-          done
-
-      - uses: actions/checkout@v4
-        with:
-          repository: fpetrola/crystal-plugins
-          ref: ${{ steps.framework.outputs.ref }}
-          path: crystal-plugins
-
-      - uses: actions/checkout@v4
-        with:
-          repository: fpetrola/plugdesk
-          ref: ${{ steps.framework.outputs.base }}
-          path: plugdesk
 
       - uses: actions/setup-java@v4
         with:
@@ -80,12 +51,6 @@ jobs:
       # skipTests and not maven.test.skip on purpose: the tests are compiled but not run, and
       # the test-jars of bridge and app - which the tests here are built against - are made of
       # what compiling them produced.
-      - name: Build the plugin framework
-        run: mvn -B -U -DskipTests install -f crystal-plugins/pom.xml
-
-      - name: Build the application base
-        run: mvn -B -U -DskipTests install -f plugdesk/pom.xml
-
       # Sin meter los plugins adentro de su jar: son los que se construyen aca, despues, y
       # todavia no estan en ~/.m2. Lo que se compila contra el emulador no necesita ese bundle.
       - name: Build the emulator these plug into

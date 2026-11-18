@@ -34,9 +34,9 @@
     <!-- Los looks de terceros: viajan con este plugin, no con el emulador. -->
     <dependencies>
         <dependency>
-            <groupId>dev.plugdesk</groupId>
+            <groupId>com.github.fpetrola.plugdesk</groupId>
             <artifactId>plugdesk-desk</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

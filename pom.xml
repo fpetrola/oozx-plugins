@@ -49,9 +49,9 @@
     <dependencies>
         <!-- The word a way in is marked with, which every module here may need to say. -->
         <dependency>
-            <groupId>dev.crystal.plugins</groupId>
+            <groupId>com.github.fpetrola.crystal-plugins</groupId>
             <artifactId>framework-api</artifactId>
-            <version>0.1.0-SNAPSHOT</version>
+            <version>0.1.1</version>
         </dependency>
     </dependencies>
 
@@ -69,56 +69,56 @@
                 <version>${project.version}</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-runtime</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-guice</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>dev.plugdesk</groupId>
+                <groupId>com.github.fpetrola.plugdesk</groupId>
                 <artifactId>plugdesk-app</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.1.1</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-runtime</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-guice</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>dev.plugdesk</groupId>
+                <groupId>com.github.fpetrola.plugdesk</groupId>
                 <artifactId>plugdesk-desk</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.1.1</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-runtime</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-guice</artifactId>
                     </exclusion>
                 </exclusions>
             </dependency>
             <dependency>
-                <groupId>dev.crystal.plugins</groupId>
+                <groupId>com.github.fpetrola.crystal-plugins</groupId>
                 <artifactId>framework-swing</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.1.1</version>
                 <exclusions>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-runtime</artifactId>
                     </exclusion>
                     <exclusion>
-                        <groupId>dev.crystal.plugins</groupId>
+                        <groupId>com.github.fpetrola.crystal-plugins</groupId>
                         <artifactId>framework-guice</artifactId>
                     </exclusion>
                 </exclusions>
@@ -221,9 +221,9 @@
               else to configure, which is why the compiler above no longer says anything about it.
             -->
             <plugin>
-                <groupId>dev.crystal.plugins</groupId>
+                <groupId>com.github.fpetrola.crystal-plugins</groupId>
                 <artifactId>framework-maven-plugin</artifactId>
-                <version>0.1.0-SNAPSHOT</version>
+                <version>0.1.1</version>
                 <extensions>true</extensions>
             </plugin>
             <plugin>
