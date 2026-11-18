@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>devices</artifactId>
-        <version>0.1.1</version>
+        <version>0.1.2</version>
     </parent>
 
     <artifactId>device-uspeech</artifactId>
@@ -12,6 +12,11 @@
 
     <name>Currah µSpeech</name>
     <dependencies>
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>host-input</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <!-- Asked whether it fits on a 128 and on a +3. -->
         <dependency>
             <groupId>com.github.fpetrola.oozx</groupId>

@@ -247,6 +247,12 @@ public class UspeechPeripheral extends PluggablePeripheral implements DacDevice 
     chip.play(clock.getTStates(), allophone);
   }
 
+  /** Says one allophone of the chip's 64, at the pitch asked, as a program writing to it would; on the emulator's thread. */
+  void sayAllophone(int which, boolean high) {
+    intonation(high ? HIGH : NORMAL);
+    play((byte) which);
+  }
+
   private void intonation(int hz) {
     crystal = hz;
     chip.changeClock(clock.getTStates(), hz, on.getTimings().processorSpeed());

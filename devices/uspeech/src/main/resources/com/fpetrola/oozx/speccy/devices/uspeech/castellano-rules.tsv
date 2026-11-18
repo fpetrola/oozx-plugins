@@ -1,0 +1,46 @@
+-- Castilian as the River Plate speaks it, by its letters: ll and y are (sh), c before e or i and z are s,
+-- h is silent, j and g before e or i are h, r at the start or doubled is the strong (rr). Same columns as English.
+	'		
+	 		 
+	-		
+	,		 
+	.		 
+	?		 
+	!		 
+	A		AA
+	B		b
+	CH		CH
+	C	+	s
+	C		k
+	D		d
+	E		EH
+	F		f
+	GU	+	g
+	G	+	h
+	G		g
+	H		
+	I		IY
+	J		h
+	K		k
+	LL		SH
+	L		l
+	M		m
+	N		n
+	Ñ		ny
+	O		AO
+	P		p
+	QU	+	k
+	Q		k
+ 	R		(rr)
+	RR		(rr)
+	R		r
+	S		s
+	T		t
+	U		UW
+	Ü		w
+	V		b
+	W		w
+	X		ks
+	Y	 	IY
+	Y		SH
+	Z		s
