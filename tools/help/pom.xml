@@ -29,7 +29,7 @@
     <artifactId>tool-help</artifactId>
     <packaging>jar</packaging>
     <name>tool-help</name>
-    <!-- El README del emulador, en una ventana del escritorio. -->
+    <!-- La wiki del emulador, que viaja en el jar de la aplicacion, en una ventana del escritorio. -->
 
     <dependencies>
         <dependency>
