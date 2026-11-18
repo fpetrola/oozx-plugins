@@ -30,14 +30,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # The emulator these are built against. Its artefacts are not published anywhere, so the
-      # tree they come from is built here: a few minutes, and always the one main has today.
-      # crystal-plugins and plugdesk come from JitPack, at the versions its poms name.
-      - uses: actions/checkout@v4
-        with:
-          repository: fpetrola/oozx
-          path: oozx
-
       - uses: actions/setup-java@v4
         with:
           java-version: '21'
@@ -48,14 +40,8 @@ jobs:
       # written down as having failed, and every later run repeats the answer instead of asking
       # again - which is how a plugin that is in central was reported as missing from it.
       #
-      # skipTests and not maven.test.skip on purpose: the tests are compiled but not run, and
-      # the test-jars of bridge and app - which the tests here are built against - are made of
-      # what compiling them produced.
-      # Sin meter los plugins adentro de su jar: son los que se construyen aca, despues, y
-      # todavia no estan en ~/.m2. Lo que se compila contra el emulador no necesita ese bundle.
-      - name: Build the emulator these plug into
-        run: mvn -B -U -DskipTests -Dcrystal.bundleGroupId= install -f oozx/pom.xml
-
+      # oozx, crystal-plugins and plugdesk come from JitPack, at the versions the poms name; the
+      # test-jars of bridge and app that the tests here are compiled against come from there too.
       # The whole reactor once: a plugin jar is small, but it is compiled against the machine.
       # Running the tests is the other workflow's job; this one only produces the artefacts.
       - name: Build
