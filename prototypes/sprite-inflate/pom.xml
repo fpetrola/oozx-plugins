@@ -26,6 +26,10 @@
     <exec.mainClass>com.fpetrola.oozx.proto.inflate.SpriteInflate</exec.mainClass>
   </properties>
 
+  <repositories>
+    <repository><id>jitpack</id><url>https://jitpack.io</url></repository>
+  </repositories>
+
   <dependencies>
     <!-- Lee grabaciones: antes le llegaban por la app, que ya no sabe que es una. -->
     <dependency>

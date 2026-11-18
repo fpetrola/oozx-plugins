@@ -31,6 +31,10 @@
       too. The emulator does not depend on any of them; a plugin that does carries them in its lib/
       (crystal.carry in the plugins' root), because the application no longer has them.
     -->
+    <repositories>
+        <repository><id>jitpack</id><url>https://jitpack.io</url></repository>
+    </repositories>
+
     <modules>
         <module>zx-rzx</module>
         <module>rzx</module>
