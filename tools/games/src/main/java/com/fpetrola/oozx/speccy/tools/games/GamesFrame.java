@@ -908,7 +908,7 @@ public class GamesFrame extends JInternalFrame {
    */
   private JMenu machineMenu(String label, GameSearchResult result, String file) {
     JMenu menu = new JMenu(label);
-    // Clicking the name loads it; hovering opens the machines for when the file is wrong about
+    // Clicking the name loads it; hovering offers the default and the machines for when the file is wrong about
     // which one it wants. The entry that used to say "As the file says" was this same thing with
     // a label instead of the name of what it would load.
     menu.addMouseListener(new MouseAdapter() {
@@ -923,7 +923,8 @@ public class GamesFrame extends JInternalFrame {
   }
 
   /**
-   * The entry that is always there, and under it whatever machines exist by now.
+   * Playing it as the file says, or on a machine picked from a level further down, so that the
+   * long list of machines only opens for whoever asks for it.
    * <p>
    * Called again every time the menu is about to show, because a search is rendered before any
    * machine has been built: asking then answers nothing, and a menu filled once keeps the nothing
@@ -931,17 +932,18 @@ public class GamesFrame extends JInternalFrame {
    */
   private void fill(JMenu menu, GameSearchResult result, String file) {
     menu.removeAll();
+    JMenuItem byDefault = new JMenuItem("Play default");
+    byDefault.addActionListener(e -> load(result, file, null));
+    menu.add(byDefault);
     List<String> machines = Desk.theOne().machines();
     if (!machines.isEmpty()) {
-      JMenuItem heading = new JMenuItem("Or on a machine of your choosing:");
-      heading.setEnabled(false);
-      menu.add(heading);
-      menu.addSeparator();
+      JMenu onMachine = new JMenu("Play on machine");
       for (String machine : machines) {
         JMenuItem item = new JMenuItem(machine);
         item.addActionListener(e -> load(result, file, machine));
-        menu.add(item);
+        onMachine.add(item);
       }
+      menu.add(onMachine);
     }
   }
 
