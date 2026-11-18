@@ -156,3 +156,24 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "$TITLE" \
             --notes-file notes.md
+
+  # The list of what is published, as one file the app downloads: asking the archive's API for it
+  # allows sixty questions an hour per address, and a school behind one router used them up. The
+  # same shape the API answers, so the app reads it the same way; asked here with the build's own
+  # token, which has no such limit.
+  catalog:
+    needs: release
+    if: always() && needs.release.result != 'skipped'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the catalog
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/releases?per_page=100" \
+            | jq -s add > catalog.json
+          echo "$(jq length catalog.json) releases in the catalog"
+          gh release view catalog --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1 \
+            || gh release create catalog --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --latest=false \
+                 --title "Catalog" --notes "What is published here, for the emulator to read."
+          gh release upload catalog catalog.json --clobber --repo "$GITHUB_REPOSITORY"
