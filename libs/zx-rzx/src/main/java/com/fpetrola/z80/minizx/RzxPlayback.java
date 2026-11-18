@@ -98,12 +98,10 @@ public class RzxPlayback {
     // port read across the boundary, and then the frame that lost it is one read short and the
     // next one read over, from where it drifts. Jet Set Willy is the one recording that never
     // showed it, because it runs with IFF1 at zero from beginning to end.
-    // The processor's own rule, mirrored: it accepts when the line is asserted, IFF1 is set and
-    // an EI is not still pending - an EI defers the interrupt by one instruction, so a frame
-    // whose last instruction is EI takes no interrupt and has no acknowledge fetch, however set
-    // IFF1 looks. The line is not asserted yet where this is asked, which is why it is not part
-    // of it.
-    player.setAcceptsInterrupt(() -> state.isIff1() && !state.isPendingEI());
+    // IFF1 alone answers it. An EI still pending only puts the interrupt off by the instruction
+    // it shadows, and the line outlasts that one (playFrame), so a frame whose last instruction
+    // is EI takes its interrupt too and its acknowledge is discounted like any other.
+    player.setAcceptsInterrupt(state::isIff1);
     this.endOfFrame = player.getInterruptionCondition();
     this.previousR = registerR.read() & 0x7F;
     this.clock = state.clock;
@@ -132,7 +130,12 @@ public class RzxPlayback {
     // The frame ends on the interrupt the recording expects, so it is taken here rather than
     // wherever the machine's own timing would have put it. After the boundary, as on a machine
     // that is not being driven: the cycles that acknowledge it belong to the frame it starts.
+    // The line stays down past the instruction an EI shadows, as the ULA's 32 T-states do:
+    // dropped after one instruction, a frame that ended on an EI lost its interrupt (Head over
+    // Heels, frame 904, and every frame after it one port read short or over).
     state.setINTLine(true);
+    while (state.isPendingEI())
+      step();
     step();
     state.setINTLine(false);
     frameIndex++;

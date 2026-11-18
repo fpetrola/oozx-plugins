@@ -29,6 +29,16 @@ class RzxPlaybackTest {
     assertEquals(4, playback.getInstructions());
   }
 
+  @Test
+  void aFrameThatEndsOnAnEiTakesItsInterruptAfterTheInstructionTheEiShadowsAndItsAcknowledgeIsNoFetchOfTheNextFrame() {
+    // Head over Heels, frame 904: the line was dropped after the instruction the EI shadows and the frame lost its interrupt
+    RzxPlayback playback = playback(new int[]{1, 3}, bytes(0x8000, 0xFB, 0x3C, 0x18, 0xFE), bytes(0x38, 0x04, 0x04, 0x04, 0xFB, 0xED, 0x4D));
+    playback.playFrames(1);
+    assertEquals(3, playback.getInstructions());
+    playback.playFrames(1);
+    assertEquals(5, playback.getInstructions());
+  }
+
   private static int[] bytes(int address, int... bytes) {
     int[] chunk = new int[bytes.length + 1];
     chunk[0] = address;
