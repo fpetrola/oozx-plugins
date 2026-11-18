@@ -31,6 +31,13 @@
       emulator rather than inside it: the artefacts of fpetrola/oozx have to be in the local
       repository first, which `mvn -DskipTests install` over that tree puts there.
     -->
+    <repositories>
+        <repository><id>jitpack</id><url>https://jitpack.io</url></repository>
+    </repositories>
+    <pluginRepositories>
+        <pluginRepository><id>jitpack</id><url>https://jitpack.io</url></pluginRepository>
+    </pluginRepositories>
+
     <modules>
         <module>libs</module>
         <module>devices</module>
