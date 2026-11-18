@@ -35,7 +35,7 @@
     <dependency>
       <groupId>com.github.fpetrola.oozx</groupId>
       <artifactId>rzx</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1</version>
     </dependency>
     <!--
       The scaler. GPL-3 with a linking exception - see the NOTICE at the root of the project.
@@ -52,7 +52,7 @@
     <dependency>
       <groupId>com.github.fpetrola.oozx</groupId>
       <artifactId>app</artifactId>
-      <version>0.1.0</version>
+      <version>0.1.1</version>
     </dependency>
 
     <dependency>
