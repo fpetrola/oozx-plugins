@@ -2,9 +2,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>devices</artifactId>
-        <version>0.0.2-alu-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>devices-all</artifactId>
@@ -14,328 +14,328 @@
     <dependencies>
         <!-- A recording carries a snapshot of whatever kind inside it, so the readers come too. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-snapshots</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>machines</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>media-snapshot</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>host-sound</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-tape</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-tapes</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>host-input</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-disk</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-memory</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-ay</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-ula</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-debugger</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-printer</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-mouse</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-joystick</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-melodik</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-interface2</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-multiface</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-usource</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-uspeech</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-parallel-printer</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-plusd</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-disciple</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-beta128</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-covox</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-spec256</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-specdrum</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-fuller</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-opus</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-didaktik</artifactId>
             <version>${project.version}</version>
         </dependency>
             <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-interface1</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-divide</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-simpleide</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-zxatasp</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-zxcf</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-divmmc</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-zxmmc</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- A tool is Equipment too, so a test sees the whole desk the same way a person does. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-ulaplus</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-spectrum128</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-amstrad</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-spectrum-variants</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-pentagon</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-timex</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-scorpion</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-microdigital</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-czerweny</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-inves</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-chrome</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-spectrum-se</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-chloe</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-keyboard</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-audio-in</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-cassette</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-games</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-help</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-rzx</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-curvature</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-calls</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-heatmap</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-io</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-trace</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-memory-map</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-frames</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-poke-finder</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-mappings</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -345,26 +345,26 @@
       are about a plugin and so belong here, and neither can be here, so they are asked for.
     -->
     <dependency>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>app</artifactId>
         <version>${project.version}</version>
         <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>app</artifactId>
         <version>${project.version}</version>
         <type>test-jar</type>
         <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>bridge</artifactId>
         <version>${project.version}</version>
         <scope>test</scope>
     </dependency>
     <dependency>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>bridge</artifactId>
         <version>${project.version}</version>
         <type>test-jar</type>

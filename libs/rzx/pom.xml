@@ -2,9 +2,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>libs</artifactId>
-        <version>0.0.2-alu-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>rzx</artifactId>
@@ -22,28 +22,28 @@
 
     <dependencies>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>machines</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>media-snapshot</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>core</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>ui</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>zx-rzx</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -53,14 +53,14 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>core</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>emulator</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>
@@ -68,14 +68,14 @@
         </dependency>
         <!-- The generated core, so a measurement can put a recording on both cores. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>generated-core</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <!-- A recording driving the desktop's controls, which is where speed is changed from. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>app</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

@@ -3,9 +3,9 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>devices</artifactId>
-        <version>0.0.2-alu-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>device-spec256</artifactId>
@@ -15,23 +15,23 @@
     <dependencies>
         <!-- A Spec256 game is a .sna with its planes beside it, so it needs that reader. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-snapshots</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-spectrum128</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>devices-kit</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>media-snapshot</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>

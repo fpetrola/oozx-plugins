@@ -21,9 +21,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>tools</artifactId>
-        <version>0.0.2-alu-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>tool-rzx</artifactId>
@@ -38,18 +38,18 @@
           knows the one it writes.
         -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-snapshots</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>rzx</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- The tags a slow test carries, which live with the emulator's own test harness. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>emulator</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>

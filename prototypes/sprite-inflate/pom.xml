@@ -13,7 +13,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.fpetrola.proto</groupId>
+  <groupId>com.github.fpetrola.oozx.proto</groupId>
   <artifactId>sprite-inflate</artifactId>
   <version>0.0.1-SNAPSHOT</version>
 
@@ -29,9 +29,9 @@
   <dependencies>
     <!-- Lee grabaciones: antes le llegaban por la app, que ya no sabe que es una. -->
     <dependency>
-      <groupId>com.fpetrola</groupId>
+      <groupId>com.github.fpetrola.oozx</groupId>
       <artifactId>rzx</artifactId>
-      <version>0.0.2-alu-SNAPSHOT</version>
+      <version>0.1.0</version>
     </dependency>
     <!--
       The scaler. GPL-3 with a linking exception - see the NOTICE at the root of the project.
@@ -46,9 +46,9 @@
     <!-- Only Grab needs this: it plays a recording and reads the screen out of the machine.
          RzxSession lives in the rzx module, which the app brings along. -->
     <dependency>
-      <groupId>com.fpetrola</groupId>
+      <groupId>com.github.fpetrola.oozx</groupId>
       <artifactId>app</artifactId>
-      <version>0.0.2-alu-SNAPSHOT</version>
+      <version>0.1.0</version>
     </dependency>
 
     <dependency>

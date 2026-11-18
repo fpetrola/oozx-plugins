@@ -3,9 +3,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>tools</artifactId>
-        <version>0.0.2-alu-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>tool-map</artifactId>
@@ -16,7 +16,7 @@
     <dependencies>
         <!-- Graba la partida desde que se engancha y la vuelve a mapear desde el principio sabiendo lo aprendido; y mide el mapa contra partidas grabadas. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>rzx</artifactId>
             <version>${project.version}</version>
         </dependency>

@@ -2,9 +2,9 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>devices</artifactId>
-        <version>0.0.2-alu-SNAPSHOT</version>
+        <version>0.1.0</version>
     </parent>
 
     <artifactId>device-chloe</artifactId>
@@ -13,17 +13,17 @@
     <name>Chloe 140SE and 280SE</name>
     <dependencies>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-ay</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-memory</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-scld</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -33,23 +33,23 @@
           brings that one too.
         -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-spectrum-se</artifactId>
             <version>${project.version}</version>
         </dependency>
         <!-- Two machines that have ULAplus soldered on, so they bring it with them. -->
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>device-ulaplus</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>machines</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.fpetrola</groupId>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>core</artifactId>
             <version>${project.version}</version>
             <type>test-jar</type>

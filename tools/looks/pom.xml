@@ -23,9 +23,9 @@
     <!-- Del padre de todos y no del de las herramientas: un look es de la base, no de una maquina, y no compila
          contra el emulador. -->
     <parent>
-        <groupId>com.fpetrola</groupId>
+        <groupId>com.github.fpetrola.oozx</groupId>
         <artifactId>oozx-plugins</artifactId>
-        <version>0.0.2-alu-SNAPSHOT</version>
+        <version>0.1.0</version>
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <artifactId>tool-looks</artifactId>
