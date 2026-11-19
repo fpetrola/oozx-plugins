@@ -39,6 +39,11 @@
         </dependency>
         <dependency>
             <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>tool-pokes</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>rzx</artifactId>
             <version>${project.version}</version>
         </dependency>

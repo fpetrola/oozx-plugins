@@ -45,13 +45,13 @@ import java.util.WeakHashMap;
 @Offers("Put pokes in the game")
 public class PokesTool implements MachineTool {
 
-  private final PokesManager pokes = new PokesManager();
+  private final PokesManager pokes = PokesManager.shared();
   /** Quien sabe que juego es: puesto por quien arma las herramientas, o ninguno. */
   @Inject
   private Set<WhatGameThisIs> aboutGames = Set.of();
 
   /** Lo aplicado en cada ventana, que se olvida sola cuando la ventana se cierra. */
-  private final Map<EmulatorWindow, List<PokFile.PokeMod>> applied = new WeakHashMap<>();
+  private static final Map<EmulatorWindow, List<PokFile.PokeMod>> applied = new WeakHashMap<>();
 
   public javax.swing.Icon icon() {
     return Widgets.loadIcon("1F513.svg");
@@ -87,9 +87,15 @@ public class PokesTool implements MachineTool {
           "Pokes Not Found", JOptionPane.INFORMATION_MESSAGE);
       return;
     }
+    choose(window, gameName, found);
+  }
+
+  /** The dialog where the pokes of the game in that window are ticked and applied, starting from what is applied there. */
+  static void choose(EmulatorWindow window, String gameName, List<PokFile> found) {
+    Speccy machine = window.machine();
     List<PokFile.PokeMod> here = applied.computeIfAbsent(window, nobody -> new ArrayList<>());
     PokesDialog dialog = new PokesDialog((Frame) SwingUtilities.getWindowAncestor(window.picture()),
-        gameName, found, pokes, new ArrayList<>(here));
+        gameName, found, PokesManager.shared(), new ArrayList<>(here));
     dialog.setOnPokesAppliedListener(chosen -> apply(machine, here, chosen));
     dialog.setOnPokesChangedListener(removed -> revert(machine, here, removed));
     dialog.setVisible(true);

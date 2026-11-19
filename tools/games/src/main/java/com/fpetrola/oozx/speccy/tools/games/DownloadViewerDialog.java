@@ -95,13 +95,38 @@ public class DownloadViewerDialog extends JDialog {
             return createImageViewer(downloadUrl);
         } else if (isTextFile(lowerFileName)) {
             return createTextViewer(downloadUrl);
-        } else if (isPdfFile(lowerFileName)) {
-            return createPdfViewer(downloadUrl);
         } else {
-            return createGenericViewer(downloadUrl, fileName);
+            return createScreenViewer(downloadUrl);
         }
     }
-    
+
+    /** Whether this window shows that file; what it does not, the person's own programs open: a PDF, a sound. */
+    static boolean shows(String fileName) {
+        String lower = fileName.toLowerCase();
+        return lower.endsWith(".scr") || lower.matches(".*\\.(jpg|jpeg|png|gif|bmp|txt|md|html|htm|xml|json|csv|log)");
+    }
+
+    /** A Spectrum screen as it is kept: 6144 bytes of pixels in the display's own order, then 768 of colours, a cell each. */
+    private Component createScreenViewer(String downloadUrl) throws IOException {
+        byte[] screen;
+        try (InputStream in = new URL(downloadUrl).openStream()) {
+            screen = in.readAllBytes();
+        }
+        if (screen.length < 6912) throw new IOException("not a Spectrum screen: " + screen.length + " bytes");
+        java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(256, 192, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < 192; y++) {
+            int line = ((y & 0xC0) << 5) | ((y & 0x07) << 8) | ((y & 0x38) << 2);
+            for (int x = 0; x < 256; x++) {
+                int colours = screen[6144 + (y / 8) * 32 + x / 8] & 0xFF, level = (colours & 0x40) != 0 ? 0xFF : 0xD8;
+                boolean ink = (screen[line + x / 8] & (0x80 >> (x & 7))) != 0;
+                int colour = ink ? colours & 7 : (colours >> 3) & 7;
+                picture.setRGB(x, y, ((colour & 2) != 0 ? level << 16 : 0) | ((colour & 4) != 0 ? level << 8 : 0) | ((colour & 1) != 0 ? level : 0));
+            }
+        }
+        JLabel shown = new JLabel(new ImageIcon(picture.getScaledInstance(768, 576, Image.SCALE_REPLICATE)));
+        return new JScrollPane(shown);
+    }
+
     private Component createImageViewer(String downloadUrl) throws IOException {
         URL url = new URL(downloadUrl);
         ImageIcon icon = new ImageIcon(url);
@@ -160,32 +185,6 @@ public class DownloadViewerDialog extends JDialog {
         return new JScrollPane(textArea);
     }
     
-    private Component createPdfViewer(String downloadUrl) {
-        JTextArea textArea = new JTextArea();
-        textArea.setText("PDF viewing not supported in this dialog.\n\n" +
-                "URL: " + downloadUrl + "\n\n" +
-                "Please open with your default PDF viewer.");
-        textArea.setEditable(false);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        
-        return new JScrollPane(textArea);
-    }
-    
-    private Component createGenericViewer(String downloadUrl, String fileName) {
-        JTextArea textArea = new JTextArea();
-        textArea.setText("File: " + fileName + "\n" +
-                "Type: " + getFileExtension(fileName).toUpperCase() + "\n\n" +
-                "URL: " + downloadUrl + "\n\n" +
-                "This file type cannot be previewed in this dialog.\n" +
-                "Double-click to open with default application.");
-        textArea.setEditable(false);
-        textArea.setLineWrap(true);
-        textArea.setWrapStyleWord(true);
-        
-        return new JScrollPane(textArea);
-    }
-    
     private boolean isImageFile(String fileName) {
         return fileName.endsWith(".jpg") || fileName.endsWith(".jpeg") || 
                fileName.endsWith(".png") || fileName.endsWith(".gif") ||
@@ -197,15 +196,6 @@ public class DownloadViewerDialog extends JDialog {
                fileName.endsWith(".html") || fileName.endsWith(".htm") ||
                fileName.endsWith(".xml") || fileName.endsWith(".json") ||
                fileName.endsWith(".csv") || fileName.endsWith(".log");
-    }
-    
-    private boolean isPdfFile(String fileName) {
-        return fileName.endsWith(".pdf");
-    }
-    
-    private String getFileExtension(String fileName) {
-        int lastDot = fileName.lastIndexOf('.');
-        return lastDot > 0 ? fileName.substring(lastDot + 1) : "unknown";
     }
     
     private void setupEscapeToClose() {

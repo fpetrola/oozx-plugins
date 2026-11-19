@@ -51,8 +51,22 @@ public class TheGamesKnown implements WhatGameThisIs {
    */
   @Override
   public Desk.Game gameIn(String file) {
+    if (!java.nio.file.Files.isRegularFile(Path.of(file))) return null;
     GameSummary known = LocalGames.whoIs(Path.of(file));
-    return known == null ? null : new Desk.Game(file, null, known.id, known.title);
+    return known == null ? null : new Desk.Game(file, machineOf(known.id), known.id, known.title);
+  }
+
+  /**
+   * The machine the game was made for, as the catalogue that travels with the emulator says, so that a tape, which
+   * does not say what it wants, starts on the right one. Only that catalogue is asked: this is on the way of
+   * opening a file, and the one on the web can take seconds.
+   */
+  private static String machineOf(String id) {
+    try {
+      return GamesFrame.emulated(new com.fpetrola.oozx.api.Zxdb().game(id).machineType);
+    } catch (RuntimeException notInIt) {
+      return null;
+    }
   }
 
   @Override
@@ -64,13 +78,11 @@ public class TheGamesKnown implements WhatGameThisIs {
 
       protected void done() {
         try {
-          GameDetail detail = get();
-          if (detail == null) {
-            GameNotFoundDialog.showWithRetry(null, "Game not found: " + nameOf(game),
-                again -> show(new Desk.Game(null, null, null, again)));
-            return;
-          }
-          new GameDetailsDialog(null, detail).setVisible(true);
+          GameCard card = new GameCard(game, get(), again -> show(new Desk.Game(null, null, null, again)));
+          Desk.theOne().place(card);
+          // At the right edge of the desk and no taller than it, so that it lands whole beside the machine playing the game.
+          card.setSize(card.getWidth(), Math.min(card.getHeight(), Math.max(300, card.getParent().getHeight() - 24)));
+          card.setLocation(Math.max(0, card.getParent().getWidth() - card.getWidth() - 12), 12);
         } catch (Exception itWouldNot) {
           JOptionPane.showMessageDialog(null, "Error loading game details: " + itWouldNot.getMessage(),
               "Error", JOptionPane.ERROR_MESSAGE);

@@ -49,6 +49,14 @@ public class PokesManager {
   public record Poke(String name, List<String> lines) {
   }
 
+  private static PokesManager shared;
+
+  /** The one everybody in this plugin reads, so that the pokes are loaded once. */
+  static synchronized PokesManager shared() {
+    if (shared == null) shared = new PokesManager();
+    return shared;
+  }
+
   public PokesManager() {
     initializePokes();
   }
