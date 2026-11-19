@@ -52,8 +52,19 @@ public class TheGamesKnown implements WhatGameThisIs {
   @Override
   public Desk.Game gameIn(String file) {
     if (!java.nio.file.Files.isRegularFile(Path.of(file))) return null;
+    if (file.toLowerCase().endsWith(".zip")) return gameInside(file);
     GameSummary known = LocalGames.whoIs(Path.of(file));
     return known == null ? null : new Desk.Game(file, machineOf(known.id), known.id, known.title);
+  }
+
+  /** A zip is not a game but has one inside: the first of its files that the catalogue knows, unpacked where the desk unpacks it. */
+  private Desk.Game gameInside(String zip) {
+    try {
+      return com.fpetrola.oozx.speccy.media.DownloadAndUnzip.fetchAll(new java.io.File(zip).toURI().toString()).stream()
+          .map(part -> gameIn(part.toString())).filter(java.util.Objects::nonNull).findFirst().orElse(null);
+    } catch (java.io.IOException | RuntimeException notUnpacked) {
+      return null;
+    }
   }
 
   /**
