@@ -89,10 +89,24 @@ public abstract class DeclaredFormat implements SnapshotFormat {
   /** The RAM of the file, bank after bank, from the file understood without a machine. */
   @Override
   public java.util.Optional<byte[]> ram(byte[] bytes) {
+    return banks(bytes, SnapshotFile::pages);
+  }
+
+  /**
+   * Banks 5 and 2, which every Spectrum has in front of it, and the one the 128's port pages in. A file
+   * with no more banks than those is a 48K's, all in sight: what it keeps where that port goes is not paging.
+   */
+  @Override
+  public java.util.Optional<byte[]> ramInSight(byte[] bytes) {
+    return banks(bytes, file -> file.pages().size() <= 3 ? file.pages()
+        : List.of(5, 2, bindings().said(file, CoreFields.PORT_7FFD).orElse(0) & 7));
+  }
+
+  private java.util.Optional<byte[]> banks(byte[] bytes, java.util.function.Function<SnapshotFile, java.util.Collection<Integer>> which) {
     try {
       SnapshotFile file = understood(bytes);
       java.io.ByteArrayOutputStream ram = new java.io.ByteArrayOutputStream();
-      file.pages().forEach(bank -> ram.writeBytes(file.pageOrZeros(bank)));
+      which.apply(file).forEach(bank -> ram.writeBytes(file.pageOrZeros(bank)));
       return java.util.Optional.of(ram.toByteArray());
     } catch (SnapshotException unreadable) {
       return java.util.Optional.empty();

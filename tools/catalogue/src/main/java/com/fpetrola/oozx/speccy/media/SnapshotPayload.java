@@ -24,6 +24,8 @@ import dev.plugdesk.app.Plugins;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Optional;
+import java.util.function.BiFunction;
 
 /**
  * The game's own bytes inside a file: the RAM of a snapshot, bank after bank, and anything else as
@@ -35,12 +37,21 @@ public final class SnapshotPayload {
   }
 
   public static byte[] of(File file) throws IOException {
+    return of(file, SnapshotFormat::ram);
+  }
+
+  /** The part of them a processor has in front of it. */
+  public static byte[] inSight(File file) throws IOException {
+    return of(file, SnapshotFormat::ramInSight);
+  }
+
+  private static byte[] of(File file, BiFunction<SnapshotFormat, byte[], Optional<byte[]>> ram) throws IOException {
     for (SnapshotFormat format : Plugins.found(SnapshotFormat.class)) {
       if (format.reads(file)) {
         byte[] bytes = Files.readAllBytes(file.toPath());
         // A snapshot that cannot be opened is still a file somebody has, and its bytes are a worse
         // fingerprint than its RAM but a better one than nothing.
-        return format.ram(bytes).orElse(bytes);
+        return ram.apply(format, bytes).orElse(bytes);
       }
     }
     return SnapshotFactory.payloadOf(file);

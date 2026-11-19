@@ -42,6 +42,11 @@ public final class Layout<P> {
     void write(P part, SnapshotFile file);
 
     List<Object> fields();
+
+    /** What the file itself says that field is, for a line that holds it plain. */
+    default java.util.OptionalInt said(SnapshotFile file, Object field) {
+      return java.util.OptionalInt.empty();
+    }
   }
 
   /** A line whose bytes are in one fixed stretch, there only if the file has the stretch and it reaches them. */
@@ -99,7 +104,15 @@ public final class Layout<P> {
       void read(Bytes bytes, P part) { field.set(part, bytes.u8(offset)); }
       void write(P part, Bytes bytes) { bytes.u8(offset, field.get(part)); }
       public List<Object> fields() { return List.of(field); }
+      public java.util.OptionalInt said(SnapshotFile file, Object asked) {
+        return asked == field && isIn(file) ? java.util.OptionalInt.of(file.bytes(region).u8(offset)) : java.util.OptionalInt.empty();
+      }
     });
+  }
+
+  /** What the file says a field is, read with no part to give it to. */
+  java.util.OptionalInt said(SnapshotFile file, Object field) {
+    return places.stream().map(place -> place.said(file, field)).filter(java.util.OptionalInt::isPresent).findFirst().orElse(java.util.OptionalInt.empty());
   }
 
   /** Two bytes, little-endian. */

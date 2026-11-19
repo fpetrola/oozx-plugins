@@ -74,6 +74,11 @@ public final class Bindings {
     return new Bindings(all, quieter);
   }
 
+  /** What the file says a field is, understood without a machine. */
+  public java.util.OptionalInt said(SnapshotFile file, Field<?, Integer> field) {
+    return bindings.stream().map(binding -> binding.layout().said(file, field)).filter(java.util.OptionalInt::isPresent).findFirst().orElse(java.util.OptionalInt.empty());
+  }
+
   public void apply(Visitable part, Direction way) {
     boolean taken = false;
     for (Binding<?> binding : bindings) {

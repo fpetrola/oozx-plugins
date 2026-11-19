@@ -58,6 +58,11 @@ public class GameLibrary {
     boolean loadable(Path file);
 
     byte[] payload(Path file) throws IOException;
+
+    /** The part of those bytes a processor has in front of it; all of them, for a file that is not memory. */
+    default byte[] inSight(Path file) throws IOException {
+      return payload(file);
+    }
   }
 
   public GameLibrary(GameFingerprint.Index catalogue, Emulator emulator) {
@@ -117,7 +122,7 @@ public class GameLibrary {
         && known.stamp() == stamp()) {
       return known;
     }
-    GameFingerprint.Match match = catalogue.identify(emulator.payload(file));
+    GameFingerprint.Match match = catalogue.identify(GameFingerprint.of(emulator.payload(file)), GameFingerprint.of(emulator.inSight(file)));
     boolean sure = match != null && match.score() >= certainty;
     Copy copy = new Copy(file.toString(), size, modified, sure ? match.game() : null,
         match == null ? 0 : match.score(), stamp());

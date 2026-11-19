@@ -46,11 +46,11 @@ import java.util.stream.Stream;
  * takes bytes, so {@link com.fpetrola.oozx.api.GameFingerprint.Index} works the same for a tape,
  * a snapshot, or the region of memory somebody chose to hand it.
  * <p>
- * What it cannot see is memory that is in a snapshot without being the game. Two 128K snapshots
- * of unrelated games - Silk Worm and The Addams Family - were measured sharing a contiguous block
- * of 16257 identical bytes and several more besides, enough for one to claim the other at 0.55.
- * Whatever left that memory behind, it is not the game, and no amount of counting chunks can tell
- * the difference: only handing the fingerprint the game's own bytes can.
+ * What it cannot see is memory that is in a snapshot without being the game. A 128K snapshot of
+ * Silk Worm, a 48K game, was measured holding three whole banks of The Addams Family, loaded
+ * before it and never paged in again: enough for Addams to claim it at 0.55. No amount of
+ * counting chunks can tell the difference, so {@link Index#identify(GameFingerprint, GameFingerprint)}
+ * is also handed the memory the processor has in front of it.
  * <p>
  * This is the fuzzy half of identifying a file. The exact half, a straight MD5 against ZXInfo's
  * catalogue, is {@link ZxInfoApiHandler#identifyFile}, needs the network, and answers nothing at
@@ -197,6 +197,16 @@ public record GameFingerprint(Set<Integer> chunks) {
 
     public Match identify(byte[] data) {
       return identify(of(data));
+    }
+
+    /**
+     * The best match for a file, given the part of it a processor has in front of it. The game the
+     * whole file points to counts only if that part holds something of it: otherwise it is what an
+     * earlier program left in memory nobody pages in, and the part in sight answers.
+     */
+    public Match identify(GameFingerprint whole, GameFingerprint inSight) {
+      Match match = identify(whole);
+      return match == null || byId.get(match.game().id).fingerprint().containment(inSight) > 0 ? match : identify(inSight);
     }
 
     /** The best match, or null when nothing in the catalogue shares a chunk with it. */

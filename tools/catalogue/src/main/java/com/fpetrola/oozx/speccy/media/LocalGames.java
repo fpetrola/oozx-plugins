@@ -61,6 +61,10 @@ public class LocalGames {
         public byte[] payload(Path file) throws IOException {
           return SnapshotPayload.of(file.toFile());
         }
+
+        public byte[] inSight(Path file) throws IOException {
+          return SnapshotPayload.inSight(file.toFile());
+        }
       });
       try {
         library.load(file());

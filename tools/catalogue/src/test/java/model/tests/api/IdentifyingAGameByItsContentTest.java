@@ -67,6 +67,21 @@ class IdentifyingAGameByItsContentTest {
   }
 
   @Test
+  void whatAnotherGameLeftInMemoryNobodyPagesInDoesNotClaimTheFile() {
+    byte[] inSight = concat(noise(77, 9000), Arrays.copyOf(game, game.length / 3));
+    byte[] whole = concat(inSight, noise(3, game.length));
+    assertEquals("other3", index.identify(whole).game().title, "the whole file alone goes to what was left behind");
+    assertEquals("manicminer", index.identify(GameFingerprint.of(whole), GameFingerprint.of(inSight)).game().title);
+  }
+
+  @Test
+  void aGameSpreadOverEveryBankIsStillAnsweredByTheWholeFile() {
+    GameFingerprint.Match match = index.identify(GameFingerprint.of(game), GameFingerprint.of(Arrays.copyOf(game, game.length / 2)));
+    assertEquals("manicminer", match.game().title);
+    assertEquals(1.0, match.score());
+  }
+
+  @Test
   void aTrainerInFrontDoesNotMoveTheGameOutOfReach() {
     GameFingerprint.Match match = index.identify(concat(noise(99, 3000), game));
     assertEquals("manicminer", match.game().title);
