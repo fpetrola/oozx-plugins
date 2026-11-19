@@ -327,7 +327,8 @@ class GameCard extends JInternalFrame {
     Object which = songs.size() == 1 ? songs.get(0) : javax.swing.JOptionPane.showInputDialog(null, "Which song?", music.getFileName().toString(),
         javax.swing.JOptionPane.QUESTION_MESSAGE, null, songs.toArray(), songs.get(0));
     if (which == null) return;
-    java.nio.file.Path song = music.resolveSibling(music.getFileName() + "-" + (songs.indexOf(which) + 1) + ".sna");
+    // Beside what was brought and not inside it: a snapshot left among a zip's files would be taken for one of them.
+    java.nio.file.Path song = music.getParent().resolveSibling(music.getFileName() + "-" + (songs.indexOf(which) + 1) + ".sna");
     java.nio.file.Files.write(song, ay.snapshot(songs.indexOf(which)));
     Desk.theOne().open(song.toString());
   }
@@ -416,9 +417,13 @@ class GameCard extends JInternalFrame {
     synchronized (COMING.computeIfAbsent(url, first -> new Object())) {
       if (!java.nio.file.Files.exists(place)) DownloadAndUnzip.fetchAll(url);
       if (!java.nio.file.Files.isDirectory(place)) return place;
-      // What came in a zip is a folder of its name; what was asked for is the file inside it.
+      // What came in a zip is a folder of its name; what was asked for is the file inside it, which is the one the
+      // zip is named after when it holds more than one.
+      String named = place.getFileName().toString().replaceAll("(?i)\\.zip$", "");
       try (java.util.stream.Stream<java.nio.file.Path> inside = java.nio.file.Files.walk(place)) {
-        return inside.filter(java.nio.file.Files::isRegularFile).findFirst().orElseThrow(() -> new java.io.IOException("nothing inside " + place));
+        List<java.nio.file.Path> files = inside.filter(java.nio.file.Files::isRegularFile).sorted().toList();
+        return files.stream().filter(file -> file.getFileName().toString().equalsIgnoreCase(named)).findFirst()
+            .or(() -> files.stream().findFirst()).orElseThrow(() -> new java.io.IOException("nothing inside " + place));
       }
     }
   }
