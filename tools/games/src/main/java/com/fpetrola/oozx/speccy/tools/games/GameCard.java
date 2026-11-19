@@ -330,7 +330,9 @@ class GameCard extends JInternalFrame {
     // Beside what was brought and not inside it: a snapshot left among a zip's files would be taken for one of them.
     java.nio.file.Path song = music.getParent().resolveSibling(music.getFileName() + "-" + (songs.indexOf(which) + 1) + ".sna");
     java.nio.file.Files.write(song, ay.snapshot(songs.indexOf(which)));
-    Desk.theOne().open(song.toString());
+    // Music is heard at the speed it was written for, whatever speed the desk starts its machines at.
+    com.fpetrola.oozx.speccy.devices.EmulatorWindow playing = Desk.theOne().machineFrom(song.toFile());
+    if (playing != null) Desk.theOne().coreOf((java.awt.Component) playing).setGeneralOption("speed", 100);
   }
 
   private static JComponent table(String[] columns, List<String[]> rows, IntConsumer chosen, String saying) {
