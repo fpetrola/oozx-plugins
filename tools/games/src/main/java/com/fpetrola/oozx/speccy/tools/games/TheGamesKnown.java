@@ -71,21 +71,34 @@ public class TheGamesKnown implements WhatGameThisIs {
 
   @Override
   public void show(Desk.Game game) {
-    new SwingWorker<GameDetail, Void>() {
+    GameCard card = new GameCard(game, again -> show(new Desk.Game(null, null, null, again)));
+    Desk.theOne().place(card);
+    // At the right edge of the desk and no taller than it, so that it lands whole beside the machine playing the game.
+    card.setSize(card.getWidth(), Math.min(card.getHeight(), Math.max(300, card.getParent().getHeight() - 24)));
+    card.setLocation(Math.max(0, card.getParent().getWidth() - card.getWidth() - 12), 12);
+    // First what this disk knows, which is at once; then what the catalogue on the web adds, which can take seconds.
+    new SwingWorker<GameDetail, GameDetail>() {
       protected GameDetail doInBackground() {
-        return lookUp(game);
+        Desk.Game known = game.id() != null || game.file() == null ? game : gameIn(game.file());
+        if (known != null && known.id() != null) {
+          try {
+            GameDetail here = new com.fpetrola.oozx.api.Zxdb().details(known.id());
+            if (here != null) publish(here);
+          } catch (RuntimeException notOnThisDisk) {
+          }
+        }
+        return lookUp(known == null ? game : new Desk.Game(game.file(), game.machine(), known.id(), known.title()));
+      }
+
+      protected void process(List<GameDetail> here) {
+        card.fill(here.get(here.size() - 1));
       }
 
       protected void done() {
         try {
-          GameCard card = new GameCard(game, get(), again -> show(new Desk.Game(null, null, null, again)));
-          Desk.theOne().place(card);
-          // At the right edge of the desk and no taller than it, so that it lands whole beside the machine playing the game.
-          card.setSize(card.getWidth(), Math.min(card.getHeight(), Math.max(300, card.getParent().getHeight() - 24)));
-          card.setLocation(Math.max(0, card.getParent().getWidth() - card.getWidth() - 12), 12);
+          card.fill(get());
         } catch (Exception itWouldNot) {
-          JOptionPane.showMessageDialog(null, "Error loading game details: " + itWouldNot.getMessage(),
-              "Error", JOptionPane.ERROR_MESSAGE);
+          card.fill(null);
         }
       }
     }.execute();

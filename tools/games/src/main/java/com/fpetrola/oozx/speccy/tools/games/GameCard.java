@@ -111,23 +111,50 @@ class GameCard extends JInternalFrame {
   private final JLabel where = new JLabel();
   private final JButton back = new JButton("← Everything");
   private int kinds;
-  private final String game;
+  private String game;
+  private final Desk.Game asked;
+  private final Consumer<String> askAgain;
+  private boolean filled;
 
-  GameCard(Desk.Game asked, GameDetail known, Consumer<String> askAgain) {
-    super(known == null ? "Not recognised" : known.title, true, true, true, true);
+  /** The card at once, saying it is looking: what is known of the game is {@link #fill filled} in as it comes. */
+  GameCard(Desk.Game asked, Consumer<String> askAgain) {
+    super(asked.file() == null ? "Looking..." : new File(asked.file()).getName(), true, true, true, true);
+    this.asked = asked;
+    this.askAgain = askAgain;
+    setSize(780, 660);
+    shown(null, true);
+  }
+
+  /**
+   * What the catalogue said, put in the card; nothing, when it does not know the game. It may be told twice, first
+   * what the catalogue on this disk has and then what the one on the web adds: the second is taken only while the
+   * person is still at the wall, so that nothing they opened is pulled from under them.
+   */
+  void fill(GameDetail known) {
+    if (filled && (known == null || back.isVisible())) return;
+    filled = true;
+    shown(known, false);
+  }
+
+  private void shown(GameDetail known, boolean looking) {
     game = known == null ? null : known.title;
+    if (!looking) setTitle(known == null ? "Not recognised" : known.title);
+    kinds = 0;
+    pages.removeAll();
+    show("", "");
     JPanel card = new JPanel(new BorderLayout());
-    card.add(new Heading(asked, known), BorderLayout.NORTH);
+    card.add(new Heading(asked, known, looking), BorderLayout.NORTH);
     JPanel body = new JPanel(new BorderLayout());
-    body.add(bar(askAgain, known == null), BorderLayout.NORTH);
+    body.add(bar(askAgain, known == null && !looking), BorderLayout.NORTH);
     body.add(pages, BorderLayout.CENTER);
     card.add(body, BorderLayout.CENTER);
     if (known != null) {
       pages.add(scrolling(wall(asked, known)), "");
       bringAhead(known);
     }
-    add(card);
-    setSize(780, known == null ? 300 : 660);
+    setContentPane(card);
+    revalidate();
+    repaint();
   }
 
   /** Where the person is in the card, the way back, and a place to ask for another game. */
@@ -443,7 +470,7 @@ class GameCard extends JInternalFrame {
 
   /** The top of the card: the game's name large over a dark ground, its screen, and the 48K's stripes in the corner. */
   private static final class Heading extends JPanel {
-    Heading(Desk.Game asked, GameDetail known) {
+    Heading(Desk.Game asked, GameDetail known, boolean looking) {
       super(new BorderLayout(18, 0));
       setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 90));
       JPanel words = new JPanel();
@@ -452,9 +479,11 @@ class GameCard extends JInternalFrame {
       String file = asked.file() == null ? null : new File(asked.file()).getName();
       if (file != null) words.add(line(file + (known == null ? "" : "   →   recognised by what is inside it"), 12f, Font.PLAIN, STRIPES[3]));
       words.add(javax.swing.Box.createVerticalStrut(6));
-      words.add(line(known == null ? "I do not know this one" : known.title, 30f, Font.BOLD, PAPER));
+      words.add(line(looking ? "Looking at what is inside it..." : known == null ? "I do not know this one" : known.title, 30f, Font.BOLD, PAPER));
       words.add(javax.swing.Box.createVerticalStrut(8));
-      if (known == null) {
+      if (looking) {
+        words.add(line("The catalogue is being asked what it has on it.", 14f, Font.PLAIN, QUIET));
+      } else if (known == null) {
         words.add(line("It plays all the same. Tell me which game it is, below.", 14f, Font.PLAIN, QUIET));
       } else {
         words.add(line(joined("  ·  ", known.publisher, known.yearOfRelease, known.machineType), 15f, Font.PLAIN, PAPER));
