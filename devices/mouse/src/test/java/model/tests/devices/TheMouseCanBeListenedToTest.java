@@ -62,11 +62,11 @@ class TheMouseCanBeListenedToTest {
     Heard heard = new Heard();
     mouse.watch(heard);
 
-    mouse.moved(10, 0);
+    mouse.moved(5, 0);
     mouse.x();
     mouse.buttons();
 
-    assertEquals(List.of("x=10", "buttons=255"), heard.reads,
+    assertEquals(List.of("x=5", "buttons=255"), heard.reads,
         "the listener must hear what the program asked for and what it got");
   }
 
@@ -79,10 +79,11 @@ class TheMouseCanBeListenedToTest {
       mouse.moved(1, 0);
     }
 
-    assertEquals(127, mouse.x(),
-        "the most a reading can carry, because 200 would be read as going backwards");
-    assertEquals(200, mouse.x(),
-        "and the next reading receives the rest, so the hand arrives in full, just later");
+    assertEquals(6, mouse.x(),
+        "no more in one reading than a program takes a pixel a count, or it speeds the pointer up");
+    assertEquals(12, mouse.x(), "and the readings after receive the rest");
+    for (int reading = 0; reading < 40; reading++) mouse.x();
+    assertEquals(200, mouse.x(), "so the hand arrives in full, just later");
     assertEquals(0, mouse.owed(), "with nothing left owing and nothing thrown away");
   }
 

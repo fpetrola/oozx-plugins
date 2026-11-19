@@ -49,16 +49,22 @@ public class KempstonMouse {
     watcher = listening == null ? NOBODY : listening;
   }
 
-  /** Largest safe delta between two reads: a program treats the difference as a signed byte,
-   * so anything past 127 wraps to a large move in the wrong direction. */
-  private static final int MOST_ONE_READING_CAN_SHOW = 127;
+  /**
+   * The most the hand's movement shows in one reading. Programs speed a big step up, the way a
+   * desk's pointer does, so a hand going a hundred pixels in one reading sends the pointer three
+   * hundred; in steps this small the OCP Art Studio goes a pixel a count, and its pointer stays
+   * under the hand. What is beyond it goes in the readings after.
+   */
+  private static final int NOT_SPED_UP = 6;
+
+  /** What can be owed at most: further than that is off the screen anyway, where every program stops. */
+  private static final int A_SCREEN = 256;
 
   private int x;
   private int y;
   private int buttons = WRAP;
 
-  /** Unreported motion, capped at one reading's worth: excess beyond that is dropped rather
-   * than queued indefinitely, matching how a real mouse behaves when outrun. */
+  /** Unreported motion, at most a screen of it. */
   private int owedX;
   private int owedY;
 
@@ -78,7 +84,7 @@ public class KempstonMouse {
   }
 
   /** Accumulated counter movement since the last program read; this total, not any single
-   * step, is what must stay within the 127 limit. */
+   * step, is what must stay within the steps a program does not speed up. */
   private int shownX;
   private int shownY;
 
@@ -87,37 +93,62 @@ public class KempstonMouse {
     owedX += dx;
     owedY -= dy;
     payWhatCanBeRead();
-    owedX = carryOver ? keepAtMostOneReading(owedX) : 0;
-    owedY = carryOver ? keepAtMostOneReading(owedY) : 0;
+    int most = carryOver ? A_SCREEN : 0;
+    owedX = Math.max(-most, Math.min(most, owedX));
+    owedY = Math.max(-most, Math.min(most, owedY));
     watcher.handMoved(dx, dy, x, y);
   }
 
-  /** Clamps to the carry limit; anything beyond it is discarded, not merely delayed. */
-  private static int keepAtMostOneReading(int owed) {
-    return Math.max(-MOST_ONE_READING_CAN_SHOW, Math.min(MOST_ONE_READING_CAN_SHOW, owed));
+  /**
+   * Takes the program's pointer to that many counts from the top left corner, wherever it was.
+   * <p>
+   * A program only ever hears differences, so where its pointer is cannot be told; but every
+   * program stops its pointer at the edge of the screen. So the pointer is first sent further up
+   * and left than any screen is, which leaves it in the corner, and then that far from it. The two
+   * are owed apart: added together they would cancel, and the corner would never be reached.
+   */
+  public void placeAt(int across, int down) {
+    cornerX = -FURTHER_THAN_ANY_SCREEN;
+    cornerY = FURTHER_THAN_ANY_SCREEN;
+    owedX = across;
+    owedY = -down;
+    payWhatCanBeRead();
   }
+
+  private static final int FURTHER_THAN_ANY_SCREEN = A_SCREEN + 32;
+  private int cornerX;
+  private int cornerY;
+  /** Reached the corner and not read since: what comes next waits, or the program would hear the two as one, and less. */
+  private boolean inTheCornerX;
+  private boolean inTheCornerY;
+
 
   /** Moves as much owed motion into the counters as still fits within the read limit. */
   private void payWhatCanBeRead() {
-    int payX = whatFits(owedX, shownX);
-    int payY = whatFits(owedY, shownY);
+    if (cornerX != 0 || cornerY != 0) {
+      int payX = whatFits(cornerX, shownX, NOT_SPED_UP), payY = whatFits(cornerY, shownY, NOT_SPED_UP);
+      cornerX -= payX;
+      cornerY -= payY;
+      show(payX, payY);
+      inTheCornerX = inTheCornerY = cornerX == 0 && cornerY == 0;
+    } else {
+      int payX = inTheCornerX ? 0 : whatFits(owedX, shownX, NOT_SPED_UP), payY = inTheCornerY ? 0 : whatFits(owedY, shownY, NOT_SPED_UP);
+      owedX -= payX;
+      owedY -= payY;
+      show(payX, payY);
+    }
+  }
+
+  private void show(int payX, int payY) {
     x = (x + payX) & WRAP;
     y = (y + payY) & WRAP;
-    owedX -= payX;
-    owedY -= payY;
     shownX += payX;
     shownY += payY;
   }
 
-  /** Remaining headroom before the shown delta would exceed what a signed byte can carry. */
-  private static int whatFits(int owed, int shown) {
-    if (owed > 0) {
-      return Math.max(0, Math.min(owed, MOST_ONE_READING_CAN_SHOW - shown));
-    }
-    if (owed < 0) {
-      return Math.min(0, Math.max(owed, -MOST_ONE_READING_CAN_SHOW - shown));
-    }
-    return 0;
+  /** What is left before one reading would show more than that much. */
+  private static int whatFits(int owed, int shown, int most) {
+    return owed > 0 ? Math.max(0, Math.min(owed, most - shown)) : Math.min(0, Math.max(owed, -most - shown));
   }
 
   /** Total unreported motion still pending, summed across both axes. */
@@ -135,7 +166,16 @@ public class KempstonMouse {
   /** Resets to the unplugged state: no buttons held, no pending or shown movement. */
   public void rest() {
     buttons = WRAP;
-    owedX = owedY = shownX = shownY = 0;
+    owedX = owedY = shownX = shownY = cornerX = cornerY = 0;
+  }
+
+  /** The counters as they stand, for a window to show: not a reading, so it lets nothing owed through. */
+  public int standingX() {
+    return x;
+  }
+
+  public int standingY() {
+    return y;
   }
 
   public int x() {
@@ -143,6 +183,7 @@ public class KempstonMouse {
     watcher.programRead("x", reading);
     // Resets the read baseline and releases any motion that was waiting for room.
     shownX = 0;
+    inTheCornerX = false;
     payWhatCanBeRead();
     return reading;
   }
@@ -151,6 +192,7 @@ public class KempstonMouse {
     int reading = y;
     watcher.programRead("y", reading);
     shownY = 0;
+    inTheCornerY = false;
     payWhatCanBeRead();
     return reading;
   }

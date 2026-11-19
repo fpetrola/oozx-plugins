@@ -71,12 +71,12 @@ class KempstonMousePortsTest {
     Speccy speccy = plugged(true);
     KempstonMouse mouse = mouseOf(speccy).mouse();
 
-    mouse.moved(7, 0);
-    assertEquals(7, read(speccy, X), "the horizontal count is read at 0xFBDF");
+    mouse.moved(4, 0);
+    assertEquals(4, read(speccy, X), "the horizontal count is read at 0xFBDF");
     assertEquals(0, read(speccy, Y), "and moving sideways must not move the other one");
 
     mouse.moved(0, 5);
-    assertEquals(7, read(speccy, X), "moving up and down must not move the sideways count");
+    assertEquals(4, read(speccy, X), "moving up and down must not move the sideways count");
     // Physical mouse Y increases moving down, opposite of screen coordinates.
     assertEquals(0xFB, read(speccy, Y), "five up from zero wraps round the other way");
   }
@@ -98,19 +98,34 @@ class KempstonMousePortsTest {
     assertEquals(0xFD, read(speccy, BUTTONS), "letting go puts its bit back up and no other");
   }
 
-  /** Motion beyond what two reads can carry is simply dropped, matching a real mouse's
-   * resolution limit, rather than queued and delivered late. */
+  /** Motion is kept up to a screen of it: past that every program has stopped its pointer at the edge anyway. */
   @Test
-  void a_stroke_faster_than_the_mouse_resolves_is_not_reported_at_all() {
+  void a_stroke_further_than_a_screen_arrives_as_a_screen() {
     Speccy speccy = plugged(true);
     KempstonMouse mouse = mouseOf(speccy).mouse();
+    mouse.moved(300, 0);
+    assertEquals(6, read(speccy, X), "the first reading carries a step a program does not speed up");
+    for (int reading = 0; reading < 50; reading++) read(speccy, X);
+    assertEquals(0, mouse.owed(), "and in the readings after, all that was kept");
+    assertEquals(6 + 256 & 0xFF, read(speccy, X), "which was that step and a screen: the other 38 never arrive");
+  }
 
-    mouse.moved(300, 0);                        // far exceeds what any single reading can carry
-
-    assertEquals(127, read(speccy, X), "the first reading carries as much as a reading can");
-    assertEquals(254, read(speccy, X), "and the second the rest of what was kept");
-    assertEquals(254, read(speccy, X), "the other 46 were never resolved, so they never arrive");
-    assertEquals(0, mouse.owed(), "and nothing is left owing to arrive late");
+  /** The program's pointer is somewhere nobody can tell; it is sent into the corner, where every program stops it, and from there to the hand. */
+  @Test
+  void a_pointer_is_placed_from_the_corner() {
+    Speccy speccy = plugged(true);
+    KempstonMouse mouse = mouseOf(speccy).mouse();
+    int lastX = read(speccy, X), lastY = read(speccy, Y), across = 77, down = 33;
+    for (int reading = 0; reading < 200; reading++) {
+      int x = read(speccy, X), y = read(speccy, Y);
+      across = Math.max(0, Math.min(255, across + (byte) (x - lastX)));
+      down = Math.max(0, Math.min(191, down - (byte) (y - lastY)));
+      lastX = x;
+      lastY = y;
+      if (reading == 0) mouse.placeAt(100, 50);
+    }
+    assertEquals(100, across, "a program that stops its pointer at the edges has it where it was placed across");
+    assertEquals(50, down, "and down");
   }
 
   @Test
@@ -118,11 +133,10 @@ class KempstonMousePortsTest {
     Speccy speccy = plugged(true);
     KempstonMouse mouse = mouseOf(speccy).mouse();
 
-    // A stopping counter would falsely imply an edge, so it must wrap instead; 300 exceeds one
-    // reading's capacity, so it is split into three within-limit strokes here.
+    // A stopping counter would falsely imply an edge, so it must wrap instead.
     for (int stroke = 0; stroke < 3; stroke++) {
       mouse.moved(100, 0);
-      read(speccy, X);
+      while (mouse.owed() > 0) read(speccy, X);
     }
     assertEquals(300 & 0xFF, read(speccy, X), "the count wraps at eight bits");
     mouse.moved(-1, 0);

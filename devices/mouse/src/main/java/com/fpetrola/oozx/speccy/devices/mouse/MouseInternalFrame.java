@@ -21,6 +21,8 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.windows.KnobRows;
 import com.fpetrola.oozx.speccy.windows.MachineWindow;
 import com.fpetrola.oozx.speccy.screen.Knob;
+import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
+import java.awt.geom.Point2D;
 
 import java.util.List;
 
@@ -44,13 +46,12 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
   private final JLabel reading = new JLabel();
 
   /**
-   * Counts sent per pixel of hand movement, as a fraction (0.70 = 70%). No fixed scale is
-   * correct since programs and window sizes vary; measured default: normal hand speed produced
-   * 175 counts between reads at a 50Hz poll rate, and a signed byte can only carry 127, so 0.70
-   * (122 counts) keeps every reading under that limit.
+   * Counts sent per pixel of the Spectrum's screen the hand goes over. One is the program's pointer
+   * staying under the hand, for the programs that move theirs a pixel a count, whatever size the
+   * window is.
    */
-  private double acrossTheDesk = 0.70;
-  private double upTheDesk = 0.70;
+  private double acrossTheDesk = 1;
+  private double upTheDesk = 1;
   private boolean swapButtons;
 
   /** Recentres the cursor after each move so the picture's edges never limit hand travel. */
@@ -67,8 +68,8 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
 
   private KempstonMousePeripheral mouse;
 
-  /** Last observed cursor position, the baseline for the next delta. */
-  private Point wasAt;
+  /** The Spectrum's pixel the pointer was last over, the baseline for the next delta; null while it is off the picture. */
+  private Point2D.Double wasAt;
 
   private final MouseMotionAdapter moving = new MouseMotionAdapter() {
     @Override
@@ -162,22 +163,27 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
     }
   }
 
-  /** Reports a movement delta, not an absolute position: the wrapping counters only ever
-   * carry differences, independent of this window's picture size. */
+  /**
+   * Reports how far the hand went over the Spectrum's pixels. Coming onto the picture the program's
+   * pointer is first placed under the hand, which is what keeps the two together: whatever a
+   * program did with what it was told, they meet again each time the pointer comes back in.
+   */
   private void report(MouseEvent where) {
-    if (mouse == null) {
+    if (mouse == null || !(where.getComponent() instanceof SpeccyScreen screen)) {
       return;
     }
-    Point now = where.getPoint();
+    Point2D.Double now = screen.pixelUnder(where.getPoint());
     if (held) {
       // Re-centring after each read lets travel continue indefinitely in one direction.
-      Component picture = where.getComponent();
-      Point middle = new Point(picture.getWidth() / 2, picture.getHeight() / 2);
-      if (now.equals(middle)) {
+      Point middle = new Point(screen.getWidth() / 2, screen.getHeight() / 2);
+      if (where.getPoint().equals(middle)) {
         return;
       }
-      wasAt = middle;
-      putBackInTheMiddle(picture, middle);
+      wasAt = screen.pixelUnder(middle);
+      putBackInTheMiddle(screen, middle);
+    } else if (wasAt == null) {
+      mouse.mouse().placeAt((int) Math.round(now.x * acrossTheDesk), (int) Math.round(now.y * upTheDesk));
+      restX = restY = 0;
     }
     if (wasAt != null) {
       double dx = (now.x - wasAt.x) * acrossTheDesk + restX;
@@ -341,14 +347,14 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
    * renders them without any device-specific UI code. */
   private List<Knob> knobs() {
     return List.of(
-        Knob.number("across", "Sideways", "How far the machine's pointer goes for the same"
-                + " movement of the hand, across. More than a hundred is the pointer moving"
-                + " further than your hand does.",
-            "Movement", 0.1, 8, 0.05, 0.70,
+        Knob.number("across", "Sideways", "How far the machine's pointer goes for each pixel"
+                + " of the picture the hand goes over, across. A hundred keeps it under your hand"
+                + " in the programs that move a pixel a count; more is the pointer going further.",
+            "Movement", 0.1, 8, 0.05, 1,
             () -> acrossTheDesk, value -> acrossTheDesk = asDouble(value)),
         Knob.number("up", "Up and down", "The same for the other direction. A Spectrum screen is"
                 + " wider than it is tall, so the two are not always the same number.",
-            "Movement", 0.1, 8, 0.05, 0.70,
+            "Movement", 0.1, 8, 0.05, 1,
             () -> upTheDesk, value -> upTheDesk = asDouble(value)),
         Knob.switching("carry", "Carry over", "A stroke too quick to be read at once arrives at"
                 + " the next reading instead of being lost. Off, it is dropped and the pointer"
@@ -402,12 +408,12 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
 
       pen.setColor(new Color(0x1E2A33));
       pen.drawRect(0, 0, width - 1, height - 24);
-      int x = reading.x() * (width - 8) / 256;
-      int y = (255 - reading.y()) * (height - 32) / 256;
+      int x = reading.standingX() * (width - 8) / 256;
+      int y = (255 - reading.standingY()) * (height - 32) / 256;
       pen.setColor(new Color(0x5FD08A));
       pen.fillOval(x, y, 8, 8);
 
-      pen.drawString(String.format("x %3d   y %3d", reading.x(), reading.y()), 6, height - 6);
+      pen.drawString(String.format("x %3d   y %3d", reading.standingX(), reading.standingY()), 6, height - 6);
       for (int button = 0; button < 3; button++) {
         pen.setColor(reading.isHeld(button) ? new Color(0x5FD08A) : new Color(0x1E2A33));
         pen.fillRect(width - 46 + button * 14, height - 16, 10, 10);
