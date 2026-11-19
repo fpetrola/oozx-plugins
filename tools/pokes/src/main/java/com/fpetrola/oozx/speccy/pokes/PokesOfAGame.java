@@ -17,6 +17,7 @@
 
 package com.fpetrola.oozx.speccy.pokes;
 
+import com.fpetrola.oozx.speccy.devices.AboutAGame;
 import com.fpetrola.oozx.speccy.devices.Desk;
 import com.fpetrola.oozx.speccy.devices.EmulatorWindow;
 
@@ -35,17 +36,20 @@ import java.util.Arrays;
 import java.util.List;
 
 /** The pokes of a game, where what is known of the game is shown: each one with what it does, and the way to put them in. */
-public class PokesOfAGame {
+public class PokesOfAGame implements AboutAGame {
   private final PokesManager pokes = PokesManager.shared();
 
+  @Override
   public String what() {
     return "Pokes";
   }
 
+  @Override
   public int howMany(Desk.Game game) {
     return byName(found(game)).size();
   }
 
+  @Override
   public JComponent page(Desk.Game game) {
     List<PokFile> found = found(game);
     String[][] rows = byName(found).entrySet().stream()

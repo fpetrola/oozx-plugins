@@ -166,9 +166,12 @@ class GameCard extends JInternalFrame {
     wall.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
     way(wall, "About", 0, null, () -> about(known));
     way(wall, "Play it", 0, null, () -> toPlay(known));
-    com.fpetrola.oozx.speccy.pokes.PokesOfAGame pokes = new com.fpetrola.oozx.speccy.pokes.PokesOfAGame();
     Desk.Game game = new Desk.Game(asked.file(), asked.machine(), known.id, known.title);
-    if (pokes.howMany(game) > 0) way(wall, pokes.what(), pokes.howMany(game), null, () -> pokes.page(game));
+    // What each plugin has of this game: the card does not know what they are, only that they have a name, a count and a page.
+    for (com.fpetrola.oozx.speccy.devices.AboutAGame part : dev.plugdesk.app.Plugins.found(com.fpetrola.oozx.speccy.devices.AboutAGame.class)) {
+      int howMany = part.howMany(game);
+      if (howMany > 0) way(wall, part.what(), howMany, null, () -> part.page(game));
+    }
     List<RzxRecording> recordings = known.id == null ? List.of() : new RzxArchive()
         .recordingsFor(Integer.parseInt(known.id)).stream().filter(RzxRecording::isPlayable).toList();
     if (!recordings.isEmpty()) {
