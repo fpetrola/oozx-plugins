@@ -406,19 +406,46 @@ class GameCard extends JInternalFrame {
 
   /** A picture from wherever the catalogue says it is, given when it has arrived; one that does not arrive is not missed. */
   private static void arriving(String path, int width, int height, Consumer<javax.swing.ImageIcon> given) {
-    BRINGING.execute(() -> {
+    SHOWING.execute(() -> {
       try {
-        java.awt.image.BufferedImage whole = ImageIO.read(kept(path).toFile());
+        java.awt.image.BufferedImage whole = whole(path);
         double fit = Math.min((double) width / whole.getWidth(), (double) height / whole.getHeight());
-        Image fitted = whole.getScaledInstance(Math.max(1, (int) (whole.getWidth() * fit)), Math.max(1, (int) (whole.getHeight() * fit)), Image.SCALE_SMOOTH);
+        java.awt.image.BufferedImage fitted = new java.awt.image.BufferedImage(Math.max(1, (int) (whole.getWidth() * fit)),
+            Math.max(1, (int) (whole.getHeight() * fit)), java.awt.image.BufferedImage.TYPE_INT_ARGB);
+        Graphics2D pen = fitted.createGraphics();
+        pen.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        pen.drawImage(whole, 0, 0, fitted.getWidth(), fitted.getHeight(), null);
+        pen.dispose();
         javax.swing.SwingUtilities.invokeLater(() -> given.accept(new javax.swing.ImageIcon(fitted)));
       } catch (java.io.IOException | RuntimeException notThere) {
       }
     });
   }
 
+  /** Pictures already read, kept while there is memory for them: a tile, its gallery and a second visit read each once. */
+  private static final Map<String, java.lang.ref.SoftReference<java.awt.image.BufferedImage>> READ = new java.util.concurrent.ConcurrentHashMap<>();
+
+  private static java.awt.image.BufferedImage whole(String path) throws java.io.IOException {
+    synchronized (COMING.computeIfAbsent("read " + path, first -> new Object())) {
+      java.lang.ref.SoftReference<java.awt.image.BufferedImage> kept = READ.get(path);
+      java.awt.image.BufferedImage whole = kept == null ? null : kept.get();
+      if (whole == null) {
+        whole = ImageIO.read(kept(path).toFile());
+        if (whole == null) throw new java.io.IOException("not a picture: " + path);
+        READ.put(path, new java.lang.ref.SoftReference<>(whole));
+      }
+      return whole;
+    }
+  }
+
   /** One lock per file being brought, so that a slow one holds back nobody but whoever asked for that same file. */
   private static final Map<String, Object> COMING = new java.util.concurrent.ConcurrentHashMap<>();
+  /** Who reads the pictures somebody is looking at: apart from whoever brings files ahead, so that what is on screen does not wait behind what is not. */
+  private static final java.util.concurrent.ExecutorService SHOWING = java.util.concurrent.Executors.newFixedThreadPool(4, work -> {
+    Thread showing = new Thread(work, "game card: showing a picture");
+    showing.setDaemon(true);
+    return showing;
+  });
   /** Who brings files: several at once, apart from the threads Swing keeps for its own workers. */
   private static final java.util.concurrent.ExecutorService BRINGING = java.util.concurrent.Executors.newFixedThreadPool(6, work -> {
     Thread bringing = new Thread(work, "game card: bringing a file");
