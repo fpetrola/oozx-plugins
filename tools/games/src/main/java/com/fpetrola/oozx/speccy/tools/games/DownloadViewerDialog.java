@@ -68,8 +68,11 @@ public class DownloadViewerDialog extends JDialog {
                     Component viewer = get();
                     contentPanel.removeAll();
                     contentPanel.add(viewer, BorderLayout.CENTER);
-                    contentPanel.revalidate();
-                    contentPanel.repaint();
+                    // As large as what it shows, and no larger than the screen leaves room for.
+                    pack();
+                    Dimension room = Toolkit.getDefaultToolkit().getScreenSize();
+                    setSize(Math.min(getWidth() + 24, room.width * 9 / 10), Math.min(getHeight() + 24, room.height * 9 / 10));
+                    setLocationRelativeTo(getOwner());
                 } catch (Exception e) {
                     contentPanel.removeAll();
                     JTextArea errorArea = new JTextArea();
@@ -148,6 +151,10 @@ public class DownloadViewerDialog extends JDialog {
                 
                 Image scaledImage = icon.getImage().getScaledInstance(width, height, Image.SCALE_SMOOTH);
                 icon = new ImageIcon(scaledImage);
+            } else if (width <= 384) {
+                // A Spectrum screen or something as small: whole pixels, three or two to one, so it is seen and stays sharp.
+                int times = Math.max(1, 768 / width);
+                icon = new ImageIcon(icon.getImage().getScaledInstance(width * times, height * times, Image.SCALE_REPLICATE));
             }
         }
         
@@ -183,7 +190,9 @@ public class DownloadViewerDialog extends JDialog {
         textArea.setLineWrap(true);
         textArea.setWrapStyleWord(true);
         
-        return new JScrollPane(textArea);
+        JScrollPane scrolling = new JScrollPane(textArea);
+        scrolling.setPreferredSize(new Dimension(780, 560));
+        return scrolling;
     }
     
     private boolean isImageFile(String fileName) {
