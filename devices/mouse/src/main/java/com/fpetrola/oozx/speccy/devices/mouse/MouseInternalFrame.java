@@ -21,7 +21,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.windows.KnobRows;
 import com.fpetrola.oozx.speccy.windows.MachineWindow;
 import com.fpetrola.oozx.speccy.screen.Knob;
-import com.fpetrola.oozx.speccy.screen.SpeccyScreen;
+import com.fpetrola.oozx.speccy.screen.PointedAt;
 import java.awt.geom.Point2D;
 
 import java.util.List;
@@ -170,18 +170,18 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
    * program did with what it was told, they meet again each time the pointer comes back in.
    */
   private void report(MouseEvent where) {
-    if (mouse == null || !(where.getComponent() instanceof SpeccyScreen screen)) {
+    if (mouse == null || !(where.getComponent() instanceof PointedAt screen)) {
       return;
     }
     Point2D.Double now = screen.pixelUnder(where.getPoint());
     if (held) {
       // Re-centring after each read lets travel continue indefinitely in one direction.
-      Point middle = new Point(screen.getWidth() / 2, screen.getHeight() / 2);
+      Point middle = new Point(where.getComponent().getWidth() / 2, where.getComponent().getHeight() / 2);
       if (where.getPoint().equals(middle)) {
         return;
       }
       wasAt = screen.pixelUnder(middle);
-      putBackInTheMiddle(screen, middle);
+      putBackInTheMiddle(where.getComponent(), middle);
     } else if (wasAt == null) {
       mouse.mouse().placeAt((int) Math.round(now.x * acrossTheDesk), (int) Math.round(now.y * upTheDesk));
       restX = restY = 0;
