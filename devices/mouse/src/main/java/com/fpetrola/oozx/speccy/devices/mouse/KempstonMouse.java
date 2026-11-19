@@ -63,6 +63,7 @@ public class KempstonMouse {
   private int x;
   private int y;
   private int buttons = WRAP;
+  private int toldButtons = WRAP;
 
   /** Unreported motion, at most a screen of it. */
   private int owedX;
@@ -122,7 +123,6 @@ public class KempstonMouse {
   private boolean inTheCornerX;
   private boolean inTheCornerY;
 
-
   /** Moves as much owed motion into the counters as still fits within the read limit. */
   private void payWhatCanBeRead() {
     if (cornerX != 0 || cornerY != 0) {
@@ -167,6 +167,7 @@ public class KempstonMouse {
   public void rest() {
     buttons = WRAP;
     owedX = owedY = shownX = shownY = cornerX = cornerY = 0;
+    toldButtons = WRAP;
   }
 
   /** The counters as they stand, for a window to show: not a reading, so it lets nothing owed through. */
@@ -197,9 +198,14 @@ public class KempstonMouse {
     return reading;
   }
 
+  /**
+   * The buttons come after the movement made before them: a hand quicker than the readings has its
+   * pointer arrive behind it, and a click told at once would land wherever the pointer was passing.
+   */
   public int buttons() {
-    watcher.programRead("buttons", buttons);
-    return buttons;
+    if (cornerX == 0 && cornerY == 0 && owed() == 0) toldButtons = buttons;
+    watcher.programRead("buttons", toldButtons);
+    return toldButtons;
   }
 
   /** True if the given button is currently held (its bit reads low). */

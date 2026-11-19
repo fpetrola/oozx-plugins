@@ -129,6 +129,17 @@ class KempstonMousePortsTest {
   }
 
   @Test
+  void a_click_waits_for_the_pointer_to_arrive_where_it_was_made() {
+    Speccy speccy = plugged(true);
+    KempstonMouse mouse = mouseOf(speccy).mouse();
+    mouse.moved(30, 0);
+    mouse.button(0, true);
+    assertEquals(0xFF, read(speccy, BUTTONS), "the pointer is still on its way, so nothing is pressed yet");
+    while (mouse.owed() > 0) read(speccy, X);
+    assertEquals(0xFE, read(speccy, BUTTONS), "and once it is where the hand was, it is");
+  }
+
+  @Test
   void the_counts_wrap_rather_than_stop() {
     Speccy speccy = plugged(true);
     KempstonMouse mouse = mouseOf(speccy).mouse();

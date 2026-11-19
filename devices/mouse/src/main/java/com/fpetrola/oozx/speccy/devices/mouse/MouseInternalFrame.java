@@ -96,8 +96,9 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
 
     @Override
     public void mouseExited(MouseEvent left) {
-      // Discards the baseline: re-entering elsewhere must not read as one huge jump.
-      wasAt = null;
+      // Only off the picture: a press brings the window forward, which says the pointer left and
+      // came back without its moving, and placing the pointer again then would send the click to the corner.
+      if (!left.getComponent().contains(left.getPoint())) wasAt = null;
     }
   };
 
