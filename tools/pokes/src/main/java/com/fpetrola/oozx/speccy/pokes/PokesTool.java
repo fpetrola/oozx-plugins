@@ -58,7 +58,7 @@ public class PokesTool implements MachineTool {
   }
 
   public String tooltip() {
-    return "Cheats/Pokes";
+    return "Pokes";
   }
 
   public void use(EmulatorWindow window) {

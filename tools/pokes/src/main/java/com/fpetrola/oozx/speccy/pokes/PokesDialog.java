@@ -48,7 +48,7 @@ public class PokesDialog extends JDialog {
 
   public PokesDialog(Frame owner, String gameName, List<PokFile> availablePokes, PokesManager pokesManager, 
                      List<PokFile.PokeMod> previouslyAppliedMods) {
-    super(owner, "Game Cheats/Pokes - " + gameName, true);
+    super(owner, "Pokes - " + gameName, true);
     this.availablePokes = availablePokes;
     this.filteredPokes = new ArrayList<>(availablePokes);
     this.pokesManager = pokesManager;
@@ -82,7 +82,7 @@ public class PokesDialog extends JDialog {
     JPanel headerPanel = new JPanel();
     headerPanel.setLayout(new BorderLayout());
     
-    JLabel titleLabel = new JLabel("Available Cheats & Pokes");
+    JLabel titleLabel = new JLabel("Available pokes");
     titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
     headerPanel.add(titleLabel, BorderLayout.WEST);
     
