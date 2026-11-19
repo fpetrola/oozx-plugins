@@ -28,19 +28,18 @@ import java.net.URL;
 import java.net.URLConnection;
 
 /**
- * Dialog for viewing downloaded files from the internet
+ * A file the catalogue has of a game, seen on the desk: a window like any other there, which can be made as large as
+ * the desk or put away, so that a map can be studied beside the game it is of.
  */
-public class DownloadViewerDialog extends JDialog {
+public class DownloadViewer extends JInternalFrame {
     private static final int DEFAULT_WIDTH = 800;
     private static final int DEFAULT_HEIGHT = 600;
 
-    public DownloadViewerDialog(Frame owner, String downloadUrl, String fileName) {
-        super(owner, "Download Viewer - " + fileName, false);
+    public DownloadViewer(String downloadUrl, String fileName) {
+        super(fileName, true, true, true, true);
         
         setSize(DEFAULT_WIDTH, DEFAULT_HEIGHT);
-        setLocationRelativeTo(owner);
-        setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
-        setModal(true);
+        setDefaultCloseOperation(JInternalFrame.DISPOSE_ON_CLOSE);
         // Setup Escape key to close
         setupEscapeToClose();
         
@@ -70,9 +69,9 @@ public class DownloadViewerDialog extends JDialog {
                     contentPanel.add(viewer, BorderLayout.CENTER);
                     // As large as what it shows, and no larger than the screen leaves room for.
                     pack();
-                    Dimension room = Toolkit.getDefaultToolkit().getScreenSize();
-                    setSize(Math.min(getWidth() + 24, room.width * 9 / 10), Math.min(getHeight() + 24, room.height * 9 / 10));
-                    setLocationRelativeTo(getOwner());
+                    Dimension room = getParent() == null ? Toolkit.getDefaultToolkit().getScreenSize() : getParent().getSize();
+                    setSize(Math.min(getWidth() + 24, room.width - 20), Math.min(getHeight() + 24, room.height - 20));
+                    setLocation(Math.max(0, (room.width - getWidth()) / 2), Math.max(0, (room.height - getHeight()) / 2));
                 } catch (Exception e) {
                     contentPanel.removeAll();
                     JTextArea errorArea = new JTextArea();

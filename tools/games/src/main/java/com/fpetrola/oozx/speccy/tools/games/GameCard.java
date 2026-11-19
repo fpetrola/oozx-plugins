@@ -337,8 +337,8 @@ class GameCard extends JInternalFrame {
           String name = brought.getFileName().toString();
           if (name.toLowerCase().endsWith(".ay")) {
             Desk.theOne().place(new AyPlayer(game, brought));
-          } else if (DownloadViewerDialog.shows(name)) {
-            new DownloadViewerDialog((Frame) null, brought.toUri().toString(), name).setVisible(true);
+          } else if (DownloadViewer.shows(name)) {
+            Desk.theOne().place(new DownloadViewer(brought.toUri().toString(), name));
           } else {
             java.awt.Desktop.getDesktop().open(brought.toFile());
           }
@@ -432,7 +432,7 @@ class GameCard extends JInternalFrame {
       if (whole == null) {
         java.nio.file.Path file = kept(path);
         whole = file.getFileName().toString().toLowerCase().endsWith(".scr")
-            ? DownloadViewerDialog.screen(java.nio.file.Files.readAllBytes(file)) : ImageIO.read(file.toFile());
+            ? DownloadViewer.screen(java.nio.file.Files.readAllBytes(file)) : ImageIO.read(file.toFile());
         if (whole == null) throw new java.io.IOException("not a picture: " + path);
         READ.put(path, new java.lang.ref.SoftReference<>(whole));
       }
