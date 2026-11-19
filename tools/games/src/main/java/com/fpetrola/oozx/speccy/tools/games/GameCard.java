@@ -111,9 +111,11 @@ class GameCard extends JInternalFrame {
   private final JLabel where = new JLabel();
   private final JButton back = new JButton("← Everything");
   private int kinds;
+  private final String game;
 
   GameCard(Desk.Game asked, GameDetail known, Consumer<String> askAgain) {
     super(known == null ? "Not recognised" : known.title, true, true, true, true);
+    game = known == null ? null : known.title;
     JPanel card = new JPanel(new BorderLayout());
     card.add(new Heading(asked, known), BorderLayout.NORTH);
     JPanel body = new JPanel(new BorderLayout());
@@ -260,7 +262,7 @@ class GameCard extends JInternalFrame {
   }
 
   /** The pictures of one kind, large enough to tell apart, each opening whole. */
-  private static JComponent gallery(List<AdditionalDownload> files) {
+  private JComponent gallery(List<AdditionalDownload> files) {
     JPanel gallery = new JPanel(new GridLayout(0, 3, 12, 12));
     gallery.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
     for (AdditionalDownload file : files) {
@@ -290,13 +292,13 @@ class GameCard extends JInternalFrame {
     return top;
   }
 
-  private static JComponent files(List<AdditionalDownload> files) {
+  private JComponent files(List<AdditionalDownload> files) {
     return table(new String[]{"File", "Kind", "Format", "Size", "Language"}, files.stream().map(file -> new String[]{
         nameOf(file.path), file.type, file.format, file.size == null ? "" : file.size / 1024 + " KB", file.language}).toList(),
-        row -> opened(files.get(row)), "Pick a file and open it; music plays on a machine of its own", "Open");
+        row -> opened(files.get(row)), "Pick a file and open it; music opens in its player", "Open");
   }
 
-  private static void opened(AdditionalDownload file) {
+  private void opened(AdditionalDownload file) {
     new SwingWorker<java.nio.file.Path, Void>() {
       protected java.nio.file.Path doInBackground() throws Exception {
         return kept(file.path);
@@ -307,7 +309,7 @@ class GameCard extends JInternalFrame {
           java.nio.file.Path brought = get();
           String name = brought.getFileName().toString();
           if (name.toLowerCase().endsWith(".ay")) {
-            played(brought);
+            Desk.theOne().place(new AyPlayer(game, brought));
           } else if (DownloadViewerDialog.shows(name)) {
             new DownloadViewerDialog((Frame) null, brought.toUri().toString(), name).setVisible(true);
           } else {
@@ -318,21 +320,6 @@ class GameCard extends JInternalFrame {
         }
       }
     }.execute();
-  }
-
-  /** A song of that music file on a machine of its own, asking which when the file has several. */
-  private static void played(java.nio.file.Path music) throws java.io.IOException {
-    AyMusic ay = new AyMusic(music);
-    List<String> songs = ay.songs();
-    Object which = songs.size() == 1 ? songs.get(0) : javax.swing.JOptionPane.showInputDialog(null, "Which song?", music.getFileName().toString(),
-        javax.swing.JOptionPane.QUESTION_MESSAGE, null, songs.toArray(), songs.get(0));
-    if (which == null) return;
-    // Beside what was brought and not inside it: a snapshot left among a zip's files would be taken for one of them.
-    java.nio.file.Path song = music.getParent().resolveSibling(music.getFileName() + "-" + (songs.indexOf(which) + 1) + ".sna");
-    java.nio.file.Files.write(song, ay.snapshot(songs.indexOf(which)));
-    // Music is heard at the speed it was written for, whatever speed the desk starts its machines at.
-    com.fpetrola.oozx.speccy.devices.EmulatorWindow playing = Desk.theOne().machineFrom(song.toFile());
-    if (playing != null) Desk.theOne().coreOf((java.awt.Component) playing).setGeneralOption("speed", 100);
   }
 
   private static JComponent table(String[] columns, List<String[]> rows, IntConsumer chosen, String saying) {

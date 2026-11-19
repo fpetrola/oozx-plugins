@@ -50,6 +50,20 @@ final class AyMusic {
     return names;
   }
 
+  /** Who wrote it and whatever else the file says of itself, which is often who ripped it. */
+  String author() {
+    return text(pointed(12));
+  }
+
+  String notes() {
+    return text(pointed(14));
+  }
+
+  /** How long that song lasts in seconds, as the file says; nothing when it does not say, which is a song that loops. */
+  int seconds(int song) {
+    return word(pointed(pointed(18) + song * 4 + 2) + 4) / 50;
+  }
+
   /** That song as a 128K snapshot, in the SNA format: the 48K in sight, then where it starts, then the other banks. */
   byte[] snapshot(int song) throws IOException {
     int data = pointed(pointed(18) + song * 4 + 2), points = pointed(data + 10), blocks = pointed(data + 12);
