@@ -524,11 +524,45 @@ class GameCard extends JInternalFrame {
           JLabel screen = new JLabel("", JLabel.CENTER);
           screen.setPreferredSize(new Dimension(224, 168));
           screen.setBorder(BorderFactory.createLineBorder(new Color(0x3A3A44), 2));
-          arriving(known.screenshots.get(0), 220, 164, screen::setIcon);
+          // The screens the catalogue lists as files, which are all of them; the ones it gives for a cover, when it lists none.
+          List<String> screens = known.additionalDownloads == null ? List.of() : known.additionalDownloads.stream()
+              .filter(one -> one.path != null && one.type != null && one.type.endsWith("screen")).map(one -> one.path).toList();
+          turning(screen, screens.isEmpty() ? known.screenshots : screens);
           add(screen, BorderLayout.WEST);
         }
       }
       add(words, BorderLayout.CENTER);
+    }
+
+    /**
+     * The game's screens one after another in that frame, every few seconds, in the order they arrive; a click moves
+     * on at once. It stops by itself when the card is gone, so that a closed card is not kept alive by its pictures.
+     */
+    private static void turning(JLabel screen, List<String> screens) {
+      List<javax.swing.ImageIcon> arrived = new ArrayList<>();
+      int[] shown = {0};
+      Runnable next = () -> {
+        if (arrived.size() > 1) screen.setIcon(arrived.get(shown[0] = (shown[0] + 1) % arrived.size()));
+      };
+      screens.stream().distinct().forEach(one -> arriving(one, 220, 164, icon -> {
+        arrived.add(icon);
+        if (arrived.size() == 1) screen.setIcon(icon);
+      }));
+      javax.swing.Timer every = new javax.swing.Timer(3500, null);
+      every.addActionListener(tick -> {
+        if (screen.isDisplayable()) next.run();
+        else every.stop();
+      });
+      every.start();
+      screen.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+      screen.setToolTipText("The game's screens, one after another; click for the next");
+      screen.addMouseListener(new MouseAdapter() {
+        @Override
+        public void mouseClicked(MouseEvent pressed) {
+          next.run();
+          every.restart();
+        }
+      });
     }
 
     private static JLabel line(String text, float size, int style, Color colour) {
