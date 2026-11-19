@@ -106,12 +106,14 @@ public class DownloadViewerDialog extends JDialog {
         return lower.endsWith(".scr") || lower.matches(".*\\.(jpg|jpeg|png|gif|bmp|txt|md|html|htm|xml|json|csv|log)");
     }
 
-    /** A Spectrum screen as it is kept: 6144 bytes of pixels in the display's own order, then 768 of colours, a cell each. */
     private Component createScreenViewer(String downloadUrl) throws IOException {
-        byte[] screen;
         try (InputStream in = new URL(downloadUrl).openStream()) {
-            screen = in.readAllBytes();
+            return new JScrollPane(new JLabel(new ImageIcon(screen(in.readAllBytes()).getScaledInstance(768, 576, Image.SCALE_REPLICATE))));
         }
+    }
+
+    /** A Spectrum screen as it is kept: 6144 bytes of pixels in the display's own order, then 768 of colours, a cell each. */
+    static java.awt.image.BufferedImage screen(byte[] screen) throws IOException {
         if (screen.length < 6912) throw new IOException("not a Spectrum screen: " + screen.length + " bytes");
         java.awt.image.BufferedImage picture = new java.awt.image.BufferedImage(256, 192, java.awt.image.BufferedImage.TYPE_INT_RGB);
         for (int y = 0; y < 192; y++) {
@@ -123,8 +125,7 @@ public class DownloadViewerDialog extends JDialog {
                 picture.setRGB(x, y, ((colour & 2) != 0 ? level << 16 : 0) | ((colour & 4) != 0 ? level << 8 : 0) | ((colour & 1) != 0 ? level : 0));
             }
         }
-        JLabel shown = new JLabel(new ImageIcon(picture.getScaledInstance(768, 576, Image.SCALE_REPLICATE)));
-        return new JScrollPane(shown);
+        return picture;
     }
 
     private Component createImageViewer(String downloadUrl) throws IOException {

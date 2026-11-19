@@ -401,7 +401,7 @@ class GameCard extends JInternalFrame {
 
   private static String firstPicture(List<AdditionalDownload> files) {
     return files.stream().map(file -> file.path).filter(path -> path.toLowerCase()
-        .matches(".*\\.(jpg|jpeg|png|gif)")).findFirst().orElse(null);
+        .matches(".*\\.(jpg|jpeg|png|gif|scr)(\\.zip)?")).findFirst().orElse(null);
   }
 
   /** A picture from wherever the catalogue says it is, given when it has arrived; one that does not arrive is not missed. */
@@ -430,7 +430,9 @@ class GameCard extends JInternalFrame {
       java.lang.ref.SoftReference<java.awt.image.BufferedImage> kept = READ.get(path);
       java.awt.image.BufferedImage whole = kept == null ? null : kept.get();
       if (whole == null) {
-        whole = ImageIO.read(kept(path).toFile());
+        java.nio.file.Path file = kept(path);
+        whole = file.getFileName().toString().toLowerCase().endsWith(".scr")
+            ? DownloadViewerDialog.screen(java.nio.file.Files.readAllBytes(file)) : ImageIO.read(file.toFile());
         if (whole == null) throw new java.io.IOException("not a picture: " + path);
         READ.put(path, new java.lang.ref.SoftReference<>(whole));
       }
