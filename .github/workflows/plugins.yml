@@ -144,8 +144,9 @@ jobs:
             echo "[\`${GITHUB_SHA:0:9}\`](https://github.com/$GITHUB_REPOSITORY/commit/$GITHUB_SHA)."
             echo
             echo "A plugin is a jar: drop it in \`~/.oozx/plugins\` and the emulator finds what it brings."
-            echo "How to write one, and every way in there is, are in"
-            echo "[Extending OOZX](https://github.com/fpetrola/oozx/wiki/Extending-OOZX)."
+            echo "How to write one is"
+            echo "[Build a peripheral](https://github.com/fpetrola/oozx/wiki/Build-a-peripheral), and every way in there is, is on"
+            echo "[Plugins](https://github.com/fpetrola/oozx/wiki/Plugins)."
             echo
             echo "See [Peripherals](https://github.com/fpetrola/oozx/wiki/Peripherals)."
           } > notes.md

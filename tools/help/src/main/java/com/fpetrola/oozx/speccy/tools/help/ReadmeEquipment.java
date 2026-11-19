@@ -58,7 +58,7 @@ public class ReadmeEquipment implements Explains {
   }
 
   public JInternalFrame open() {
-    JEditorPane page = showing("Getting-Started"), pages = showing("_Sidebar");
+    JEditorPane page = showing("Your-first-five-minutes"), pages = showing("_Sidebar");
     for (JEditorPane linked : List.of(page, pages)) linked.addHyperlinkListener(link -> {
       if (link.getEventType() == HyperlinkEvent.EventType.ACTIVATED) follow(link.getDescription(), page);
     });

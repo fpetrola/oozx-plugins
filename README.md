@@ -30,8 +30,8 @@ That is what the workflow does too, on every push.
 
 ## Writing one
 
-A plugin is a jar that says which way in it answers to, and nothing else. Every way in there is,
-with the interface and a working example of each, is in
-[Extending OOZX](https://github.com/fpetrola/oozx/wiki/Extending-OOZX). A plugin of your own
+A plugin is a jar that says which way in it answers to, and nothing else.
+[Build a peripheral](https://github.com/fpetrola/oozx/wiki/Build-a-peripheral) writes one from nothing, and
+every way in there is, is on [Plugins](https://github.com/fpetrola/oozx/wiki/Plugins). A plugin of your own
 does not belong here: yours is a jar of yours, and the emulator finds it the same way it finds
 these.

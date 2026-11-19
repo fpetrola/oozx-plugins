@@ -349,7 +349,7 @@ public class MouseInternalFrame extends DeviceFrame<KempstonMousePeripheral> {
   private List<Knob> knobs() {
     return List.of(
         Knob.number("across", "Sideways", "How far the machine's pointer goes for each pixel"
-                + " of the picture the hand goes over, across. A hundred keeps it under your hand"
+                + " of the picture the hand goes over, across. One keeps it under your hand"
                 + " in the programs that move a pixel a count; more is the pointer going further.",
             "Movement", 0.1, 8, 0.05, 1,
             () -> acrossTheDesk, value -> acrossTheDesk = asDouble(value)),
