@@ -43,8 +43,8 @@ import java.util.stream.Stream;
  */
 public class GameLibrary {
   private static final ObjectMapper JSON = new ObjectMapper();
-  /** Bumped whenever a copy starts recording something new. */
-  private static final int FORMAT = 2;
+  /** Bumped whenever a copy starts recording something new, or a file would now be answered differently. */
+  private static final int FORMAT = 3;
 
   private final Map<String, Copy> byPath = new LinkedHashMap<>();
   private final GameFingerprint.Index catalogue;
