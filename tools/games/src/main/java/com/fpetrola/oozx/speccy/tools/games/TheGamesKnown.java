@@ -53,6 +53,7 @@ public class TheGamesKnown implements WhatGameThisIs {
   public Desk.Game gameIn(String file) {
     if (!java.nio.file.Files.isRegularFile(Path.of(file))) return null;
     if (file.toLowerCase().endsWith(".zip")) return gameInside(file);
+    if (file.toLowerCase().endsWith(".rzx")) return gameRecorded(file);
     GameSummary known = LocalGames.whoIs(Path.of(file));
     return known == null ? null : new Desk.Game(file, machineOf(known.id), known.id, known.title);
   }
@@ -63,6 +64,23 @@ public class TheGamesKnown implements WhatGameThisIs {
       return com.fpetrola.oozx.speccy.media.DownloadAndUnzip.fetchAll(new java.io.File(zip).toURI().toString()).stream()
           .map(part -> gameIn(part.toString())).filter(java.util.Objects::nonNull).findFirst().orElse(null);
     } catch (java.io.IOException | RuntimeException notUnpacked) {
+      return null;
+    }
+  }
+
+  /** A recording starts from a snapshot it carries inside, and that snapshot is the game: it is what the catalogue is asked about. */
+  private Desk.Game gameRecorded(String recording) {
+    try {
+      com.fpetrola.z80.ide.rzx.SnapshotBlock carried = new com.fpetrola.z80.ide.rzx.RzxParser().parseFile(recording).getSnapshotBlock();
+      Path snapshot = java.nio.file.Files.createTempFile("recorded-", "." + carried.getSnapshotExtension().trim().toLowerCase());
+      try {
+        java.nio.file.Files.write(snapshot, carried.getSnapshotData());
+        Desk.Game known = gameIn(snapshot.toString());
+        return known == null ? null : new Desk.Game(recording, known.machine(), known.id(), known.title());
+      } finally {
+        java.nio.file.Files.deleteIfExists(snapshot);
+      }
+    } catch (java.io.IOException | RuntimeException notRead) {
       return null;
     }
   }
