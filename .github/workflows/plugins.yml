@@ -2,6 +2,9 @@
 #
 # The list is not written here: every module whose artifactId starts with "device-" or "tool-" is
 # one, so a peripheral added tomorrow gets its release without this file changing.
+#
+# It takes oozx from JitPack at the version the poms say. A push made before that oozx tag is there
+# fails, and has to be followed by another push once JitPack has it.
 name: Plugins
 
 on:
