@@ -413,7 +413,8 @@ class GameCard extends JInternalFrame {
         java.awt.image.BufferedImage fitted = new java.awt.image.BufferedImage(Math.max(1, (int) (whole.getWidth() * fit)),
             Math.max(1, (int) (whole.getHeight() * fit)), java.awt.image.BufferedImage.TYPE_INT_ARGB);
         Graphics2D pen = fitted.createGraphics();
-        pen.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        pen.setRenderingHint(RenderingHints.KEY_INTERPOLATION, fit >= 1
+            ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR : RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         pen.drawImage(whole, 0, 0, fitted.getWidth(), fitted.getHeight(), null);
         pen.dispose();
         javax.swing.SwingUtilities.invokeLater(() -> given.accept(new javax.swing.ImageIcon(fitted)));
@@ -522,7 +523,8 @@ class GameCard extends JInternalFrame {
         words.add(line(joined("     ", known.score == null ? null : "★ " + known.score, known.genre), 13f, Font.BOLD, STRIPES[1]));
         if (known.screenshots != null && !known.screenshots.isEmpty()) {
           JLabel screen = new JLabel("", JLabel.CENTER);
-          screen.setPreferredSize(new Dimension(224, 168));
+          // A Spectrum screen at its own size, a pixel for a pixel, so that nothing in it is blurred.
+          screen.setPreferredSize(new Dimension(260, 196));
           screen.setBorder(BorderFactory.createLineBorder(new Color(0x3A3A44), 2));
           // The screens the catalogue lists as files, which are all of them; the ones it gives for a cover, when it lists none.
           List<String> screens = known.additionalDownloads == null ? List.of() : known.additionalDownloads.stream()
@@ -544,7 +546,7 @@ class GameCard extends JInternalFrame {
       Runnable next = () -> {
         if (arrived.size() > 1) screen.setIcon(arrived.get(shown[0] = (shown[0] + 1) % arrived.size()));
       };
-      screens.stream().distinct().forEach(one -> arriving(one, 220, 164, icon -> {
+      screens.stream().distinct().forEach(one -> arriving(one, 256, 192, icon -> {
         arrived.add(icon);
         if (arrived.size() == 1) screen.setIcon(icon);
       }));
