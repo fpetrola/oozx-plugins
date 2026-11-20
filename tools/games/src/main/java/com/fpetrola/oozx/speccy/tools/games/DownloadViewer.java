@@ -110,7 +110,7 @@ public class DownloadViewer extends JInternalFrame {
 
     private Component createScreenViewer(String downloadUrl) throws IOException {
         try (InputStream in = new URL(downloadUrl).openStream()) {
-            return zooming(screen(in.readAllBytes()));
+            return dev.plugdesk.desk.Widgets.zooming(screen(in.readAllBytes()));
         }
     }
 
@@ -133,97 +133,7 @@ public class DownloadViewer extends JInternalFrame {
     private Component createImageViewer(String downloadUrl) throws IOException {
         java.awt.image.BufferedImage picture = javax.imageio.ImageIO.read(new URL(downloadUrl));
         if (picture == null) throw new IOException("not a picture this can read");
-        return zooming(picture);
-    }
-
-    /**
-     * A picture that can be looked into: the wheel brings it nearer or takes it away, keeping what is under the
-     * pointer there, dragging moves it, and the buttons say the same in words. It starts whole: a small one, such
-     * as a Spectrum screen, as many whole pixels to one as fit, and a large one shrunk to the window.
-     */
-    private Component zooming(java.awt.image.BufferedImage picture) {
-        double[] times = {picture.getWidth() <= 384 ? Math.max(1, 768 / picture.getWidth())
-            : Math.min(1, Math.min(900.0 / picture.getWidth(), 640.0 / picture.getHeight()))};
-        JComponent shown = new JComponent() {
-            @Override
-            public Dimension getPreferredSize() {
-                return new Dimension((int) (picture.getWidth() * times[0]), (int) (picture.getHeight() * times[0]));
-            }
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                // Pixels stay pixels when it is enlarged, and are blended only when it is made smaller.
-                ((Graphics2D) g).setRenderingHint(RenderingHints.KEY_INTERPOLATION, times[0] >= 1
-                    ? RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR : RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                g.drawImage(picture, 0, 0, getPreferredSize().width, getPreferredSize().height, null);
-            }
-        };
-        JPanel centred = new JPanel(new GridBagLayout());
-        centred.add(shown);
-        JScrollPane scrolling = new JScrollPane(centred);
-        scrolling.getVerticalScrollBar().setUnitIncrement(24);
-        JLabel says = new JLabel();
-        java.util.function.BiConsumer<Double, Point> zoom = (to, about) -> {
-            double before = times[0];
-            times[0] = Math.max(0.05, Math.min(16, to));
-            says.setText(Math.round(times[0] * 100) + " %");
-            shown.revalidate();
-            scrolling.validate();
-            // What was under the pointer stays under it.
-            Point at = scrolling.getViewport().getViewPosition();
-            double grown = times[0] / before;
-            scrolling.getViewport().setViewPosition(new Point(Math.max(0, (int) ((at.x + about.x) * grown - about.x)),
-                Math.max(0, (int) ((at.y + about.y) * grown - about.y))));
-            shown.repaint();
-        };
-        java.awt.event.MouseAdapter hand = new java.awt.event.MouseAdapter() {
-            private Point held;
-
-            @Override
-            public void mouseWheelMoved(java.awt.event.MouseWheelEvent turned) {
-                zoom.accept(times[0] * (turned.getWheelRotation() < 0 ? 1.25 : 0.8),
-                    SwingUtilities.convertPoint(turned.getComponent(), turned.getPoint(), scrolling.getViewport()));
-            }
-
-            @Override
-            public void mousePressed(java.awt.event.MouseEvent pressed) {
-                held = pressed.getLocationOnScreen();
-            }
-
-            @Override
-            public void mouseDragged(java.awt.event.MouseEvent dragged) {
-                Point now = dragged.getLocationOnScreen(), at = scrolling.getViewport().getViewPosition();
-                Dimension all = centred.getSize(), seen = scrolling.getViewport().getExtentSize();
-                scrolling.getViewport().setViewPosition(new Point(Math.max(0, Math.min(all.width - seen.width, at.x + held.x - now.x)),
-                    Math.max(0, Math.min(all.height - seen.height, at.y + held.y - now.y))));
-                held = now;
-            }
-        };
-        centred.addMouseWheelListener(hand);
-        centred.addMouseListener(hand);
-        centred.addMouseMotionListener(hand);
-        centred.setCursor(Cursor.getPredefinedCursor(Cursor.MOVE_CURSOR));
-        Point middle = new Point(0, 0);
-        JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 4));
-        bar.add(doing("\u2212", "Smaller", () -> zoom.accept(times[0] * 0.8, middle)));
-        bar.add(doing("+", "Larger", () -> zoom.accept(times[0] * 1.25, middle)));
-        bar.add(doing("1:1", "Each pixel of the picture as one of the screen", () -> zoom.accept(1.0, middle)));
-        bar.add(doing("Fit", "The whole picture in the window", () -> zoom.accept(Math.min(
-            (double) scrolling.getViewport().getWidth() / picture.getWidth(), (double) scrolling.getViewport().getHeight() / picture.getHeight()), middle)));
-        says.setText(Math.round(times[0] * 100) + " %");
-        bar.add(says);
-        bar.add(new JLabel("   wheel to zoom, drag to move"));
-        JPanel whole = new JPanel(new BorderLayout());
-        whole.add(bar, BorderLayout.NORTH);
-        whole.add(scrolling, BorderLayout.CENTER);
-        return whole;
-    }
-
-    private static JButton doing(String text, String tip, Runnable what) {
-        JButton button = new JButton(text);
-        button.setToolTipText(tip);
-        button.addActionListener(pressed -> what.run());
-        return button;
+        return dev.plugdesk.desk.Widgets.zooming(picture);
     }
 
     private Component createTextViewer(String downloadUrl) throws IOException {

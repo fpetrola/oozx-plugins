@@ -72,10 +72,12 @@ public class Zxdb implements KnowsTheGames {
 
   /** The tables kept per entry, which are what the part that ships is cut down by. */
   private static final List<String> BY_ENTRY =
-      List.of("releases", "downloads", "publishers", "authors", "aliases", "scores", "tosec", "notes");
+      List.of("releases", "downloads", "publishers", "authors", "aliases", "scores", "tosec", "notes", "webrefs", "magrefs",
+          "relations");
   /** The tables that give an id its name, kept whole. */
   private static final List<String> NAMES = List.of("machinetypes", "genretypes", "availabletypes",
-      "filetypes", "extensions", "sourcetypes", "schemetypes", "currencies", "labeltypes", "countries", "languages");
+      "filetypes", "extensions", "sourcetypes", "schemetypes", "currencies", "labeltypes", "countries", "languages",
+      "websites", "issues", "magazines", "referencetypes");
   /** Every table an answer is read from; nothing else of the dump is kept. */
   private static final List<String> READ =
       Stream.of(List.of("entries", "labels"), BY_ENTRY, NAMES).flatMap(List::stream).toList();
@@ -126,6 +128,14 @@ public class Zxdb implements KnowsTheGames {
           'score', CASE WHEN s.votes IS NOT NULL THEN json_object('score', s.score, 'votes', s.votes) END,
           'hardwareBlurb', (SELECT text FROM notes WHERE entry_id = e.id AND notetype_id = 'S' ORDER BY id LIMIT 1),
           'remarks', (SELECT group_concat(text, char(10)) FROM notes WHERE entry_id = e.id AND notetype_id = 'R'),
+          'relatedLinks', json((SELECT json_group_array(json_object('siteName', w.name, 'url', b.link))
+              FROM webrefs b JOIN websites w ON w.id = b.website_id WHERE b.entry_id = e.id)),
+          'magazineReferences', json((SELECT json_group_array(json_object('type', t.text, 'magazineName', z.name,
+                'page', g.page, 'issueId', g.issue_id, 'dateYear', i.date_year, 'dateMonth', i.date_month))
+              FROM magrefs g JOIN issues i ON i.id = g.issue_id JOIN magazines z ON z.id = i.magazine_id
+                LEFT JOIN referencetypes t ON t.id = g.referencetype_id WHERE g.entry_id = e.id)),
+          'requiredByHardware', json((SELECT json_group_array(json_object('entry_id', printf('%07d', x.id), 'title', x.title))
+              FROM relations q JOIN entries x ON x.id = q.entry_id WHERE q.original_id = e.id AND q.relationtype_id = 'h')),
           'publishers', json((SELECT json_group_array(json(publisher) ORDER BY publisher_seq) FROM published
               WHERE entry_id = e.id AND release_seq = 0)),
           'authors', json((SELECT json_group_array(json_object('authorSeq', w.author_seq, 'name', b.name, 'country', c.text,
@@ -318,7 +328,10 @@ public class Zxdb implements KnowsTheGames {
     }
   }
 
-  /** One line of the MySQL script as SQLite reads it: the changes ZXDB's own ZXDB_to_SQLite.py makes. */
+  /**
+   * One line of the MySQL script as SQLite reads it: the changes ZXDB's own ZXDB_to_SQLite.py makes, and a written
+   * line break made one, as ZXInfo answers it.
+   */
   private static String sqlite(String mysql) {
     if (mysql.startsWith(") ENGINE")) {
       return ");";
@@ -326,7 +339,7 @@ public class Zxdb implements KnowsTheGames {
     if (KEY.matcher(mysql).matches()) {
       return "";
     }
-    String line = mysql.replace("`", "").replace("\\'", "''").replace("\\\\", "\\")
+    String line = mysql.replace("`", "").replace("\\'", "''").replaceAll("(?<!\\\\)\\\\n", "\n").replace("\\\\", "\\")
         .replace("utf8_bin", "rtrim").replace("utf8_unicode_ci", "rtrim")
         .replace("CHARACTER SET utf8", "").replace("AUTO_INCREMENT", "");
     return UNIQUE.matcher(UNSIGNED.matcher(line).replaceAll("INTEGER")).replaceAll("UNIQUE (");
@@ -342,14 +355,19 @@ public class Zxdb implements KnowsTheGames {
     return path.substring(0, name) + title + '/' + path.substring(name);
   }
 
-  /** The most voted games of the whole database, and every piece of hardware, as the part that ships with the build. */
+  /**
+   * The most voted games of the whole database, every piece of hardware and the programs that need or support one, as
+   * the part that ships with the build.
+   */
   private static void keepTheMostVoted(int games, File shipped) throws IOException, SQLException {
     Files.deleteIfExists(shipped.toPath());
     try (Connection db = open(shipped); Statement sql = db.createStatement()) {
       sql.executeUpdate("ATTACH '" + WHOLE + "' AS whole");
       sql.executeUpdate("CREATE TABLE entries AS SELECT * FROM whole.entries WHERE id IN"
           + " (SELECT entry_id FROM whole.scores ORDER BY votes DESC, entry_id LIMIT " + games + ")"
-          + " OR id BETWEEN " + HARDWARE + " AND " + (2 * HARDWARE - 1));
+          + " OR id BETWEEN " + HARDWARE + " AND " + (2 * HARDWARE - 1)
+          + " OR id IN (SELECT entry_id FROM whole.relations WHERE original_id BETWEEN " + HARDWARE + " AND "
+          + (2 * HARDWARE - 1) + " AND relationtype_id IN ('h', 't'))");
       for (String table : BY_ENTRY) {
         sql.executeUpdate("CREATE TABLE " + table + " AS SELECT * FROM whole." + table
             + " WHERE entry_id IN (SELECT id FROM entries)");
@@ -367,6 +385,7 @@ public class Zxdb implements KnowsTheGames {
   private static void indexed(Statement sql) throws SQLException {
     sql.executeUpdate("CREATE INDEX IF NOT EXISTS entries_id ON entries(id)");
     sql.executeUpdate("CREATE INDEX IF NOT EXISTS labels_id ON labels(id)");
+    sql.executeUpdate("CREATE INDEX IF NOT EXISTS relations_original ON relations(original_id)");
     for (String table : BY_ENTRY) {
       sql.executeUpdate("CREATE INDEX IF NOT EXISTS " + table + "_entry ON " + table + "(entry_id)");
     }

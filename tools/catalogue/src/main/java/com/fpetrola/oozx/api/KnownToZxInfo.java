@@ -2,14 +2,11 @@ package com.fpetrola.oozx.api;
 
 import dev.plugdesk.desk.KnowsAbout;
 
-import javax.imageio.ImageIO;
-import java.awt.Image;
-import java.net.URI;
-import java.net.URLConnection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -20,7 +17,9 @@ import java.util.stream.Stream;
 public class KnownToZxInfo implements KnowsAbout {
 
   private static final String KNOWN = "zxdb:";
-  private static final int WAIT = 8000;
+  private static final Set<String> PICTURES = Set.of("Hardware picture", "Hardware advertisement scan");
+  private static final Set<String> READING = Set.of("Hardware technical documentation", "Instructions", "Scanned instructions");
+  private static final int NAMED = 3;
 
   @Override
   public About about(String known) {
@@ -28,52 +27,76 @@ public class KnownToZxInfo implements KnowsAbout {
     String id = known.substring(KNOWN.length());
     GameEntry entry = Catalogues.game(String.format("%07d", Integer.parseInt(id)));
     if (entry == null) return null;
-    String made = entry.publishers == null ? null
-        : entry.publishers.stream().map(publisher -> publisher.name).collect(Collectors.joining(", "));
+    String made = entry.publishers == null ? null : entry.publishers.stream()
+        .map(publisher -> publisher.country == null ? publisher.name : publisher.name + " (" + publisher.country + ")")
+        .collect(Collectors.joining(", "));
     String year = entry.originalYearOfRelease == null ? null : String.valueOf(entry.originalYearOfRelease);
-    String price = price(entry);
+    List<String> prices = prices(entry);
     Map<String, String> facts = new LinkedHashMap<>();
-    if (made != null && !made.isEmpty()) facts.put("Made by", made);
-    if (year != null) facts.put("Released", year);
-    if (price != null) facts.put("Cost", price);
-    facts.put("Known as", entry.title);
-    String then = Stream.of(made, year, price).filter(Objects::nonNull).filter(said -> !said.isEmpty())
-        .collect(Collectors.joining("  ·  "));
-    String said = entry.hardwareBlurb != null ? entry.hardwareBlurb : entry.remarks;
-    return new About(then.isEmpty() ? entry.title : then, said == null ? null : plain(said), picture(entry.additionalDownloads),
-        facts, "https://zxinfo.dk/details/" + id, "ZXInfo");
+    put(facts, "What it is", entry.genreSubType);
+    put(facts, "Made by", made);
+    put(facts, "Released", year);
+    put(facts, "Cost", prices.isEmpty() ? null : String.join(", ", prices));
+    put(facts, "Also known as", entry.alsoKnownAs);
+    List<String> needing = titles(entry.requiredByHardware);
+    if (!needing.isEmpty()) put(facts, "Needed by", needing.size() + (needing.size() == 1 ? " program: " : " programs, such as ")
+        + String.join(", ", needing.subList(0, Math.min(NAMED, needing.size()))));
+    if (entry.magazineReferences != null && !entry.magazineReferences.isEmpty())
+      put(facts, "In magazines", entry.magazineReferences.size() + " mentions, from " + entry.magazineReferences.stream()
+          .map(reference -> reference.dateYear).filter(Objects::nonNull).min(Integer::compare).map(String::valueOf).orElse("?"));
+    String maker = entry.publishers == null || entry.publishers.isEmpty() ? null : entry.publishers.getFirst().name;
+    String then = Stream.of(maker, year, prices.isEmpty() ? null : prices.getFirst())
+        .filter(Objects::nonNull).filter(said -> !said.isEmpty()).collect(Collectors.joining("  ·  "));
+    return new About(then.isEmpty() ? entry.title : then, plain(entry.hardwareBlurb), plain(entry.remarks),
+        downloads(entry, PICTURES).values().stream().filter(KnownToZxInfo::isPicture).toList(), facts, links(entry, id));
   }
 
-  private static String price(GameEntry entry) {
-    GameEntry.Price price = entry.originalPrice != null ? entry.originalPrice
-        : entry.releases == null || entry.releases.isEmpty() ? null : entry.releases.getFirst().releasePrice;
-    if (price == null || price.amount == null) return null;
-    String currency = price.currency == null ? "" : price.currency;
-    return price.prefix == null || price.prefix != 0 ? currency + price.amount : price.amount + " " + currency;
+  private static void put(Map<String, String> facts, String what, String is) {
+    if (is != null && !is.isBlank()) facts.put(what, is);
+  }
+
+  private static List<String> prices(GameEntry entry) {
+    Stream<GameEntry.Price> each = entry.releases == null || entry.releases.isEmpty()
+        ? Stream.ofNullable(entry.originalPrice) : entry.releases.stream().map(release -> release.releasePrice);
+    return each.filter(Objects::nonNull).filter(price -> price.amount != null).map(price -> {
+      String currency = price.currency == null ? "" : price.currency;
+      return price.prefix == null || price.prefix != 0 ? currency + price.amount : price.amount + " " + currency;
+    }).distinct().toList();
+  }
+
+  @SuppressWarnings("unchecked")
+  private static List<String> titles(List<Object> entries) {
+    return entries == null ? List.of() : entries.stream().filter(Map.class::isInstance)
+        .map(one -> ((Map<String, Object>) one).get("title")).filter(Objects::nonNull).map(String::valueOf).toList();
+  }
+
+  /** Where to read more: the catalogue's own pages, the sites it links, and its documents, by what each is. */
+  private static Map<String, String> links(GameEntry entry, String id) {
+    Map<String, String> links = new LinkedHashMap<>();
+    links.put("ZXInfo", "https://zxinfo.dk/details/" + id);
+    links.put("Spectrum Computing", "https://spectrumcomputing.co.uk/entry/" + id);
+    if (entry.relatedLinks != null) entry.relatedLinks.forEach(link -> links.putIfAbsent(link.siteName, link.url));
+    if (entry.relatedSites != null) entry.relatedSites.forEach(link -> links.putIfAbsent(link.siteName, link.url));
+    downloads(entry, READING).forEach(links::putIfAbsent);
+    return links;
+  }
+
+  /** The files of those kinds, each under its name, at the address it is served from. */
+  private static Map<String, String> downloads(GameEntry entry, Set<String> kinds) {
+    Map<String, String> found = new LinkedHashMap<>();
+    if (entry.additionalDownloads != null) entry.additionalDownloads.stream()
+        .filter(download -> kinds.contains(download.type) && download.path != null)
+        .forEach(download -> found.put(download.path.substring(download.path.lastIndexOf('/') + 1),
+            ZxInfoApiHandler.mediaUrl(download.path)));
+    return found;
+  }
+
+  private static boolean isPicture(String address) {
+    return address.toLowerCase().matches(".*\\.(jpg|jpeg|png|gif)$");
   }
 
   /** ZXDB writes a mention of another entry as {Title|Publisher|id}: a person reads the title. */
   private static String plain(String said) {
-    return said.replaceAll("\\{([^|}]*)\\|[^}]*}", "$1").strip();
-  }
-
-  /** The first photograph of the real one, fetched; null when there is none or it cannot be had. */
-  private static Image picture(List<AdditionalDownload> downloads) {
-    if (downloads == null) return null;
-    for (AdditionalDownload download : downloads) {
-      if (!"Hardware picture".equals(download.type) || download.path == null) continue;
-      try {
-        URLConnection connection = URI.create(ZxInfoApiHandler.mediaUrl(download.path)).toURL().openConnection();
-        connection.setConnectTimeout(WAIT);
-        connection.setReadTimeout(WAIT);
-        try (var in = connection.getInputStream()) {
-          Image image = ImageIO.read(in);
-          if (image != null) return image;
-        }
-      } catch (Exception cannotBeHad) {
-        // The next one, if there is one.
-      }
-    }
-    return null;
+    return said == null || said.isBlank() ? null : said.replaceAll("\\{([^|}]*)\\|[^}]*}", "$1").strip();
   }
 }
