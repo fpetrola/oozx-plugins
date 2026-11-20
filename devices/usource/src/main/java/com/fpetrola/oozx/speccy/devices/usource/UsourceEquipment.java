@@ -21,7 +21,8 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import dev.crystal.plugins.api.Offers;
 
-@Offers("Plug in: Currah µSource")
+@Offers(value = "Cartridges, freezers and colours/Currah µSource",
+    description = "Currah's assembler and Forth in a ROM, flipped in and out as the real one was")
 public class UsourceEquipment implements Equipment {
   public String name() {
     return "Currah µSource";

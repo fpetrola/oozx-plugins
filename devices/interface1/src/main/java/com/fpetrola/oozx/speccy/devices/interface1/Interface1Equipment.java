@@ -22,7 +22,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: Interface 1")
+@Offers(value = "Disks and tape/Interface 1",
+    description = "Eight Microdrive bays with their motor lamps, a serial port and the network")
 public class Interface1Equipment implements Equipment {
   public String name() {
     return "Interface 1";

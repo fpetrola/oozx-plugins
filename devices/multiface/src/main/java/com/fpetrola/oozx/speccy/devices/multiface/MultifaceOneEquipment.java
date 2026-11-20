@@ -18,7 +18,10 @@ package com.fpetrola.oozx.speccy.devices.multiface;
 
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
+import dev.crystal.plugins.api.Offers;
 
+@Offers(value = "Cartridges, freezers and colours/Multiface One",
+    description = "Romantic Robot's red button for the 48K: stop any program, save it, poke it")
 public class MultifaceOneEquipment implements Equipment {
   public String name() {
     return MultifaceModel.ONE.title;

@@ -22,7 +22,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Plug in: Sprites")
+@Offers(value = "The game lab/Sprites",
+    description = "Finds the graphics in memory and shows them as pictures you can browse")
 public class SpriteViewerEquipment implements Equipment {
   public String name() {
     return "Sprites";

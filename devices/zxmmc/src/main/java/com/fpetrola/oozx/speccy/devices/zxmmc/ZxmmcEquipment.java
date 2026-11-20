@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.IdeBayFrame;
 
-@Offers("Plug in: ZXMMC")
+@Offers(value = "Cards and hard disks/ZXMMC", description = "A card slot on two ports, and nothing else")
 public class ZxmmcEquipment implements Equipment {
   public String name() {
     return "ZXMMC";

@@ -22,7 +22,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: DivMMC")
+@Offers(value = "Cards and hard disks/DivMMC",
+    description = "A memory card the machine talks to a byte at a time, with esxDOS")
 public class DivMmcEquipment implements Equipment {
   public String name() {
     return "DivMMC";

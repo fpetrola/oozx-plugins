@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.DriveBayFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
-@Offers("Plug in: DISCiPLE")
+@Offers(value = "Disks and tape/DISCiPLE", description = "The +D's elder brother: disks, its own ROM, its own button")
 public class DiscipleEquipment implements Equipment {
   static final DiskInterface SHAPE = DiskInterface.shape(2, "NMI",
       "The button on the DISCiPLE: stops the program and brings up its snapshot menu", "mgt", "img", "dsk");

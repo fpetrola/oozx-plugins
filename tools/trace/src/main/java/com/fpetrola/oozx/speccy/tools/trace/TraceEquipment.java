@@ -23,7 +23,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Open: Trace")
+@Offers(value = "The game lab/Trace",
+    description = "The last instructions the machine ran, in order, disassembled when you look")
 public class TraceEquipment implements Equipment {
   public String name() {
     return "Trace";

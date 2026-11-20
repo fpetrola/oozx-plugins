@@ -23,7 +23,8 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 /** The sixty-four colours, offered on the desk's own menu like anything else somebody fits. */
-@Offers("Plug in: ULAplus")
+@Offers(value = "Cartridges, freezers and colours/ULAplus",
+    description = "Sixty-four colours a program picks for itself")
 public class UlaPlusEquipment implements Equipment {
   public String name() {
     return "ULAplus";

@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 /** The keyboard, offered the same way a board is: the desk finds it and does not know it is not one. */
-@Offers("Open: Keyboard")
+@Offers(value = "The game lab/Keyboard", description = "The keys the machine actually sees held")
 public class KeyboardEquipment implements Equipment {
   public String name() {
     return "Keyboard";

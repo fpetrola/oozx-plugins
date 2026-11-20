@@ -22,7 +22,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: ZXATASP")
+@Offers(value = "Cards and hard disks/ZXATASP",
+    description = "Hard disk bays and extra memory, where Save is what commits")
 public class ZxataspEquipment implements Equipment {
   public String name() {
     return "ZXATASP";

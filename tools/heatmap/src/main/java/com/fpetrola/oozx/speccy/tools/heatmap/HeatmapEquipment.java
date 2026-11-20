@@ -23,7 +23,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Open: Heatmap")
+@Offers(value = "The game lab/Heatmap",
+    description = "How much code ran at each of the 64K addresses, and how much of that just now")
 public class HeatmapEquipment implements Equipment {
   public String name() {
     return "Heatmap";

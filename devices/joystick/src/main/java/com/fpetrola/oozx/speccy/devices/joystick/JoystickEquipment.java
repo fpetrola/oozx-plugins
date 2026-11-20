@@ -42,7 +42,8 @@ import com.fpetrola.oozx.speccy.modules.input.Input;
 import com.fpetrola.oozx.Speccy;
 
 /** The joystick window, offered like any other equipment: found, not named by the application. */
-@Offers("Plug in: Joystick")
+@Offers(value = "Printers and pointers/Joystick",
+    description = "Kempston, Sinclair 1 and 2, Cursor, Timex and Fuller, played with your keys or your own gamepad")
 public class JoystickEquipment implements Equipment {
   public String name() {
     return "Joystick";

@@ -33,7 +33,8 @@ import java.io.File;
  */
 @dev.crystal.plugins.api.Needs({"device-snapshots"})
 @Answers("rzx")
-@Offers("Open: RZX Player")
+@Offers(value = "Disks and tape/RZX Player",
+    description = "Plays a recording of somebody playing, frame by frame, and records yours")
 public class RzxEquipment implements Equipment {
   public String name() {
     return "RZX Player";

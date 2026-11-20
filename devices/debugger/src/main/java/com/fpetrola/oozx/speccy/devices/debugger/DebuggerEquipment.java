@@ -22,7 +22,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Plug in: Debugger")
+@Offers(value = "The game lab/Debugger",
+    description = "Stops the machine anywhere: registers, memory, breakpoints, step by step")
 public class DebuggerEquipment implements Equipment {
   public String name() {
     return "Debugger";

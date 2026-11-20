@@ -22,7 +22,8 @@ import com.fpetrola.oozx.speccy.devices.DacFrame;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: Covox")
+@Offers(value = "Things that make a sound/Covox",
+    description = "A converter on a port that plays whatever samples a program sends it")
 public class CovoxEquipment implements Equipment {
   public String name() {
     return "Covox";

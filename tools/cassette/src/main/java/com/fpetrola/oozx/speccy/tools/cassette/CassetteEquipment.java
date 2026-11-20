@@ -26,7 +26,8 @@ import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import java.io.File;
 
 /** The cassette deck, offered like any other equipment: found, not named by the application. */
-@Offers("Open: Cassette")
+@Offers(value = "Disks and tape/Cassette",
+    description = "A tape deck for the machine: play, stop, rewind, and the blocks of the tape")
 public class CassetteEquipment implements Equipment {
   public String name() {
     return "Cassette";

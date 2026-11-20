@@ -25,7 +25,8 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.Beta128Peripheral;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
-@Offers("Plug in: Beta 128")
+@Offers(value = "Disks and tape/Beta 128",
+    description = "The TR-DOS disk interface: four drives and the Boot button, as built into the Pentagon")
 public class Beta128Equipment implements Equipment {
   static final DiskInterface SHAPE = DiskInterface.shape(4, "Boot",
       "Reset the machine into TR-DOS, with the 48 BASIC underneath, and boot from drive A", "trd", "scl");

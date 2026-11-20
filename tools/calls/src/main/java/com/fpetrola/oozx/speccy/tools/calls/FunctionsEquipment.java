@@ -23,7 +23,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Open: Functions")
+@Offers(value = "The game lab/Functions",
+    description = "The routines a run found, where each starts and how often it was called")
 public class FunctionsEquipment implements Equipment {
   public String name() {
     return "Functions";

@@ -21,7 +21,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: Parallel printer")
+@Offers(value = "Printers and pointers/Parallel printer",
+    description = "A printer on a parallel port: continuous paper, text out")
 public class ParallelPrinterEquipment implements Equipment {
   public String name() {
     return "Parallel printer";

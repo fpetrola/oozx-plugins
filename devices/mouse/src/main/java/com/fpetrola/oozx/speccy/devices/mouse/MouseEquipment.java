@@ -22,7 +22,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: Kempston Mouse")
+@Offers(value = "Printers and pointers/Kempston Mouse",
+    description = "Your own mouse, over the machine's picture, moves the program's pointer")
 public class MouseEquipment implements Equipment {
   public String name() {
     return "Kempston Mouse";

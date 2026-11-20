@@ -23,7 +23,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Open: Ports")
+@Offers(value = "The game lab/Ports",
+    description = "Every port the machine touched, counted, like a logic analyser on the bus")
 public class IoEquipment implements Equipment {
   public String name() {
     return "Ports";

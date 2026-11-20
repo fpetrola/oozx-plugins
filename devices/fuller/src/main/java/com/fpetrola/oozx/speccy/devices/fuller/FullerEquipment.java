@@ -21,7 +21,7 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: Fuller Box")
+@Offers(value = "Things that make a sound/Fuller Box", description = "A sound chip of its own, and a joystick port")
 public class FullerEquipment implements Equipment {
   public String name() {
     return "Fuller Box";

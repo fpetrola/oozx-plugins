@@ -21,7 +21,8 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import dev.crystal.plugins.api.Offers;
 
-@Offers("Plug in: Currah µSpeech")
+@Offers(value = "Things that make a sound/Currah µSpeech",
+    description = "A speech synthesiser: it says every key you press, and anything you write for it")
 public class UspeechEquipment implements Equipment {
   public String name() {
     return "Currah µSpeech";

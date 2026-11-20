@@ -23,7 +23,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Open: Memory map")
+@Offers(value = "The game lab/Memory map",
+    description = "What is mapped where right now: a 128K's banks, the ROM, what a peripheral paged in")
 public class MemoryMapEquipment implements Equipment {
   public String name() {
     return "Memory map";

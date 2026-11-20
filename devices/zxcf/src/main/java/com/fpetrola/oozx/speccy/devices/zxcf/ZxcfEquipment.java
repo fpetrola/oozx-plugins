@@ -22,7 +22,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: ZXCF CompactFlash")
+@Offers(value = "Cards and hard disks/ZXCF CompactFlash",
+    description = "A CompactFlash bay, where Save is what commits")
 public class ZxcfEquipment implements Equipment {
   public String name() {
     return "ZXCF CompactFlash";

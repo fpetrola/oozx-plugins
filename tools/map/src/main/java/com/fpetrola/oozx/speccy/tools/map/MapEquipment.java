@@ -22,7 +22,7 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers("Open: Map")
+@Offers(value = "The game lab/Map", description = "A game of rooms, mapped as you play it")
 public class MapEquipment implements Equipment {
   public String name() {
     return "Map";

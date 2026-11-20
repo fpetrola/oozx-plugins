@@ -58,7 +58,7 @@
         <dependency>
             <groupId>com.github.fpetrola.crystal-plugins</groupId>
             <artifactId>framework-api</artifactId>
-            <version>0.1.5</version>
+            <version>0.1.6</version>
         </dependency>
     </dependencies>
 
@@ -88,7 +88,7 @@
             <dependency>
                 <groupId>com.github.fpetrola.plugdesk</groupId>
                 <artifactId>plugdesk-app</artifactId>
-                <version>0.1.4</version>
+                <version>0.1.5</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.github.fpetrola.crystal-plugins</groupId>
@@ -103,7 +103,7 @@
             <dependency>
                 <groupId>com.github.fpetrola.plugdesk</groupId>
                 <artifactId>plugdesk-desk</artifactId>
-                <version>0.1.4</version>
+                <version>0.1.5</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.github.fpetrola.crystal-plugins</groupId>
@@ -118,7 +118,7 @@
             <dependency>
                 <groupId>com.github.fpetrola.crystal-plugins</groupId>
                 <artifactId>framework-swing</artifactId>
-                <version>0.1.5</version>
+                <version>0.1.6</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.github.fpetrola.crystal-plugins</groupId>
@@ -230,7 +230,7 @@
             <plugin>
                 <groupId>com.github.fpetrola.crystal-plugins</groupId>
                 <artifactId>framework-maven-plugin</artifactId>
-                <version>0.1.5</version>
+                <version>0.1.6</version>
                 <extensions>true</extensions>
             </plugin>
             <plugin>

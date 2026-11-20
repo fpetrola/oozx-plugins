@@ -24,7 +24,8 @@ import com.fpetrola.oozx.speccy.devices.DriveBayFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
-@Offers("Plug in: +D")
+@Offers(value = "Disks and tape/+D",
+    description = "Miles Gordon's disk interface, with its snapshot button and a printer on its port")
 public class PlusDEquipment implements Equipment {
   /** Two drives, MGT images, an NMI button: what a +D is before a machine has one. */
   static final DiskInterface SHAPE = DiskInterface.shape(2, "NMI",

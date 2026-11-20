@@ -21,7 +21,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers("Plug in: DivIDE")
+@Offers(value = "Cards and hard disks/DivIDE",
+    description = "A hard disk image in its bay, its write-protect jumper and its NMI button")
 public class DivIdeEquipment implements Equipment {
   public String name() {
     return "DivIDE";
