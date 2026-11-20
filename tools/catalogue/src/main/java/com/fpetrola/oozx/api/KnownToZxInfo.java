@@ -11,13 +11,13 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * What ZXInfo knows of the real thing a plugin emulates, by its ZXDB entry ({@code zxdb:1000221}), asked the way the
- * game browser asks: its API, answered from the copy of ZXDB that ships when it cannot be reached.
+ * What ZXInfo knows of an entry, a game or the real thing a plugin emulates, by its ZXDB id ({@code zxdb:1000221}): asked
+ * of its API, answered from the copy of ZXDB that ships when it cannot be reached.
  */
 public class KnownToZxInfo implements KnowsAbout {
 
   private static final String KNOWN = "zxdb:";
-  private static final Set<String> PICTURES = Set.of("Hardware picture", "Hardware advertisement scan");
+  private static final Set<String> PICTURES = Set.of("Hardware picture", "Hardware advertisement scan", "Game map", "Inlay - Front");
   private static final Set<String> READING = Set.of("Hardware technical documentation", "Instructions", "Scanned instructions");
   private static final int NAMED = 3;
 
@@ -35,6 +35,12 @@ public class KnownToZxInfo implements KnowsAbout {
     Map<String, String> facts = new LinkedHashMap<>();
     put(facts, "What it is", entry.genreSubType);
     put(facts, "Made by", made);
+    put(facts, "By", entry.authors == null ? null : entry.authors.stream().map(author -> author.name).filter(Objects::nonNull)
+        .distinct().collect(Collectors.joining(", ")));
+    put(facts, "Runs on", entry.machineType);
+    put(facts, "Players", entry.numberOfPlayers == null || entry.numberOfPlayers < 2 ? null : String.valueOf(entry.numberOfPlayers));
+    put(facts, "Score", entry.score == null || entry.score.score == null ? null
+        : entry.score.score + " from " + entry.score.votes + " votes");
     put(facts, "Released", year);
     put(facts, "Cost", prices.isEmpty() ? null : String.join(", ", prices));
     put(facts, "Also known as", entry.alsoKnownAs);

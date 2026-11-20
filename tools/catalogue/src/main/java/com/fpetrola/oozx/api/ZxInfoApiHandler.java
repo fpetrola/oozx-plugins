@@ -195,7 +195,7 @@ public class ZxInfoApiHandler implements KnowsTheGames {
     return entry.score == null || entry.score.votes == null ? 0 : entry.score.votes;
   }
 
-  /** Where ZXDB's own paths are actually served from, which is three different hosts. */
+  /** Where ZXDB's own paths are actually served from: ZXInfo's screens, and Spectrum Computing for the rest. */
   public static String mediaUrl(String path) {
     // ZXDB lists some files by their whole address already - the RZX Archive's recordings at
     // archive.org - and putting a host in front of one makes a link to nowhere.
@@ -205,7 +205,7 @@ public class ZxInfoApiHandler implements KnowsTheGames {
     if (path.startsWith("/zxscreens")) {
       return "https://zxinfo.dk/media" + path;
     }
-    return path.startsWith("/zxdb") ? "https://spectrumcomputing.co.uk" + path : "https://worldofspectrum.net" + path;
+    return "https://spectrumcomputing.co.uk" + path;
   }
 
   /** Whether ZXDB keeps this one where it may not hand it out, which is what /denied/ means. */

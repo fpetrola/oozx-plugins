@@ -17,97 +17,76 @@
 
 package com.fpetrola.oozx.speccy.tools.games;
 
-import com.fpetrola.oozx.api.GameFingerprint;
+import com.fpetrola.oozx.api.*;
+import com.fpetrola.oozx.speccy.config.OOZxConfiguration;
 import com.fpetrola.oozx.speccy.devices.Desk;
-import com.fpetrola.oozx.api.GameLibrary;
 import com.fpetrola.oozx.speccy.media.DownloadAndUnzip;
 import com.fpetrola.oozx.speccy.media.LocalGames;
-import com.fpetrola.oozx.speccy.windows.LazyImageIconLoader;
-import com.fpetrola.oozx.api.*;
 import com.fpetrola.oozx.rzx.RzxArchive;
 import com.fpetrola.oozx.rzx.RzxOption;
 import com.fpetrola.oozx.rzx.RzxRecording;
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
+import dev.plugdesk.desk.KnowsAbout;
+import dev.plugdesk.desk.Shelves;
 
 import javax.swing.*;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.awt.image.BufferedImage;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.ArrayList;
-import javax.swing.MenuSelectionManager;
-import javax.swing.JToggleButton;
-import javax.swing.JTree;
-import javax.swing.SwingConstants;
-import javax.swing.tree.DefaultMutableTreeNode;
-import javax.swing.tree.DefaultTreeModel;
-import javax.swing.tree.TreeSelectionModel;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.List;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-// --- NEW: Game Browser Internal Frame ---
-public class GamesFrame extends JInternalFrame {
-  private JTextField searchField;
-  private JButton searchButton;
-  private JProgressBar searchProgress;
-  private JPanel resultsPanel;
-  private SwingWorker<List<GameSearchResult>, Void> runningSearch;
-  private boolean loading;
-  private JComboBox<String> sourceFilter;
-  private JComboBox<String> order;
-  private JCheckBox unknownFilter;
-  private JCheckBox colourFilter;
-  private JLabel libraryLabel;
-  private JTree folderTree;
-  private JScrollPane folderView;
-  private JToggleButton folderExpander;
-  private JPanel rescanRow;
-  private String onlyInFolder;
-  private JComboBox<String> machineFilter;
-  private JComboBox<String> genreFilter;
-  private JComboBox<String> yearFilter;
-  private JCheckBox rzxFilter;
-  private JCheckBox mapFilter;
-  private JCheckBox loadableFilter;
-  /** While a whole search is put in the controls, so that each one chosen does not search on its own. */
-  private boolean choosingAll;
+/**
+ * The games, on the shelves of a catalogue: the ones played lately and the favourites, the ones on this machine and in
+ * each folder given, and the ones ZXInfo knows. Filters narrow them; a card is its loading screen, the one picked says
+ * what ZXInfo knows of it, and its menu loads it on a machine, as one of its versions, or plays a recording of it.
+ */
+public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchResult> {
 
-  /**
-   * First entry of each filter combo, meaning "do not narrow by this". They name what they
-   * filter so the bar needs no labels beside them, which is what makes it fit the window.
-   */
-  private static final String ANY_MACHINE = "Any machine";
-  private static final String AS_FOUND = "As found";
-  private static final String MOST_KNOWN = "Most known";
-  private static final String BEST_RATED = "Best rated";
+  static final String PLAYED = "Played lately";
+  static final String FAVOURITES = "Favourites";
   private static final String EVERYWHERE = "Everywhere";
   private static final String ON_THE_NET = "On the net";
   private static final String ON_THIS_MACHINE = "On this machine";
-  /** The side of a tile, and so what decides how many columns fit. */
-  private static final int TILE = 230;
-  private static final int GAP = 10;
-  /** How far into a row of the folder tree the box reaches, which is where a click turns it off. */
-  private static final int BOX = 20;
-  /** How many tiles are built at once, which is also how many pictures get asked for. */
-  private static final int AT_A_TIME = 60;
-  /** Everything the last search found and filtered, of which the gallery has built the first tiles. */
-  private List<GameSearchResult> showing = List.of();
+  /**
+   * First entry of each filter combo, meaning "do not narrow by this". They name what they filter so the strip needs no
+   * labels beside them.
+   */
+  private static final String ANY_MACHINE = "Any machine";
   private static final String ANY_GENRE = "Any genre";
   private static final String ANY_YEAR = "Any year";
-  public static Gson gson = new Gson();
+  private static final String AS_FOUND = "As found";
+  private static final String MOST_KNOWN = "Most known";
+  private static final String BEST_RATED = "Best rated";
+  private static final int PLAYED_SHOWN = 30;
+
   private final RzxArchive archive = new RzxArchive();
-  private final com.fpetrola.oozx.speccy.config.OOZxConfiguration config =
-      dev.plugdesk.app.Configuration.shared().of(com.fpetrola.oozx.speccy.config.OOZxConfiguration.class);
+  private final OOZxConfiguration config =
+      dev.plugdesk.app.Configuration.shared().of(OOZxConfiguration.class);
+  private final JComboBox<String> order = new JComboBox<>(new String[]{AS_FOUND, MOST_KNOWN, BEST_RATED});
+  private final JComboBox<String> machineFilter = new JComboBox<>(new String[]{ANY_MACHINE});
+  private final JComboBox<String> genreFilter = new JComboBox<>(new String[]{ANY_GENRE});
+  private final JComboBox<String> yearFilter = new JComboBox<>(java.util.stream.Stream.concat(
+      java.util.stream.Stream.of(ANY_YEAR), KnowsTheGames.Slice.years().mapToObj(String::valueOf)).toArray(String[]::new));
+  private final JCheckBox rzxFilter = new JCheckBox("RZX");
+  private final JCheckBox mapFilter = new JCheckBox("Map");
+  private final JCheckBox loadableFilter = new JCheckBox("Loadable", true);
+  private final JCheckBox unknownFilter = new JCheckBox("Only unknown");
+  private final JCheckBox colourFilter = new JCheckBox("256 colours");
+  private final JLabel libraryLabel = new JLabel();
+  private Shelves<GameSearchResult> shelves;
+  /** While a whole search is put in the controls, so that each one chosen does not search on its own. */
+  private boolean choosingAll;
+  private boolean loading;
 
   /** What a file brings beside itself - colours, for one - said by whoever can recognise it. */
   private static String besides(String file) {
@@ -123,7 +102,7 @@ public class GamesFrame extends JInternalFrame {
     }
   }
 
-  /** A row of this list as the desk takes it: which file, which machine, and what it is. */
+  /** A card of this catalogue as the desk takes it: which file, which machine, and what it is. */
   private static Desk.Game asAGame(GameSearchResult result) {
     String machine = result.machine != null ? result.machine : catalogued(result.id);
     return new Desk.Game(result.filename, emulated(machine), result.id, result.title);
@@ -158,311 +137,334 @@ public class GamesFrame extends JInternalFrame {
 
   public GamesFrame() {
     super("Game Browser", true, true, true, true);
-    setSize(980, 640);
+    setSize(1150, 700);
     setLocation(50, 50);
-
-    searchField = new JTextField();
-    searchField.setFont(new Font("Arial", Font.PLAIN, 14));
-    searchButton = new JButton("Search");
-    searchButton.setPreferredSize(new Dimension(130, 30));
-
-    // Indeterminate: neither the API nor a scan of the disk says how far along it is, this only
-    // says that something is running.
-    searchProgress = new JProgressBar();
-    searchProgress.setIndeterminate(true);
-    searchProgress.setPreferredSize(new Dimension(0, 4));
-    searchProgress.setVisible(false);
-
-    resultsPanel = new FollowsViewportWidth();
-    resultsPanel.setLayout(new GridLayout(0, 1, GAP, GAP));
-    resultsPanel.setBackground(UIManager.getColor("Panel.background"));
-    resultsPanel.setBorder(BorderFactory.createEmptyBorder(GAP, GAP, GAP, GAP));
-
-    JScrollPane gallery = new JScrollPane(resultsPanel);
-    gallery.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-    gallery.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-    gallery.getVerticalScrollBar().setUnitIncrement(16);
-    gallery.getVerticalScrollBar().addAdjustmentListener(scrolled -> {
-      javax.swing.JScrollBar bar = gallery.getVerticalScrollBar();
-      if (!scrolled.getValueIsAdjusting() && bar.getValue() + bar.getVisibleAmount() >= bar.getMaximum() - bar.getVisibleAmount()) {
-        showMore();
-      }
-    });
-    // The gallery wraps by being given the number of columns the width allows, which has to be
-    // worked out again every time the window or the divider moves.
-    gallery.addComponentListener(new java.awt.event.ComponentAdapter() {
-      @Override
-      public void componentResized(java.awt.event.ComponentEvent e) {
-        layOutInColumns(gallery.getViewport().getWidth());
-      }
-    });
-
-    JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, createFilterPanel(), gallery);
-    split.setDividerLocation(250);
-    split.setResizeWeight(0);
-    add(split, BorderLayout.CENTER);
-
-    searchButton.addActionListener(e -> performSearch());
-    searchField.addActionListener(e -> performSearch());
-  }
-
-  /**
-   * Machine and genre are narrowed by the server, which takes them as search parameters and
-   * publishes the values it accepts. Whether an entry has an RZX recording, a map, or anything
-   * to load at all is not something it can filter on - those live in additionalDownloads - so
-   * they are applied to the results here.
-   */
-  /** As many columns of tiles as fit, so the gallery wraps instead of scrolling sideways. */
-  private void layOutInColumns(int width) {
-    // Rounded up, not down: a column more makes the tiles narrower than the ideal and so square,
-    // where a column less stretches them across the width and the picture goes tall with it.
-    int columns = Math.max(1, (int) Math.ceil((double) width / (TILE + GAP)));
-    GridLayout grid = (GridLayout) resultsPanel.getLayout();
-    if (grid.getColumns() != columns) {
-      grid.setColumns(columns);
-      grid.setRows(0);
-      resultsPanel.revalidate();
-    }
-  }
-
-  /**
-   * Everything that narrows what is shown, down the left side: what to search, where to look for
-   * it, and the filters over what comes back. They were a strip along the top, which had room for
-   * the four the server takes and none for the ones that are about this machine.
-   */
-  private JComponent createFilterPanel() {
-    JPanel bar = new FollowsViewportWidth();
-    bar.setLayout(new BoxLayout(bar, BoxLayout.Y_AXIS));
-    bar.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
-
-    JButton clear = new JButton("\u2715");
-    clear.setToolTipText("Empty the search");
-    clear.setMargin(new java.awt.Insets(0, 4, 0, 4));
-    clear.addActionListener(e -> {
-      searchField.setText("");
-      performSearch();
-    });
-    JPanel searching = new JPanel(new BorderLayout(4, 0));
-    searching.setOpaque(false);
-    searching.add(searchField, BorderLayout.CENTER);
-    searching.add(clear, BorderLayout.EAST);
-    bar.add(labelled("Search", searching));
-    bar.add(Box.createVerticalStrut(4));
-    bar.add(row(searchButton));
-    bar.add(Box.createVerticalStrut(4));
-    bar.add(searchProgress);
-    bar.add(Box.createVerticalStrut(12));
-
-    sourceFilter = new JComboBox<>(new String[]{EVERYWHERE, ON_THE_NET, ON_THIS_MACHINE});
-    sourceFilter.setToolTipText("Where to look: ZXInfo's catalogue, the games on this machine, or both");
-    bar.add(labelled("Where", sourceFilter));
-    bar.add(Box.createVerticalStrut(6));
-    order = new JComboBox<>(new String[]{AS_FOUND, MOST_KNOWN, BEST_RATED});
     order.setToolTipText("<html>Most known: the most voted at World of Spectrum first, which is who has played it<br>"
         + "Best rated: the score, weighed by how many voted, so a few high votes do not beat many</html>");
-    bar.add(labelled("Order", order));
-    bar.add(Box.createVerticalStrut(12));
-
-    machineFilter = new JComboBox<>(new String[]{ANY_MACHINE});
-    genreFilter = new JComboBox<>(new String[]{ANY_GENRE});
-    yearFilter = new JComboBox<>(java.util.stream.Stream.concat(java.util.stream.Stream.of(ANY_YEAR),
-        KnowsTheGames.Slice.years().mapToObj(String::valueOf)).toArray(String[]::new));
-
     machineFilter.setToolTipText("Narrow to one machine, applied by the server");
     genreFilter.setToolTipText("Narrow to one genre, applied by the server");
     yearFilter.setToolTipText("Narrow to the year of first release, applied by the server");
-
-    rzxFilter = new JCheckBox("RZX");
     rzxFilter.setToolTipText("Only games with a recorded playthrough to replay");
-    mapFilter = new JCheckBox("Map");
     mapFilter.setToolTipText("Only games with a game map");
-    loadableFilter = new JCheckBox("Loadable", true);
     loadableFilter.setToolTipText("Hide entries with nothing to download");
-
-    unknownFilter = new JCheckBox("Only unknown");
     unknownFilter.setToolTipText("Games on this machine the catalogue could not name");
-    colourFilter = new JCheckBox("256 colors");
     colourFilter.setToolTipText("Games with Spec256 colours of their own beside them");
-
-    bar.add(labelled("Machine", machineFilter));
-    bar.add(Box.createVerticalStrut(6));
-    bar.add(labelled("Genre", genreFilter));
-    bar.add(Box.createVerticalStrut(6));
-    bar.add(labelled("Year", yearFilter));
-    bar.add(Box.createVerticalStrut(8));
-    bar.add(row(rzxFilter));
-    bar.add(row(mapFilter));
-    bar.add(row(loadableFilter));
-    bar.add(row(unknownFilter));
-    bar.add(row(colourFilter));
-    bar.add(Box.createVerticalStrut(12));
-    bar.add(createLibraryPanel());
-
-    // Machine, genre and year change the query, so they need the server asked again. The rest only
-    // narrow what came back, but the results are not kept, so a search is the simplest honest
-    // way to reapply them.
-    ActionListener research = e -> {
-      if (!choosingAll) performSearch();
+    ActionListener again = e -> {
+      if (!choosingAll && shelves != null) shelves.again();
     };
-    machineFilter.addActionListener(research);
-    genreFilter.addActionListener(research);
-    yearFilter.addActionListener(research);
-    rzxFilter.addActionListener(research);
-    mapFilter.addActionListener(research);
-    loadableFilter.addActionListener(research);
-    unknownFilter.addActionListener(research);
-    colourFilter.addActionListener(research);
-    sourceFilter.addActionListener(research);
-    order.addActionListener(research);
-
+    for (JComboBox<String> combo : List.of(order, machineFilter, genreFilter, yearFilter)) combo.addActionListener(again);
+    for (JCheckBox box : List.of(rzxFilter, mapFilter, loadableFilter, unknownFilter, colourFilter)) {
+      box.setOpaque(false);
+      box.addActionListener(again);
+    }
     loadFilterValues();
-
-    JScrollPane scrolling = new JScrollPane(bar);
-    scrolling.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-    scrolling.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-    scrolling.setBorder(BorderFactory.createEmptyBorder());
-    scrolling.getVerticalScrollBar().setUnitIncrement(16);
-    return scrolling;
-  }
-
-
-  private static JPanel labelled(String text, JComponent field) {
-    JPanel panel = new JPanel(new BorderLayout(0, 2));
-    panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
-    JLabel label = new JLabel(text);
-    label.setFont(label.getFont().deriveFont(Font.BOLD, 11f));
-    panel.add(label, BorderLayout.NORTH);
-    panel.add(field, BorderLayout.CENTER);
-    return panel;
-  }
-
-  private static JPanel row(JComponent field) {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-    panel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 28));
-    panel.add(field, BorderLayout.WEST);
-    return panel;
-  }
-
-  /**
-   * What this machine has, and the way to add to it. Scanning is what turns a folder of files with
-   * names like RENE256.SNA into games with titles, and it is offered here rather than run by
-   * itself because reading every file of a collection is not something to do behind somebody's
-   * back.
-   */
-  private JPanel createLibraryPanel() {
-    JPanel panel = new JPanel();
-    panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-    panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-    libraryLabel = new JLabel();
-    libraryLabel.setFont(libraryLabel.getFont().deriveFont(Font.PLAIN, 11f));
-    JButton scan = new JButton("Add folder...");
-    scan.addActionListener(e -> scanFolder());
-
-    panel.add(labelled("This machine", libraryLabel));
-    panel.add(Box.createVerticalStrut(4));
-    panel.add(row(scan));
-    panel.add(Box.createVerticalStrut(4));
-    panel.add(createFolderTree());
     sayWhatIsOnThisMachine();
-    return panel;
+    shelves = new Shelves<>(this, config.getSnapshotHistory().isEmpty() ? EVERYWHERE : PLAYED,
+        (name, looked) -> Desk.theOne().show(new dev.plugdesk.desk.Window() {
+          public String path() {
+            return name;
+          }
+
+          public JComponent open() {
+            return looked;
+          }
+        }));
+    add(shelves, BorderLayout.CENTER);
+  }
+
+  public String title() {
+    return "Games";
+  }
+
+  public String subtitle() {
+    return "Played here, kept, on this machine, and every one ZXInfo knows";
+  }
+
+  public String finding() {
+    return "Find by title";
+  }
+
+  public List<Shelves.Shelf> shelves() {
+    List<Shelves.Shelf> shelves = new ArrayList<>();
+    shelves.add(new Shelves.Shelf("Yours", PLAYED, Math.min(PLAYED_SHOWN, config.getSnapshotHistory().size())));
+    shelves.add(new Shelves.Shelf(null, FAVOURITES, config.getFavorites().size()));
+    shelves.add(new Shelves.Shelf(ON_THIS_MACHINE, ON_THIS_MACHINE, -1));
+    config.getGameFolders().forEach(folder -> shelves.add(new Shelves.Shelf(null, folder, -1)));
+    shelves.add(new Shelves.Shelf("On the net", ON_THE_NET, -1));
+    shelves.add(new Shelves.Shelf(null, EVERYWHERE, -1));
+    return shelves;
+  }
+
+  public boolean far() {
+    return true;
+  }
+
+  public boolean asksOnEveryCard() {
+    return false;
   }
 
   /**
-   * The folders the games are being taken from, out of the way until asked for: most of the time
-   * the answer is "the ones I added" and the space belongs to the gallery. Each one says how many
-   * games are under it, counting what is in the folders below it too, and picking one narrows the
-   * gallery to it.
+   * What the shelf holds, narrowed by the words and the filters, as they are now. Machine, genre and year are asked of
+   * the server; what it cannot filter on, having a recording, a map or anything to load, is asked of what comes back.
    */
-  private JPanel createFolderTree() {
-    JPanel panel = new JPanel(new BorderLayout());
-    panel.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-    folderTree = new JTree(new DefaultTreeModel(new DefaultMutableTreeNode("folders")));
-    folderTree.setRootVisible(false);
-    folderTree.setShowsRootHandles(true);
-    folderTree.getSelectionModel().setSelectionMode(TreeSelectionModel.SINGLE_TREE_SELECTION);
-    folderTree.setCellRenderer(new FolderRenderer());
-    folderTree.addMouseListener(new MouseAdapter() {
-      @Override
-      public void mousePressed(MouseEvent clicked) {
-        java.nio.file.Path folder = folderAt(clicked);
-        if (folder == null) {
-          return;
-        }
-        // Only the box turns a folder off; clicking the name selects it, which narrows the
-        // gallery to it without changing what is being taken into account.
-        if (clicked.getX() - folderTree.getPathBounds(folderTree.getPathForLocation(
-            clicked.getX(), clicked.getY())).x < BOX) {
-          config.takeIntoAccount(folder.toString(), !config.takesIntoAccount(folder.toString()));
-          folderTree.repaint();
-          performSearch();
-        }
+  public Supplier<List<GameSearchResult>> on(String shelf, String words) {
+    Search now = search();
+    if (PLAYED.equals(shelf)) return () -> narrowed(played(), words);
+    if (FAVOURITES.equals(shelf)) return () -> narrowed(config.getFavorites().stream().map(this::asResult).toList(), words);
+    String folder = config.getGameFolders().contains(shelf) ? shelf : null;
+    String where = folder != null ? ON_THIS_MACHINE : shelf;
+    KnowsTheGames.Slice slice = now.slice();
+    String year = slice.year() == null ? null : String.valueOf(slice.year());
+    return () -> {
+      List<GameSearchResult> found = new ArrayList<>();
+      if (!ON_THE_NET.equals(where)) found.addAll(gamesOnThisMachine(words, now.unknown(), year, folder));
+      if (!ON_THIS_MACHINE.equals(where)) {
+        // In an order that is not the catalogue's own: the web service answers with its first hundred and fifty titles
+        // alphabetically, none of which anybody knows, so the most voted that match are asked for too, from all of it.
+        List<Hit> hits = new ArrayList<>();
+        if (!AS_FOUND.equals(now.order())) hits.addAll(Catalogues.mostVoted(words, slice));
+        if (!words.isEmpty() || AS_FOUND.equals(now.order())) hits.addAll(Catalogues.search(words, slice));
+        Set<String> seen = new java.util.HashSet<>();
+        hits.removeIf(hit -> hit._id != null && !seen.add(hit._id));
+        found.addAll(fromTheCatalogue(hits));
       }
-    });
-    folderTree.addTreeSelectionListener(picked -> {
-      Object node = folderTree.getLastSelectedPathComponent();
-      onlyInFolder = node instanceof DefaultMutableTreeNode chosen
-          && chosen.getUserObject() instanceof Folder folder ? folder.path().toString() : null;
-      performSearch();
-    });
+      List<GameSearchResult> results = oneTilePerGame(found);
+      if (MOST_KNOWN.equals(now.order())) results.sort(BY_VOTES);
+      else if (BEST_RATED.equals(now.order())) results.sort(BY_RATING);
+      // Not merely "has a file": one the archive will not hand over cannot be loaded either.
+      results.removeIf(result -> (now.colour() && !result.inColour) || (now.rzx() && !result.hasRzx)
+          || (now.map() && !result.hasMap) || (now.loadable() && (result.filename == null || !result.available)));
+      return results;
+    };
+  }
 
-    folderView = new JScrollPane(folderTree);
-    folderView.setPreferredSize(new Dimension(220, 180));
-    folderView.setVisible(false);
+  private static List<GameSearchResult> narrowed(List<GameSearchResult> results, String words) {
+    return results.stream().filter(result -> result.title.toLowerCase().contains(words.toLowerCase())).toList();
+  }
 
-    folderExpander = new JToggleButton(collapsedLabel());
-    folderExpander.setBorderPainted(false);
-    folderExpander.setContentAreaFilled(false);
-    folderExpander.setHorizontalAlignment(SwingConstants.LEFT);
-    folderExpander.addActionListener(e -> {
-      folderView.setVisible(folderExpander.isSelected());
-      rescanRow.setVisible(folderExpander.isSelected());
-      folderExpander.setText(folderExpander.isSelected() ? "\u25be  Folders" : collapsedLabel());
-      // Unfolding must not leave a folder chosen from last time narrowing an unseen gallery.
-      if (!folderExpander.isSelected() && onlyInFolder != null) {
-        folderTree.clearSelection();
+  /** The games played here, the last first, each once. */
+  private List<GameSearchResult> played() {
+    Map<String, GameSearchResult> played = new LinkedHashMap<>();
+    config.getSnapshotHistory().values().stream()
+        .sorted(java.util.Comparator.comparingLong(OOZxConfiguration.SnapshotHistoryEntry::getLoadedTime).reversed())
+        .forEach(entry -> played.computeIfAbsent(entry.getFilePath(), path -> onThisMachine(path, entry.getGameName())));
+    return played.values().stream().limit(PLAYED_SHOWN).toList();
+  }
+
+  /** A file of this machine, as the library knows it when it does. */
+  private GameSearchResult onThisMachine(String path, String title) {
+    return LocalGames.library().games().stream().filter(copy -> copy.path().equals(path)).findFirst().map(this::asResult)
+        .orElseGet(() -> {
+          GameSearchResult result = new GameSearchResult(null, title, null, null, null, path);
+          result.available = true;
+          result.files = List.of(path);
+          result.onThisMachine = true;
+          return result;
+        });
+  }
+
+  /** A favourite: a file or an address to open, or a recording to play. */
+  private GameSearchResult asResult(OOZxConfiguration.Favorite favorite) {
+    String id = favorite.getGameId() != null ? favorite.getGameId() : favorite.getEntry();
+    if (!favorite.isRecording()) {
+      GameSearchResult result = favorite.getSource().startsWith("http")
+          ? new GameSearchResult(id, favorite.getTitle(), null, null, null, favorite.getSource())
+          : onThisMachine(favorite.getSource(), favorite.getTitle());
+      result.id = result.id == null ? id : result.id;
+      result.available = result.onThisMachine || DownloadAndUnzip.available(favorite.getSource());
+      result.subtitle = result.subtitle == null ? DownloadAndUnzip.nameOf(favorite.getSource()) : result.subtitle;
+      GameFingerprint.Known known = result.screenshot1 != null || id == null ? null : LocalGames.library().catalogue().known(id);
+      if (known != null) {
+        result.screenshot1 = known.screenshot();
+        result.hasMap = known.hasMap();
       }
-      panel.revalidate();
-    });
+      return result;
+    }
+    String from = favorite.getSource();
+    if (!from.startsWith("http") && !from.startsWith("file:")) from = new java.io.File(from).toURI().toString();
+    GameSearchResult result = new GameSearchResult(favorite.getEntry(), favorite.getTitle(), null, null, null, null);
+    result.recordings = List.of(new RzxOption(favorite.getTitle(), from));
+    result.hasRzx = true;
+    result.subtitle = "A recording";
+    return result;
+  }
 
+  public String hint(String shelf, String words, int found) {
+    String games = found + (found == 1 ? " game" : " games");
+    if (!words.isEmpty()) return games + " called “" + words + "”";
+    return switch (shelf) {
+      case PLAYED -> "The ones played here, the last first";
+      case FAVOURITES -> "The ones kept with the star";
+      case ON_THE_NET -> games + " ZXInfo knows. Choose one to see it; twice to play it.";
+      default -> games + ". Choose one to see it; twice to play it.";
+    };
+  }
+
+  public String nothing(String shelf, String words) {
+    if (PLAYED.equals(shelf) && words.isEmpty()) return "Nothing played yet: what you play is kept here.";
+    if (FAVOURITES.equals(shelf) && words.isEmpty()) return "Nothing kept yet: the star of a game keeps it here.";
+    return ON_THIS_MACHINE.equals(shelf) && config.getGameFolders().isEmpty()
+        ? "No folder to look in yet: add one under the shelves." : "Nothing matches. Try fewer filters or fewer letters.";
+  }
+
+  public Shelves.Card card(GameSearchResult result) {
+    List<String> chips = new ArrayList<>();
+    if (result.onThisMachine) chips.add(result.copies > 1 ? result.copies + " here" : "Here");
+    if (result.hasRzx) chips.add("RZX");
+    if (result.inColour) chips.add("256 colours");
+    if (result.filename == null && result.recordings.isEmpty()) chips.add("Nothing to open");
+    else if (result.filename != null && !result.available) chips.add("Not available");
+    return new Shelves.Card(result.title, result.subtitle,
+        result.score == null ? null : "★ " + result.score + "  ", chips);
+  }
+
+  public List<Shelves.Picture> pictures(GameSearchResult result, KnowsAbout.About about) {
+    List<Shelves.Picture> pictures = new ArrayList<>();
+    java.util.stream.Stream.of(result.screenshot1, result.screenshot2).filter(java.util.Objects::nonNull).distinct()
+        .forEach(at -> pictures.add(Shelves.Picture.at(at)));
+    if (about != null) about.pictures().forEach(at -> pictures.add(Shelves.Picture.at(at)));
+    return pictures;
+  }
+
+  public Shelves.Detail detail(GameSearchResult result, KnowsAbout.About about) {
+    Map<String, String> facts = new LinkedHashMap<>();
+    if (result.files.size() > 1) facts.put("Versions", String.valueOf(result.files.size()));
+    if (!result.recordings.isEmpty()) facts.put("Recordings", String.valueOf(result.recordings.size()));
+    if (result.onThisMachine) facts.put("Here", result.filename);
+    boolean kept = favourite(result) != null;
+    return new Shelves.Detail(about == null ? result.subtitle : about.then(), null,
+        List.of(new Shelves.Doing(result.filename == null && !result.recordings.isEmpty() ? "Play the recording" : "Play",
+                () -> open(result)),
+            new Shelves.Doing(kept ? "★ Kept" : "☆ Keep", () -> keep(result))),
+        config.getSnapshotHistory().values().stream().anyMatch(entry -> entry.getFilePath().equals(result.filename))
+            ? "Played here lately" : null, facts);
+  }
+
+  public String known(GameSearchResult result) {
+    return result.id == null || idOf(result.id) < 0 ? null : "zxdb:" + result.id;
+  }
+
+  public void open(GameSearchResult result) {
+    if (result.filename == null && !result.recordings.isEmpty()) {
+      RzxOption first = result.recordings.getFirst();
+      Desk.theOne().play(first.url(), first.label(), result.id);
+    } else startLoading(result);
+  }
+
+  private OOZxConfiguration.Favorite favourite(GameSearchResult result) {
+    return config.getFavorites().stream().filter(favorite -> favorite.getSource().equals(result.filename)
+        || !result.recordings.isEmpty() && favorite.isRecording() && result.recordings.getFirst().url().endsWith(
+        favorite.getSource().replace(java.io.File.separatorChar, '/'))).findFirst().orElse(null);
+  }
+
+  /** Kept as a favourite, or no longer, and the shelves say so. */
+  private void keep(GameSearchResult result) {
+    OOZxConfiguration.Favorite kept = favourite(result);
+    if (kept != null) config.removeFavorite(kept.getSource());
+    else Desk.theOne().keep(asAGame(result));
+    shelves.again();
+  }
+
+  public JComponent filters() {
+    JPanel strip = new JPanel(new FlowLayout(FlowLayout.LEADING, 8, 2));
+    for (JComponent each : List.of(order, machineFilter, genreFilter, yearFilter, rzxFilter, mapFilter, loadableFilter,
+        unknownFilter, colourFilter))
+      strip.add(each);
+    JButton clear = new JButton("Clear filters");
+    clear.setBorderPainted(false);
+    clear.setContentAreaFilled(false);
+    clear.addActionListener(e -> search(new Search(shelves.words(), String.valueOf(where()), AS_FOUND,
+        new KnowsTheGames.Slice(null, null, null), false, false, true, false, false)));
+    strip.add(clear);
+    return strip;
+  }
+
+  /**
+   * What this machine has, and the way to add to it. Scanning is what turns a folder of files with names like
+   * RENE256.SNA into games with titles, and it is offered here rather than run by itself because reading every file of
+   * a collection is not something to do behind somebody's back.
+   */
+  public JComponent underShelves() {
+    JButton add = new JButton("Add folder…");
+    add.addActionListener(e -> scanFolder());
     JButton rescan = new JButton("Rescan");
     rescan.setToolTipText("Look through every folder again, for games added since");
     rescan.addActionListener(e -> rescanEverything());
-    rescanRow = row(rescan);
-    rescanRow.setVisible(false);
-
-    panel.add(folderExpander, BorderLayout.NORTH);
-    panel.add(folderView, BorderLayout.CENTER);
-    panel.add(rescanRow, BorderLayout.SOUTH);
-    return panel;
+    JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEADING, 0, 0));
+    buttons.setOpaque(false);
+    buttons.add(add);
+    buttons.add(Box.createHorizontalStrut(6));
+    buttons.add(rescan);
+    JPanel under = new JPanel(new BorderLayout(0, 6));
+    libraryLabel.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 0));
+    under.add(libraryLabel, BorderLayout.NORTH);
+    under.add(buttons, BorderLayout.CENTER);
+    under.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
+    return under;
   }
 
-  private java.nio.file.Path folderAt(MouseEvent clicked) {
-    javax.swing.tree.TreePath path = folderTree.getPathForLocation(clicked.getX(), clicked.getY());
-    return path != null && path.getLastPathComponent() instanceof DefaultMutableTreeNode node
-        && node.getUserObject() instanceof Folder folder ? folder.path() : null;
+  /** A folder of games can be left out without forgetting it: its games stop showing until it is taken back. */
+  public JPopupMenu menuOfShelf(String shelf) {
+    if (!config.getGameFolders().contains(shelf)) return null;
+    JPopupMenu menu = new JPopupMenu();
+    JCheckBoxMenuItem taken = new JCheckBoxMenuItem("Take its games into account", config.takesIntoAccount(shelf));
+    taken.addActionListener(e -> {
+      config.takeIntoAccount(shelf, taken.isSelected());
+      shelves.again();
+    });
+    menu.add(taken);
+    return menu;
   }
 
-  /** A folder with a box saying whether it is being taken into account. */
-  private class FolderRenderer extends javax.swing.tree.DefaultTreeCellRenderer {
-    private final JCheckBox box = new JCheckBox();
-
-    @Override
-    public Component getTreeCellRendererComponent(JTree tree, Object value, boolean selected,
-        boolean expanded, boolean leaf, int row, boolean focused) {
-      super.getTreeCellRendererComponent(tree, value, selected, expanded, leaf, row, focused);
-      if (value instanceof DefaultMutableTreeNode node && node.getUserObject() instanceof Folder folder) {
-        box.setText(folder.toString());
-        box.setSelected(config.takesIntoAccount(folder.path().toString()));
-        box.setOpaque(false);
-        box.setEnabled(tree.isEnabled());
-        return box;
+  /** Its menu: a recording to play, the machine or the version to load it as, its whole card, keeping it. */
+  public JPopupMenu menu(GameSearchResult result) {
+    JPopupMenu menu = new JPopupMenu();
+    if (!result.recordings.isEmpty()) {
+      JMenu playRecording = new JMenu("Play Recording");
+      for (RzxOption option : result.recordings) {
+        JMenuItem item = new JMenuItem(option.label());
+        item.addActionListener(e -> Desk.theOne().play(option.url(), option.label(), result.id));
+        playRecording.add(item);
       }
-      return this;
+      menu.add(playRecording);
+      menu.addSeparator();
     }
+    List<Runnable> refills = new ArrayList<>();
+    if (result.filename != null) {
+      JMenu loadItem = machineMenu("Load Game" + besides(result.files.isEmpty() ? result.filename : result.files.getFirst()), result, null);
+      refills.add(() -> fill(loadItem, result, null));
+      menu.add(loadItem);
+    }
+    if (result.files.size() > 1) {
+      JMenu versions = new JMenu("Load Version");
+      for (String each : result.files) {
+        String shown = DownloadAndUnzip.nameOf(each) + (ZxInfoApiHandler.fromTosec(each) ? "  (found)" : "") + besides(each);
+        JMenu item = machineMenu(DownloadAndUnzip.available(each) ? shown : shown + "  (not available)", result, each);
+        item.setEnabled(DownloadAndUnzip.available(each));
+        refills.add(() -> fill(item, result, each));
+        versions.add(item);
+      }
+      menu.add(versions);
+    }
+    JMenuItem details = new JMenuItem("Everything about it…");
+    details.addActionListener(e -> Desk.theOne().showDetails(asAGame(result)));
+    details.setEnabled(result.id != null);
+    menu.add(details);
+    JMenuItem favourite = new JMenuItem(favourite(result) == null ? "Add to Favourites" : "Remove from Favourites");
+    favourite.addActionListener(e -> keep(result));
+    menu.add(favourite);
+    menu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
+      public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
+        refills.forEach(Runnable::run);
+      }
+
+      public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
+      }
+
+      public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
+      }
+    });
+    return menu;
   }
 
   /**
@@ -470,7 +472,6 @@ public class GamesFrame extends JInternalFrame {
    * in size or date, so this costs a listing of the folders and a fingerprint of what is new.
    */
   private void rescanEverything() {
-    setSearching(true);
     libraryLabel.setText("Looking again...");
     new SwingWorker<Integer, Void>() {
       @Override
@@ -479,10 +480,10 @@ public class GamesFrame extends JInternalFrame {
         // Games under a folder nobody lists any more are dropped rather than lingering unseen.
         LocalGames.library().games().stream().filter(copy -> config.getGameFolders().stream()
                 .noneMatch(folder -> copy.path().startsWith(folder + java.io.File.separator)))
-            .forEach(copy -> LocalGames.library().forget(java.nio.file.Path.of(copy.path())));
+            .forEach(copy -> LocalGames.library().forget(Path.of(copy.path())));
         for (String folder : config.getGameFolders()) {
-          if (config.takesIntoAccount(folder) && Files.isDirectory(java.nio.file.Path.of(folder))) {
-            LocalGames.library().scan(java.nio.file.Path.of(folder), LocalGames.CERTAINTY);
+          if (config.takesIntoAccount(folder) && Files.isDirectory(Path.of(folder))) {
+            LocalGames.library().scan(Path.of(folder), LocalGames.CERTAINTY);
           }
         }
         LocalGames.library().save(LocalGames.file());
@@ -491,94 +492,9 @@ public class GamesFrame extends JInternalFrame {
 
       @Override
       protected void done() {
-        setSearching(false);
-        try {
-          get();
-        } catch (Exception failed) {
-          showMessage("Could not look again: " + rootCauseOf(failed));
-        }
-        sayWhatIsOnThisMachine();
-        performSearch();
+        looked(this, "Could not look again: ");
       }
     }.execute();
-  }
-
-  private String collapsedLabel() {
-    return "\u25b8  Folders (" + config.getGameFolders().size() + ")";
-  }
-
-  /** A folder of the tree: where it is, and how many games are under it. */
-  private record Folder(java.nio.file.Path path, java.util.Set<String> games) {
-    @Override
-    public String toString() {
-      String name = path.getFileName() == null ? path.toString() : path.getFileName().toString();
-      return name + "  (" + games.size() + ")";
-    }
-  }
-
-  /**
-   * The folders that hold games, each under the one it is in. Only folders with something in them
-   * are listed: walking a collection of a thousand games otherwise draws a tree of empty branches.
-   */
-  private void fillFolderTree() {
-    // Games, not files, so the tree and the gallery count the same things: two copies of one game
-    // in a folder are one game, which is what the gallery shows as one tile.
-    Map<java.nio.file.Path, java.util.Set<String>> directly = new LinkedHashMap<>();
-    for (GameLibrary.Copy copy : LocalGames.library().games()) {
-      directly.computeIfAbsent(java.nio.file.Path.of(copy.path()).getParent(), dir -> new LinkedHashSet<>())
-          .add(copy.identified() ? copy.game().id : copy.path());
-    }
-    DefaultMutableTreeNode root = new DefaultMutableTreeNode("folders");
-    for (String folder : config.getGameFolders()) {
-      java.nio.file.Path top = java.nio.file.Path.of(folder);
-      Map<java.nio.file.Path, DefaultMutableTreeNode> nodes = new LinkedHashMap<>();
-      directly.keySet().stream()
-          .filter(dir -> dir != null && dir.startsWith(top))
-          .sorted()
-          .forEach(dir -> nodeFor(dir, top, nodes, directly));
-      DefaultMutableTreeNode node = nodes.get(top);
-      root.add(node == null ? new DefaultMutableTreeNode(new Folder(top, java.util.Set.of())) : node);
-    }
-    folderTree.setModel(new DefaultTreeModel(root));
-    // Folded, showing the folders that were added and what each one holds in total; opening one is
-    // how somebody asks about what is inside it.
-    for (int row = folderTree.getRowCount() - 1; row >= 0; row--) {
-      folderTree.collapseRow(row);
-    }
-    folderTree.scrollRowToVisible(0);
-    folderExpander.setText(folderExpander.isSelected() ? "\u25be  Folders" : collapsedLabel());
-  }
-
-  /** The node for a folder, making the ones above it first, and counting it into all of them. */
-  private DefaultMutableTreeNode nodeFor(java.nio.file.Path dir, java.nio.file.Path top,
-      Map<java.nio.file.Path, DefaultMutableTreeNode> nodes,
-      Map<java.nio.file.Path, java.util.Set<String>> directly) {
-    DefaultMutableTreeNode already = nodes.get(dir);
-    if (already != null) {
-      return already;
-    }
-    DefaultMutableTreeNode node = new DefaultMutableTreeNode(new Folder(dir, new LinkedHashSet<>()));
-    nodes.put(dir, node);
-    if (!dir.equals(top) && dir.getParent() != null) {
-      nodeFor(dir.getParent(), top, nodes, directly).add(node);
-    }
-    // Counted into this folder and into every one above it, so a top folder says what its whole
-    // tree holds rather than only what sits loose in it. A set rather than a sum, because the same
-    // game in two of its folders is still one game.
-    for (java.nio.file.Path at = dir; at != null && at.startsWith(top); at = at.getParent()) {
-      DefaultMutableTreeNode counted = nodes.get(at);
-      if (counted != null) {
-        ((Folder) counted.getUserObject()).games().addAll(directly.getOrDefault(dir, java.util.Set.of()));
-      }
-    }
-    return node;
-  }
-
-  private void sayWhatIsOnThisMachine() {
-    GameLibrary library = LocalGames.library();
-    long named = library.games().stream().filter(GameLibrary.Copy::identified).count();
-    libraryLabel.setText(library.games().size() + " games, " + named + " named");
-    fillFolderTree();
   }
 
   private void scanFolder() {
@@ -588,9 +504,8 @@ public class GamesFrame extends JInternalFrame {
     if (chooser.showOpenDialog(this) != JFileChooser.APPROVE_OPTION) {
       return;
     }
-    java.nio.file.Path folder = chooser.getSelectedFile().toPath();
+    Path folder = chooser.getSelectedFile().toPath();
     config.addGameFolder(folder.toString());
-    setSearching(true);
     libraryLabel.setText("Looking through " + folder.getFileName() + "...");
     new SwingWorker<Integer, Void>() {
       @Override
@@ -602,22 +517,33 @@ public class GamesFrame extends JInternalFrame {
 
       @Override
       protected void done() {
-        setSearching(false);
-        try {
-          get();
-        } catch (Exception failed) {
-          showMessage("Could not read " + folder + ": " + rootCauseOf(failed));
-        }
-        sayWhatIsOnThisMachine();
-        performSearch();
+        looked(this, "Could not read " + folder + ": ");
       }
     }.execute();
   }
 
+  private void looked(SwingWorker<Integer, Void> looking, String failing) {
+    try {
+      looking.get();
+    } catch (Exception failed) {
+      Throwable cause = failed;
+      while (cause.getCause() != null) cause = cause.getCause();
+      JOptionPane.showMessageDialog(this, failing + (cause.getMessage() != null ? cause.getMessage() : cause),
+          "Games", JOptionPane.WARNING_MESSAGE);
+    }
+    sayWhatIsOnThisMachine();
+    shelves.again();
+  }
+
+  private void sayWhatIsOnThisMachine() {
+    GameLibrary library = LocalGames.library();
+    long named = library.games().stream().filter(GameLibrary.Copy::identified).count();
+    libraryLabel.setText(library.games().size() + " games here, " + named + " named");
+  }
+
   /**
-   * A game of this machine said in the same terms as one from the catalogue, so that the gallery,
-   * the context menu and the loading path do not have to know where it came from. The picture is
-   * not known yet: it is asked for by entry id once the tile exists.
+   * A game of this machine said in the same terms as one from the catalogue, so that the cards,
+   * the menu and the loading path do not have to know where it came from.
    */
   private GameSearchResult asResult(GameLibrary.Copy copy) {
     GameSearchResult result = new GameSearchResult(copy.identified() ? copy.game().id : null,
@@ -643,32 +569,32 @@ public class GamesFrame extends JInternalFrame {
 
   /**
    * Whether a game is under one of the folders being taken into account. The library outlives the
-   * list of folders - a folder dropped from it leaves its games written down - and a gallery that
-   * showed them anyway would disagree with the tree that counts them.
+   * list of folders - a folder dropped from it leaves its games written down - and showing them
+   * anyway would disagree with the shelves that list the folders.
    */
   private boolean takenIntoAccount(GameLibrary.Copy copy) {
     return config.getGameFolders().stream()
-        .anyMatch(folder -> copy.path().startsWith(folder + java.io.File.separator))
-        && config.takesIntoAccount(java.nio.file.Path.of(copy.path()).getParent().toString());
+        .anyMatch(folder -> copy.path().startsWith(folder + java.io.File.separator) && config.takesIntoAccount(folder))
+        && config.takesIntoAccount(Path.of(copy.path()).getParent().toString());
   }
 
   /**
    * What this machine has, one result per file; putting the copies of one game together is done
    * afterwards, by the same merge that joins them to what the net has.
    */
-  private List<GameSearchResult> gamesOnThisMachine(String query, boolean onlyUnknown, String year) {
+  private List<GameSearchResult> gamesOnThisMachine(String query, boolean onlyUnknown, String year, String inFolder) {
     return LocalGames.library().games().stream()
-        .filter(copy -> onlyInFolder == null || copy.path().startsWith(onlyInFolder))
+        .filter(copy -> inFolder == null || copy.path().startsWith(inFolder))
         .filter(this::takenIntoAccount)
         .filter(copy -> !onlyUnknown || !copy.identified())
         .filter(copy -> year == null || copy.identified() && year.equals(copy.game().yearOfRelease))
         .filter(copy -> query.isEmpty() || copy.title().toLowerCase().contains(query.toLowerCase()))
         .map(this::asResult)
-        .collect(java.util.stream.Collectors.toList());
+        .collect(Collectors.toList());
   }
 
   /**
-   * One tile per game, whatever it was found as. Seven copies of Manic Miner in seven folders and
+   * One card per game, whatever it was found as. Seven copies of Manic Miner in seven folders and
    * the ZXInfo entry for it are eight things and one game; knowing which game each file is - which
    * is what the fingerprint is for - is what makes saying so possible. Every copy stays reachable
    * under Load Version, the one on this machine first, because it is already here.
@@ -721,7 +647,7 @@ public class GamesFrame extends JInternalFrame {
   private void join(GameSearchResult kept, GameSearchResult other) {
     // The best kind of file wins wherever it is, a TZX that says its machine over a TAP that cannot;
     // between two as good, the copy already on the disk, which is why those go first into a stable sort.
-    kept.files = com.fpetrola.oozx.speccy.media.DownloadAndUnzip.byPreference(kept.onThisMachine
+    kept.files = DownloadAndUnzip.byPreference(kept.onThisMachine
         ? concat(kept.files, other.files) : concat(other.files, kept.files), file -> file);
     kept.filename = kept.files.isEmpty() ? kept.filename : kept.files.get(0);
     kept.copies = kept.copies + other.copies;
@@ -768,10 +694,13 @@ public class GamesFrame extends JInternalFrame {
         try {
           Metadata metadata = get();
           // 200 entries is enough to be worth a line in a combo; below that the list is noise.
+          choosingAll = true;
           fill(machineFilter, Metadata.namesOf(metadata.machinetypes, 200));
           fill(genreFilter, Metadata.namesOf(metadata.genretypes, 200));
         } catch (Exception e) {
-          System.err.println("Could not read the filter values: " + rootCauseOf(e));
+          System.err.println("Could not read the filter values: " + e);
+        } finally {
+          choosingAll = false;
         }
       }
 
@@ -789,113 +718,6 @@ public class GamesFrame extends JInternalFrame {
     return value.toString();
   }
 
-  private void performSearch() {
-    Search now = search();
-    String query = now.words();
-    // An empty box is everything: the games on this machine, and on the net the catalogue from
-    // its first page, which is as much as one question to it brings.
-
-    // A search in flight is abandoned rather than left to overwrite the newer one's results.
-    if (runningSearch != null && !runningSearch.isDone()) {
-      runningSearch.cancel(true);
-    }
-
-    KnowsTheGames.Slice slice = now.slice();
-    String year = slice.year() == null ? null : String.valueOf(slice.year());
-    String sortedBy = now.order();
-
-    setSearching(true);
-    showMessage(query.isEmpty() ? "Looking at everything..." : "Searching for \"" + query + "\"...");
-
-    SwingWorker<List<GameSearchResult>, Void> search = new SwingWorker<>() {
-      @Override
-      protected List<GameSearchResult> doInBackground() {
-        // Off the EDT: this is a network round trip to ZXInfo, and running it on the event
-        // thread froze the window until the results were ready, so nothing indicated that
-        // the search had even started. Reading the library is quick, but it goes the same way
-        // so that both sources arrive by the same door.
-        List<GameSearchResult> found = new ArrayList<>();
-        if (!ON_THE_NET.equals(now.where())) {
-          found.addAll(gamesOnThisMachine(query, now.unknown(), year));
-        }
-        if (!ON_THIS_MACHINE.equals(now.where())) {
-          // In an order that is not the catalogue's own: the web service answers with its first
-          // hundred and fifty titles alphabetically, none of which anybody knows, so the most voted
-          // that match are asked for too, from all of it.
-          List<Hit> hits = new ArrayList<>();
-          if (!AS_FOUND.equals(sortedBy))
-            hits.addAll(Catalogues.mostVoted(query, slice));
-          if (!query.isEmpty() || AS_FOUND.equals(sortedBy))
-            hits.addAll(Catalogues.search(query, slice));
-          // Once each, or a game both answered would count as two copies.
-          Set<String> seen = new java.util.HashSet<>();
-          hits.removeIf(hit -> hit._id != null && !seen.add(hit._id));
-          found.addAll(createMockResults(query, hits));
-        }
-        return found;
-      }
-
-      @Override
-      protected void done() {
-        if (isCancelled() || runningSearch != this) {
-          return;
-        }
-        runningSearch = null;
-        setSearching(false);
-
-        List<GameSearchResult> results;
-        try {
-          results = get();
-        } catch (Exception e) {
-          showMessage("Search failed: " + rootCauseOf(e));
-          return;
-        }
-
-        results = oneTilePerGame(results);
-        if (MOST_KNOWN.equals(sortedBy)) {
-          results.sort(BY_VOTES);
-        } else if (BEST_RATED.equals(sortedBy)) {
-          results.sort(BY_RATING);
-        }
-        int found = results.size();
-        // The extras and the availability are things a catalogue entry has; a file already on
-        // the disk is available by being there, so those filters are not asked of it.
-        // Asked of everything, wherever it came from. They used to be asked only of what came
-        // from the net, so ticking RZX left every game on the disk showing and the filter looked
-        // broken; what a game on the disk offers is known too, and offline: its recordings from
-        // the archive that ships, its map from the catalogue that ships.
-        results.removeIf(result ->
-            (now.colour() && !result.inColour)
-                || (now.rzx() && !result.hasRzx)
-                || (now.map() && !result.hasMap)
-                // Not merely "has a file": one the archive will not hand over cannot be
-                // loaded either, and a filter for what can be loaded that still shows those is
-                // a filter that lies.
-                || (now.loadable() && (result.filename == null || !result.available)));
-
-        if (results.isEmpty()) {
-          showMessage(found == 0
-              ? (query.isEmpty() ? "Nothing found - add a folder to look in, or look on the net"
-                  : "No games found for \"" + query + "\"")
-              : "None of the " + found + " games found match the filters");
-          return;
-        }
-
-        resultsPanel.removeAll();
-        showing = results;
-        showMore();
-      }
-    };
-
-    runningSearch = search;
-    search.execute();
-  }
-
-  /**
-   * Loading a game downloads and unzips it before an emulator window can appear, which takes
-   * long enough that a click used to look like nothing had happened. Say what is going on, and
-   * say plainly when there is nothing to load rather than ignoring the click.
-   */
   /**
    * A file, and under it the machines it can be started on.
    * <p>
@@ -909,8 +731,7 @@ public class GamesFrame extends JInternalFrame {
   private JMenu machineMenu(String label, GameSearchResult result, String file) {
     JMenu menu = new JMenu(label);
     // Clicking the name loads it; hovering offers the default and the machines for when the file is wrong about
-    // which one it wants. The entry that used to say "As the file says" was this same thing with
-    // a label instead of the name of what it would load.
+    // which one it wants.
     menu.addMouseListener(new MouseAdapter() {
       @Override
       public void mousePressed(MouseEvent clicked) {
@@ -956,6 +777,10 @@ public class GamesFrame extends JInternalFrame {
     startLoading(result);
   }
 
+  /**
+   * Loading a game downloads and unzips it before an emulator window can appear, which takes long enough that a click
+   * used to look like nothing had happened. Say plainly when there is nothing to load rather than ignoring the click.
+   */
   private void startLoading(GameSearchResult result) {
     if (result.filename == null) {
       JOptionPane.showMessageDialog(this,
@@ -976,391 +801,76 @@ public class GamesFrame extends JInternalFrame {
     if (loading) {
       return;
     }
-
-    setLoading(true, result.title);
-    Desk.theOne().open(asAGame(result), () -> setLoading(false, null));
-  }
-
-  /**
-   * A wall of tiles is a wall of pictures to fetch, so a screenful's worth more is built each time
-   * the gallery is scrolled near its end.
-   */
-  private void showMore() {
-    int built = resultsPanel.getComponentCount();
-    if (built >= showing.size()) return;
-    for (GameSearchResult result : showing.subList(built, Math.min(showing.size(), built + AT_A_TIME))) {
-      resultsPanel.add(createGameTile(result));
-    }
-    // In the title bar, where it does not cost a widget and does not push the gallery down.
-    int now = resultsPanel.getComponentCount();
-    setTitle(now < showing.size() ? "Game Browser - showing " + now + " of " + showing.size()
-        : "Game Browser - " + showing.size() + (showing.size() == 1 ? " game" : " games"));
-    resultsPanel.revalidate();
-    resultsPanel.repaint();
-  }
-
-  private void setLoading(boolean busy, String title) {
-    loading = busy;
-    searchProgress.setVisible(busy);
-    setCursor(Cursor.getPredefinedCursor(busy ? Cursor.WAIT_CURSOR : Cursor.DEFAULT_CURSOR));
-    if (busy) {
-      setTitle("Game Browser - loading " + title + "...");
-    } else {
+    loading = true;
+    setTitle("Game Browser - loading " + result.title + "...");
+    Desk.theOne().open(asAGame(result), () -> {
+      loading = false;
       setTitle("Game Browser");
-    }
+    });
   }
 
-  private void setSearching(boolean searching) {
-    searchProgress.setVisible(searching);
-    searchButton.setEnabled(!searching);
-    searchButton.setText(searching ? "Searching..." : "Search");
-    setCursor(Cursor.getPredefinedCursor(searching ? Cursor.WAIT_CURSOR : Cursor.DEFAULT_CURSOR));
-  }
-
-  /** Replaces the result list with a single centred line of text. */
-  private void showMessage(String message) {
-    showing = List.of();
-    resultsPanel.removeAll();
-    JLabel label = new JLabel(message);
-    label.setAlignmentX(Component.CENTER_ALIGNMENT);
-    label.setBorder(BorderFactory.createEmptyBorder(20, 10, 10, 10));
-    resultsPanel.add(label);
-    resultsPanel.revalidate();
-    resultsPanel.repaint();
-  }
-
-  private static String rootCauseOf(Throwable e) {
-    Throwable cause = e;
-    while (cause.getCause() != null) {
-      cause = cause.getCause();
-    }
-    return cause.getMessage() != null ? cause.getMessage() : cause.toString();
-  }
-
-  private List<GameSearchResult> createMockResults(String query, List<Hit> search) {
+  private List<GameSearchResult> fromTheCatalogue(List<Hit> search) {
     List<GameSearchResult> results = new ArrayList<>();
-
     for (Hit hit : search) {
       GameEntry game = Catalogues.withTosecFiles(hit._id, hit._source);
-      if (game.contentType.equals("SOFTWARE")) {
-        List<String> screenshots = new ArrayList<>();
-        game.screens.forEach(s1 -> {
-          Screen screen = Screen.from(s1);
-
-          if (screen != null) {
-            String filename = ZxInfoApiHandler.mediaUrl(screen.url);
-
-            screenshots.add(filename);
-          }
-        });
-        // What the entry offers that cannot be loaded, so a refusal can say what it was rather
-        // than "no tape available", which is true and tells nobody anything. Both lists come from
-        // the one place that knows: this end once accepted three formats while the scorer ranked
-        // seven, and an entry offered only as a TAP was dropped before the scorer ever saw it.
-        Map<String, String> offers = ZxInfoApiHandler.filesOf(game, DownloadAndUnzip::loadable);
-        List<String> files = offers.keySet().stream().filter(DownloadAndUnzip::loadable).toList();
-        Set<String> offered = offers.entrySet().stream()
-            .filter(offer -> !DownloadAndUnzip.loadable(offer.getKey()))
-            .map(Map.Entry::getValue).collect(Collectors.toCollection(LinkedHashSet::new));
-
-        String screenshot1 = getFileURL(screenshots, 0);
-        String screenshot2 = getFileURL(screenshots, 1);
-        // Entries with nothing downloadable used to be dropped, so a game simply was not in the
-        // results and there was no way to tell that from it not existing. Keep them, with a null
-        // filename, and say so when one is clicked.
-        // Not files.get(0): ZXDB lists several downloads per game and the first is whatever the
-        // database happens to return, which for Three Weeks in Paradise is its 128K tape.
-        boolean hasMap = false;
-        List<RzxOption> recordings = new ArrayList<>();
-        // The RZX Archive lists recordings ZXDB does not, and knows who made them. ZXDB has come to
-        // list the archive's own as well, from its copy at archive.org, and those are offered once.
-        List<RzxRecording> playable = archive.recordingsFor(idOf(hit._id)).stream()
-            .filter(RzxRecording::isPlayable).toList();
-        Set<String> archived = playable.stream()
-            .map(recording -> DownloadAndUnzip.nameOf(recording.download().url())).collect(Collectors.toSet());
-        for (AdditionalDownload download : game.additionalDownloads == null
-            ? List.<AdditionalDownload>of() : game.additionalDownloads) {
-          if ("RZX playback file".equals(download.type) && !archived.contains(DownloadAndUnzip.nameOf(download.path))) {
-            recordings.add(new RzxOption(DownloadAndUnzip.nameOf(download.path) + "  (ZXDB)",
-                ZxInfoApiHandler.mediaUrl(download.path)));
-          }
-          hasMap |= ZxInfoApiHandler.GAME_MAP_TYPE.equalsIgnoreCase(download.type);
+      if (!game.contentType.equals("SOFTWARE")) continue;
+      List<String> screenshots = new ArrayList<>();
+      game.screens.forEach(each -> {
+        Screen screen = Screen.from(each);
+        if (screen != null) screenshots.add(ZxInfoApiHandler.mediaUrl(screen.url));
+      });
+      // What the entry offers that cannot be loaded, so a refusal can say what it was rather than "no tape available",
+      // which is true and tells nobody anything.
+      Map<String, String> offers = ZxInfoApiHandler.filesOf(game, DownloadAndUnzip::loadable);
+      List<String> files = offers.keySet().stream().filter(DownloadAndUnzip::loadable).toList();
+      Set<String> offered = offers.entrySet().stream()
+          .filter(offer -> !DownloadAndUnzip.loadable(offer.getKey()))
+          .map(Map.Entry::getValue).collect(Collectors.toCollection(LinkedHashSet::new));
+      boolean hasMap = false;
+      List<RzxOption> recordings = new ArrayList<>();
+      // The RZX Archive lists recordings ZXDB does not, and knows who made them. ZXDB has come to
+      // list the archive's own as well, from its copy at archive.org, and those are offered once.
+      List<RzxRecording> playable = archive.recordingsFor(idOf(hit._id)).stream()
+          .filter(RzxRecording::isPlayable).toList();
+      Set<String> archived = playable.stream()
+          .map(recording -> DownloadAndUnzip.nameOf(recording.download().url())).collect(Collectors.toSet());
+      for (AdditionalDownload download : game.additionalDownloads == null
+          ? List.<AdditionalDownload>of() : game.additionalDownloads) {
+        if ("RZX playback file".equals(download.type) && !archived.contains(DownloadAndUnzip.nameOf(download.path))) {
+          recordings.add(new RzxOption(DownloadAndUnzip.nameOf(download.path) + "  (ZXDB)",
+              ZxInfoApiHandler.mediaUrl(download.path)));
         }
-        for (RzxRecording recording : playable) {
-          String by = recording.submitter() == null || recording.submitter().isBlank()
-              ? "RZX Archive" : "by " + recording.submitter();
-          recordings.add(new RzxOption(recording.title() + "  (" + by + ")", recording.download().url()));
-        }
-        boolean hasRzx = !recordings.isEmpty();
-
-        // The whole URL, not just the last part of it: the scorer needs the path to see that a
-        // file sits under /denied/ and is not going to come down.
-        String file = files.isEmpty() ? null : DownloadAndUnzip.preferred(files, url -> url);
-        GameSearchResult result = new GameSearchResult(hit._id, game.title,
-            "http://example.com/game/" + query, screenshot1, screenshot2, file);
-        result.offers = String.join(", ", offered);
-        result.available = DownloadAndUnzip.available(file);
-        // Kept, not thrown away: an entry often has a 48K release and a 128K one, and the choice
-        // between them is the person's to make rather than the scorer's to impose.
-        result.files = DownloadAndUnzip.byPreference(files, url -> url);
-        if (game.score != null) {
-          result.score = game.score.score;
-          result.votes = game.score.votes;
-        }
-        result.hasRzx = hasRzx;
-        result.hasMap = hasMap;
-        result.recordings = recordings;
-        results.add(result);
+        hasMap |= ZxInfoApiHandler.GAME_MAP_TYPE.equalsIgnoreCase(download.type);
       }
+      for (RzxRecording recording : playable) {
+        String by = recording.submitter() == null || recording.submitter().isBlank()
+            ? "RZX Archive" : "by " + recording.submitter();
+        recordings.add(new RzxOption(recording.title() + "  (" + by + ")", recording.download().url()));
+      }
+      // The whole URL, not just the last part of it: the scorer needs the path to see that a
+      // file sits under /denied/ and is not going to come down.
+      String file = files.isEmpty() ? null : DownloadAndUnzip.preferred(files, url -> url);
+      GameSearchResult result = new GameSearchResult(hit._id, game.title, null,
+          screenshots.isEmpty() ? null : screenshots.get(0), screenshots.size() > 1 ? screenshots.get(1) : null, file);
+      result.offers = String.join(", ", offered);
+      result.available = DownloadAndUnzip.available(file);
+      // Kept, not thrown away: an entry often has a 48K release and a 128K one, and the choice
+      // between them is the person's to make rather than the scorer's to impose.
+      result.files = DownloadAndUnzip.byPreference(files, url -> url);
+      if (game.score != null) {
+        result.score = game.score.score;
+        result.votes = game.score.votes;
+      }
+      result.subtitle = java.util.stream.Stream.of(game.originalYearOfRelease == null ? null : String.valueOf(game.originalYearOfRelease),
+              game.publishers == null || game.publishers.isEmpty() ? null : game.publishers.getFirst().name)
+          .filter(java.util.Objects::nonNull).collect(Collectors.joining("  -  "));
+      result.subtitle = result.subtitle.isEmpty() ? null : result.subtitle;
+      result.hasRzx = !recordings.isEmpty();
+      result.hasMap = hasMap;
+      result.recordings = recordings;
+      results.add(result);
     }
     return results;
-  }
-
-  private String getFileURL(List<String> screenshots, int x) {
-    if (x == -1)
-      return "https://i.sstatic.net/wAz1X.gif";
-    else
-      return screenshots.size() > x ? screenshots.get(x) : getFileURL(screenshots, x - 1);
-  }
-
-  private GameData getGameData() {
-    String text = "https://worldofspectrum.net/pub/sinclair/screens/in-game/e/EveryonesAWally.gif";
-    ImageIcon img1 = getImageIcon(text);
-    GameData gameData = new GameData(img1, img1);
-    return gameData;
-  }
-
-  private ImageIcon getImageIcon(String text) {
-    try {
-      return new ImageIcon(new URL(text));
-    } catch (MalformedURLException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  private record GameData(ImageIcon img1, ImageIcon img2) {
-  }
-
-  private ImageIcon createPlaceholderImage(int w, int h, Color bg, String text) {
-    BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-    Graphics2D g = img.createGraphics();
-    g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-    g.setColor(bg);
-    g.fillRect(0, 0, w, h);
-    g.setColor(Color.BLACK);
-    g.drawRect(0, 0, w - 1, h - 1);
-    g.setFont(new Font("Arial", Font.BOLD, 16));
-    FontMetrics fm = g.getFontMetrics();
-    int x = (w - fm.stringWidth(text)) / 2;
-    int y = (h - fm.getHeight()) / 2 + fm.getAscent();
-    g.drawString(text, x, y);
-    g.dispose();
-    return new ImageIcon(img);
-  }
-
-  /**
-   * One square of the gallery: the loading screen, and under it what the game is. Square because a
-   * wall of them is read by the picture, and a row as wide as the window let four games fill it.
-   */
-  private JPanel createGameTile(GameSearchResult result) {
-    JPanel row = new JPanel();
-    row.setPreferredSize(new Dimension(TILE, TILE));
-    Color color = UIManager.getColor("List.background");
-    row.setLayout(new BoxLayout(row, BoxLayout.Y_AXIS));
-    row.setBorder(BorderFactory.createCompoundBorder(
-        BorderFactory.createLineBorder(Color.LIGHT_GRAY),
-        BorderFactory.createEmptyBorder(5, 5, 5, 5)
-    ));
-    MouseAdapter l = new MouseAdapter() {
-      public void mouseEntered(MouseEvent e) {
-        Color color = UIManager.getColor("List.selectionBackground");
-        row.setBackground(color);
-      }
-
-      public void mouseExited(MouseEvent e) {
-        row.setBackground(color);
-      }
-    };
-    row.addMouseListener(l);
-
-    row.setBackground(color);
-
-    Screenshots shots = new Screenshots(l, result.screenshot1);
-    shots.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-    // Context menu
-    JPopupMenu contextMenu = new JPopupMenu();
-    if (!result.recordings.isEmpty()) {
-      JMenu playRecording = new JMenu("Play Recording");
-      for (RzxOption option : result.recordings) {
-        JMenuItem item = new JMenuItem(option.label());
-        item.addActionListener(e -> Desk.theOne().play(option.url(), option.label()));
-        playRecording.add(item);
-      }
-      contextMenu.add(playRecording);
-      contextMenu.addSeparator();
-    }
-    java.util.List<Runnable> refills = new ArrayList<>();
-    JMenu loadItem = machineMenu("Load Game" + (result.files == null || result.files.isEmpty() ? ""
-        : besides(result.files.get(0))), result, null);
-    refills.add(() -> fill(loadItem, result, null));
-    // When there is more than one, the whole list, in the order the scorer would have taken
-    // them, so what is picked by default is the one at the top.
-    if (result.files.size() > 1) {
-      JMenu versions = new JMenu("Load Version");
-      for (String each : result.files) {
-        // Which ones are ZXDB's own and which were found elsewhere, since a version that is
-        // only in TOSEC is a different thing to choose than one the archive itself hands out.
-        String shown = DownloadAndUnzip.nameOf(each)
-            + (ZxInfoApiHandler.fromTosec(each) ? "  (found)" : "")
-            + besides(each);
-        JMenu item = machineMenu(
-            DownloadAndUnzip.available(each) ? shown : shown + "  (not available)", result, each);
-        item.setEnabled(DownloadAndUnzip.available(each));
-        refills.add(() -> fill(item, result, each));
-        versions.add(item);
-      }
-      contextMenu.add(versions);
-    }
-    JMenuItem detailsItem = new JMenuItem("View Details");
-    JMenuItem favoriteItem = new JMenuItem("Add to Favorites");
-    JMenuItem downloadItem = new JMenuItem("Download");
-    contextMenu.add(loadItem);
-    contextMenu.add(detailsItem);
-    contextMenu.add(favoriteItem);
-    contextMenu.add(downloadItem);
-
-    contextMenu.addPopupMenuListener(new javax.swing.event.PopupMenuListener() {
-      @Override
-      public void popupMenuWillBecomeVisible(javax.swing.event.PopupMenuEvent e) {
-        refills.forEach(Runnable::run);
-      }
-
-      @Override
-      public void popupMenuWillBecomeInvisible(javax.swing.event.PopupMenuEvent e) {
-      }
-
-      @Override
-      public void popupMenuCanceled(javax.swing.event.PopupMenuEvent e) {
-      }
-    });
-
-    MouseAdapter mouseAdapter = new MouseAdapter() {
-      @Override
-      public void mousePressed(MouseEvent e) {
-        if (e.isPopupTrigger()) showPopup(e);
-      }
-
-      @Override
-      public void mouseReleased(MouseEvent e) {
-        if (e.isPopupTrigger()) showPopup(e);
-      }
-
-      private void showPopup(MouseEvent e) {
-        contextMenu.show(e.getComponent(), e.getX(), e.getY());
-      }
-
-      @Override
-      public void mouseClicked(MouseEvent e) {
-        if (SwingUtilities.isLeftMouseButton(e) && e.getClickCount() == 1) {
-          startLoading(result);
-        }
-      }
-    };
-
-    shots.addMouseListener(mouseAdapter);
-
-    detailsItem.addActionListener(e -> Desk.theOne().showDetails(asAGame(result)));
-    favoriteItem.addActionListener(e -> Desk.theOne().keep(asAGame(result)));
-    downloadItem.addActionListener(e -> JOptionPane.showMessageDialog(this,
-        "Downloading: " + result.url + "\n(Download feature coming soon)", "Download",
-        JOptionPane.INFORMATION_MESSAGE));
-
-    // Picture first, caption under it: in a grid the eye finds the game by its loading screen,
-    // and the title is what confirms it.
-    row.add(shots);
-    row.add(Box.createVerticalStrut(4));
-    row.add(createTileCaption(result));
-
-    return row;
-  }
-
-  private JPanel createTileCaption(GameSearchResult result) {
-    JPanel caption = new JPanel();
-    caption.setOpaque(false);
-    caption.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-    caption.setLayout(new BoxLayout(caption, BoxLayout.Y_AXIS));
-    JLabel title = new JLabel(result.title);
-    title.setFont(title.getFont().deriveFont(Font.BOLD, 12f));
-    title.setToolTipText(result.title);
-    caption.add(title);
-    if (result.subtitle != null) {
-      JLabel subtitle = new JLabel(result.subtitle);
-      subtitle.setFont(subtitle.getFont().deriveFont(Font.PLAIN, 10f));
-      subtitle.setForeground(Color.GRAY);
-      caption.add(subtitle);
-    }
-
-    if (result.filename == null || !result.available) {
-      title.setForeground(Color.GRAY);
-      JLabel unavailable = new JLabel(
-          result.filename == null ? "  -  Nothing this emulator can open" : "  -  Not available");
-      unavailable.setForeground(Color.GRAY);
-      caption.add(unavailable);
-    }
-
-    if (!result.recordings.isEmpty()) {
-      JLabel recordings = new JLabel("  -  " + result.recordings.size()
-          + (result.recordings.size() == 1 ? " recording" : " recordings"));
-      recordings.setForeground(new Color(0, 110, 0));
-      recordings.setToolTipText("Right-click to play one");
-      caption.add(recordings);
-    }
-
-    caption.add(Box.createHorizontalGlue());
-    return caption;
-  }
-
-  /**
-   * The list of results, sized to the viewport rather than to itself.
-   * <p>
-   * A plain panel in a scroll pane keeps its own preferred width, and with the horizontal
-   * scrollbar disabled the extra room simply went unused: the window grew and the rows did not.
-   * Tracking the viewport is what passes the new width down to the rows, and from them to the
-   * screenshots.
-   */
-  /**
-   * A panel that is as wide as whatever is scrolling it and as tall as its contents. Both columns
-   * of the window use it: the gallery, so the tiles wrap into the width instead of scrolling
-   * sideways, and the filters, so the tree at the bottom can be reached when the window is short.
-   */
-  private static class FollowsViewportWidth extends JPanel implements Scrollable {
-
-    public Dimension getPreferredScrollableViewportSize() {
-      return getPreferredSize();
-    }
-
-    public int getScrollableUnitIncrement(Rectangle visible, int orientation, int direction) {
-      return 16;
-    }
-
-    public int getScrollableBlockIncrement(Rectangle visible, int orientation, int direction) {
-      return visible.height;
-    }
-
-    public boolean getScrollableTracksViewportWidth() {
-      return true;
-    }
-
-    public boolean getScrollableTracksViewportHeight() {
-      return false;
-    }
-  }
-
-  private void loadLazyImage(JLabel imgLabel1, String screenshot1, MouseAdapter mouseAdapter) {
-    LazyImageIconLoader lazyImageIconLoader = new LazyImageIconLoader(imgLabel1, screenshot1, mouseAdapter);
-    lazyImageIconLoader.execute();
   }
 
   /**
@@ -1371,10 +881,15 @@ public class GamesFrame extends JInternalFrame {
                        boolean rzx, boolean map, boolean loadable, boolean unknown, boolean colour) {
   }
 
+  /** The shelf it looks on, as a place: a folder of this machine is this machine. */
+  private String where() {
+    String shelf = shelves == null ? EVERYWHERE : shelves.shelf();
+    return config.getGameFolders().contains(shelf) ? ON_THIS_MACHINE : shelf;
+  }
+
   public Search search() {
     String year = selected(yearFilter);
-    return new Search(searchField.getText().trim(), String.valueOf(sourceFilter.getSelectedItem()),
-        String.valueOf(order.getSelectedItem()),
+    return new Search(shelves == null ? "" : shelves.words(), where(), String.valueOf(order.getSelectedItem()),
         new KnowsTheGames.Slice(year == null ? null : Integer.valueOf(year), selected(genreFilter), selected(machineFilter)),
         rzxFilter.isSelected(), mapFilter.isSelected(), loadableFilter.isSelected(), unknownFilter.isSelected(),
         colourFilter.isSelected());
@@ -1383,8 +898,6 @@ public class GamesFrame extends JInternalFrame {
   /** Looks for that: every control as it says, and a single search. */
   public void search(Search search) {
     choosingAll = true;
-    searchField.setText(search.words());
-    sourceFilter.setSelectedItem(search.where());
     order.setSelectedItem(search.order());
     choose(machineFilter, search.slice().machine());
     choose(genreFilter, search.slice().genre());
@@ -1395,7 +908,8 @@ public class GamesFrame extends JInternalFrame {
     unknownFilter.setSelected(search.unknown());
     colourFilter.setSelected(search.colour());
     choosingAll = false;
-    performSearch();
+    shelves.type(search.words());
+    shelves.shelf(search.where());
   }
 
   /** That one chosen, or the first, which narrows nothing: one the catalogue's lists have not brought yet goes in. */

@@ -124,7 +124,7 @@ class WhatAnEntryOffersToDownloadTest {
     GameEntry manicMiner = here.game("0003012");
 
     assertEquals("Perfect tape (TZX)", ZxInfoApiHandler.filesOf(manicMiner, LOADABLE)
-        .get("https://worldofspectrum.net/pub/sinclair/games/m/ManicMiner.tzx.zip"));
+        .get("https://spectrumcomputing.co.uk/pub/sinclair/games/m/ManicMiner.tzx.zip"));
     assertEquals("Bug-Byte Software Ltd", manicMiner.publishers.get(0).name);
     assertTrue(manicMiner.additionalDownloads.stream()
         .anyMatch(download -> ZxInfoApiHandler.GAME_MAP_TYPE.equals(download.type)), "its map went missing");
@@ -144,7 +144,7 @@ class WhatAnEntryOffersToDownloadTest {
     // The versions menu lists both kinds together, and one that exists only because it was found
     // in a TOSEC set is a different thing to pick than one the archive itself hands out.
     assertTrue(ZxInfoApiHandler.fromTosec(ZxInfoApiHandler.tosecUrl(ENDURO)));
-    assertFalse(ZxInfoApiHandler.fromTosec("https://worldofspectrum.net/pub/sinclair/games/h/HeadOverHeels.tap.zip"));
+    assertFalse(ZxInfoApiHandler.fromTosec("https://spectrumcomputing.co.uk/pub/sinclair/games/h/HeadOverHeels.tap.zip"));
     assertFalse(ZxInfoApiHandler.fromTosec(null));
   }
 
