@@ -23,7 +23,6 @@ import com.fpetrola.z80.cpu.State;
 import com.fpetrola.z80.ide.rzx.InputRecordingBlock;
 import com.fpetrola.z80.ide.rzx.RzxFile;
 import java.util.List;
-import com.fpetrola.z80.registers.Register;
 
 /**
  * Runs a recording against a processor: steps one instruction at a time, counts fetches, and
@@ -33,13 +32,9 @@ import com.fpetrola.z80.registers.Register;
  * than letting a machine's own frame event decide when to interrupt. Feeding a recording into a
  * machine that keeps interrupting on its own clock desynchronises it within a frame or two.
  * <p>
- * The fetch count comes from the R register, which the processor bumps once per M1 cycle, read
- * either side of every step. R is observable, but its increment writes the field directly and
- * never tells a listener, so listening to it counts nothing; taking the difference is exact
- * either way, and needs nothing installed into the machine. Two is as much as one step can add,
- * for a prefixed opcode, so the seven-bit wrap is never ambiguous - and a difference above two
- * is not a count at all but LD R,A having written the register, which {@link #step()} says more
- * about.
+ * The fetches are counted by the processor ({@link com.fpetrola.z80.cpu.Z80Cpu#runFetches}), which runs the whole
+ * stretch up to the end of a frame in one loop: stepped from here one instruction at a time, the same recording
+ * took between 22.6 and 24.2 seconds depending on how the JIT shaped this loop, and 20 run as one stretch.
  * <p>
  * It knows nothing about any particular machine: give it a processor, the port that plays the
  * recorded input back, and the recording.
@@ -52,38 +47,25 @@ import com.fpetrola.z80.registers.Register;
  */
 public class RzxPlayback {
 
-  private final OOZ80 cpu;
   private final State state;
-  private final Register registerR;
   private final RZXPlayerIO player;
   private final java.util.function.IntPredicate endOfFrame;
   private final List<InputRecordingBlock.Frame> frames;
   private final com.fpetrola.z80.cpu.Z80Clock clock;
   /** Told the length of every frame the recording ends, for the machine to end its own on. */
   private final java.util.function.IntConsumer frameEnded;
-  /**
-   * How an instruction is run: through the machine rather than the bare processor, so that
-   * whatever it hangs on a fetch is heard.
-   * <p>
-   * Final and given at construction, not set afterwards by a builder. It is read once per
-   * instruction, and a field the compiler cannot fold to a constant is read there too: measured on
-   * a whole recording, the version that set it afterwards deoptimised playFrame 62 times in a slow
-   * run against 12 in a fast one, and the same recording took between 7.2 and 10.1 seconds.
-   */
-  private final Runnable stepper;
+  /** Runs instructions through the machine, so that whatever it hangs on a fetch is heard, up to a number of fetches. */
+  private final java.util.function.IntToLongFunction stretch;
 
   private int fetchCounter;
-  private int previousR;
   private int frameIndex;
   private long instructions;
 
-  public RzxPlayback(OOZ80 cpu, RZXPlayerIO player, RzxFile recording, java.util.function.IntConsumer frameEnded, Runnable stepper) {
+  public RzxPlayback(OOZ80 cpu, RZXPlayerIO player, RzxFile recording, java.util.function.IntConsumer frameEnded, java.util.function.IntToLongFunction stretch) {
     this.frameEnded = frameEnded;
-    this.stepper = stepper;
-    this.cpu = cpu;
+    this.stretch = stretch;
     this.player = player;
     this.state = cpu.getState();
-    this.registerR = state.getRegisterR();
     this.frames = recording.getInputRecordingBlock().frames;
 
     player.setup(recording);
@@ -103,7 +85,6 @@ public class RzxPlayback {
     // is EI takes its interrupt too and its acknowledge is discounted like any other.
     player.setAcceptsInterrupt(state::isIff1);
     this.endOfFrame = player.getInterruptionCondition();
-    this.previousR = registerR.read() & 0x7F;
     this.clock = state.clock;
   }
 
@@ -117,8 +98,10 @@ public class RzxPlayback {
       return false;
     }
 
-    while (!endOfFrame.test(fetchCounter)) {
-      step();
+    while (true) {
+      run((int) (player.getFrameEnd() - fetchCounter));
+      if (endOfFrame.test(fetchCounter)) break;
+      run(1);
     }
 
     // The machine's frame ends here too, and lasted what the clock says it lasted: the interrupt
@@ -135,8 +118,8 @@ public class RzxPlayback {
     // Heels, frame 904, and every frame after it one port read short or over).
     state.setINTLine(true);
     while (state.isPendingEI())
-      step();
-    step();
+      run(1);
+    run(1);
     state.setINTLine(false);
     frameIndex++;
     return true;
@@ -151,18 +134,10 @@ public class RzxPlayback {
     return played;
   }
 
-  private void step() {
-    int pc = state.getPc().read();
-    // LD R,A writes R instead of bumping it, so the difference across its step counts nothing: it is its own two
-    // fetches. Everything else is what R says, including an accepted interrupt, whose step is the acknowledge plus
-    // the handler's first instruction: three when that one is prefixed (Batman The Movie starts its handler with
-    // PUSH IX, and capped at two every frame ran one fetch long).
-    boolean writesR = state.getMemory().peek(pc) == 0xED && state.getMemory().peek(pc + 1 & 0xFFFF) == 0x4F;
-    stepper.run();
-    instructions++;
-    int now = registerR.read() & 0x7F;
-    fetchCounter += writesR ? 2 : (now - previousR) & 0x7F;
-    previousR = now;
+  private void run(int fetches) {
+    long ran = stretch.applyAsLong(fetches);
+    fetchCounter += (int) ran;
+    instructions += ran >>> 32;
   }
 
   /** Asked of the recording each time, since one being made grows while it is played. */

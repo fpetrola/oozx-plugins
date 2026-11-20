@@ -173,6 +173,11 @@ public class RZXPlayerIO implements MiniZXIO {
     return fetchCounter;
   }
 
+  /** The first fetch count at which the interrupt condition can say the frame is over: before it, asking is a no. */
+  public long getFrameEnd() {
+    return lastCount + frameBudget;
+  }
+
   /** Fetch index where the current frame started; {@code fetchCounter - lastCount} is its height. */
   public long getFrameStart() {
     return lastCount;

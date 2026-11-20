@@ -72,7 +72,7 @@ public class RzxSession {
   /** A driver for this recording over this machine: it steps the machine, and ends the machine's frames where the recording ends its own. */
   private static RzxPlayback playbackOf(Speccy speccy, RZXPlayerIO player, RzxFile recording) {
     return new RzxPlayback(speccy.cpu.getOoz80(), player, recording,
-        length -> speccy.machine.current.frameEnded(length), speccy.cpu::step);
+        length -> speccy.machine.current.frameEnded(length), fetches -> speccy.cpu.getOoz80().runFetches(fetches, speccy.cpu::step));
   }
 
   /**

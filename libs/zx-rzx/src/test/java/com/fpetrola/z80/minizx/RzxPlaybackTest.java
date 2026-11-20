@@ -66,6 +66,6 @@ class RzxPlaybackTest {
     }
     block.numberOfFrames = block.frames.size();
     return new RzxPlayback(ooz80, player, new RzxFile(null, null, null, block), tstates -> {
-    }, ooz80::execute);
+    }, fetches -> ooz80.runFetches(fetches, ooz80::execute));
   }
 }
