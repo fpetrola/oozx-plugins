@@ -23,7 +23,8 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Printers and pointers/ZX Printer",
-    description = "Sinclair's thermal printer: the belt and the paper, the printout burnt in dots; tear off, save as a picture")
+    description = "Sinclair's thermal printer: the belt and the paper, the printout burnt in dots; tear off, save as a picture",
+    known = "zxdb:1000472")
 public class PrinterEquipment implements Equipment {
   public String name() {
     return "ZX Printer";

@@ -22,7 +22,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Cards and hard disks/DivIDE",
-    description = "A hard disk image in its bay, its write-protect jumper and its NMI button")
+    description = "A hard disk image in its bay, its write-protect jumper and its NMI button", known = "zxdb:1000942")
 public class DivIdeEquipment implements Equipment {
   public String name() {
     return "DivIDE";

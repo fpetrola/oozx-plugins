@@ -24,7 +24,8 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
 @Offers(value = "Disks and tape/Didaktik 40∕80",
-    description = "The Czechoslovak disk unit, with its SNAP button that saves whatever is running")
+    description = "The Czechoslovak disk unit, with its SNAP button that saves whatever is running",
+    known = "zxdb:1000931")
 public class DidaktikEquipment implements Equipment {
   static final DiskInterface SHAPE = DiskInterface.shape(2, "SNAP",
       "The SNAP button: an NMI that the Didaktik's ROM takes over, to save what is running", "d80", "d40");

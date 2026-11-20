@@ -23,7 +23,8 @@ import com.fpetrola.oozx.speccy.devices.DriveBayFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
-@Offers(value = "Disks and tape/Opus Discovery", description = "Opus's disk drive interface, for .opd and .opu disks")
+@Offers(value = "Disks and tape/Opus Discovery", description = "Opus's disk drive interface, for .opd and .opu disks",
+    known = "zxdb:1000297")
 public class OpusEquipment implements Equipment {
   static final DiskInterface SHAPE = DiskInterface.shape(2, null, null, "opd", "opu");
 

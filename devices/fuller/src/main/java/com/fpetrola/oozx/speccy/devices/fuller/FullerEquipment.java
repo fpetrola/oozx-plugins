@@ -21,7 +21,8 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
-@Offers(value = "Things that make a sound/Fuller Box", description = "A sound chip of its own, and a joystick port")
+@Offers(value = "Things that make a sound/Fuller Box", description = "A sound chip of its own, and a joystick port",
+    known = "zxdb:1000159")
 public class FullerEquipment implements Equipment {
   public String name() {
     return "Fuller Box";

@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Printers and pointers/Kempston Mouse",
-    description = "Your own mouse, over the machine's picture, moves the program's pointer")
+    description = "Your own mouse, over the machine's picture, moves the program's pointer", known = "zxdb:1000221")
 public class MouseEquipment implements Equipment {
   public String name() {
     return "Kempston Mouse";

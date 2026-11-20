@@ -67,10 +67,12 @@ public class Zxdb implements KnowsTheGames {
   private static final String TOSEC =
       "https://raw.githubusercontent.com/thomasheckmann/zxinfo-db/master/ZXInfoExt/TOSEC/tosec_2023.txt";
   private static final int MOST_AT_ONCE = 1000, SHIPPED_GAMES = 5000;
+  /** Where ZXDB numbers its hardware from, up to where its books start. */
+  private static final int HARDWARE = 1_000_000;
 
   /** The tables kept per entry, which are what the part that ships is cut down by. */
   private static final List<String> BY_ENTRY =
-      List.of("releases", "downloads", "publishers", "authors", "aliases", "scores", "tosec");
+      List.of("releases", "downloads", "publishers", "authors", "aliases", "scores", "tosec", "notes");
   /** The tables that give an id its name, kept whole. */
   private static final List<String> NAMES = List.of("machinetypes", "genretypes", "availabletypes",
       "filetypes", "extensions", "sourcetypes", "schemetypes", "currencies", "labeltypes", "countries", "languages");
@@ -122,6 +124,8 @@ public class Zxdb implements KnowsTheGames {
           'language', l.text,
           'availability', a.text,
           'score', CASE WHEN s.votes IS NOT NULL THEN json_object('score', s.score, 'votes', s.votes) END,
+          'hardwareBlurb', (SELECT text FROM notes WHERE entry_id = e.id AND notetype_id = 'S' ORDER BY id LIMIT 1),
+          'remarks', (SELECT group_concat(text, char(10)) FROM notes WHERE entry_id = e.id AND notetype_id = 'R'),
           'publishers', json((SELECT json_group_array(json(publisher) ORDER BY publisher_seq) FROM published
               WHERE entry_id = e.id AND release_seq = 0)),
           'authors', json((SELECT json_group_array(json_object('authorSeq', w.author_seq, 'name', b.name, 'country', c.text,
@@ -338,13 +342,14 @@ public class Zxdb implements KnowsTheGames {
     return path.substring(0, name) + title + '/' + path.substring(name);
   }
 
-  /** The most voted games of the whole database, as the part that ships with the build. */
+  /** The most voted games of the whole database, and every piece of hardware, as the part that ships with the build. */
   private static void keepTheMostVoted(int games, File shipped) throws IOException, SQLException {
     Files.deleteIfExists(shipped.toPath());
     try (Connection db = open(shipped); Statement sql = db.createStatement()) {
       sql.executeUpdate("ATTACH '" + WHOLE + "' AS whole");
       sql.executeUpdate("CREATE TABLE entries AS SELECT * FROM whole.entries WHERE id IN"
-          + " (SELECT entry_id FROM whole.scores ORDER BY votes DESC, entry_id LIMIT " + games + ")");
+          + " (SELECT entry_id FROM whole.scores ORDER BY votes DESC, entry_id LIMIT " + games + ")"
+          + " OR id BETWEEN " + HARDWARE + " AND " + (2 * HARDWARE - 1));
       for (String table : BY_ENTRY) {
         sql.executeUpdate("CREATE TABLE " + table + " AS SELECT * FROM whole." + table
             + " WHERE entry_id IN (SELECT id FROM entries)");

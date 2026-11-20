@@ -22,7 +22,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Cartridges, freezers and colours/ZX Interface 2",
-    description = "A ROM cartridge in place of the Spectrum's own, and two joysticks")
+    description = "A ROM cartridge in place of the Spectrum's own, and two joysticks", known = "zxdb:1000193")
 public class Interface2Equipment implements Equipment {
   public String name() {
     return "ZX Interface 2";
