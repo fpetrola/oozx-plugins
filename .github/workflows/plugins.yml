@@ -155,7 +155,10 @@ jobs:
           } > notes.md
           # Lo que el plugin responde, para preguntarlo sin bajar el jar.
           unzip -p "$JAR" META-INF/plugin-metadata.json > "$TAG-plugin-metadata.json"
-          gh release create "$TAG" "$JAR" "$TAG-plugin-metadata.json" \
+          # Y las ventanas que el jar trae dibujadas, para verlas sin bajarlo.
+          shopt -s nullglob
+          mkdir -p pictures && unzip -o -j -q "$JAR" 'META-INF/pictures/*.png' -d pictures || true
+          gh release create "$TAG" "$JAR" "$TAG-plugin-metadata.json" pictures/*.png \
             --repo "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" \
             --title "$TITLE" \
