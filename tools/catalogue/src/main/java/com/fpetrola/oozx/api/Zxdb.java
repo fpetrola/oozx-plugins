@@ -45,6 +45,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import java.util.function.ObjIntConsumer;
 import java.util.zip.ZipInputStream;
 
 /**
@@ -198,7 +199,7 @@ public class Zxdb implements KnowsTheGames {
    * instead of the web service's scoring.
    */
   @Override
-  public List<Hit> search(String query, Slice slice) {
+  public List<Hit> search(String query, Slice slice, int from) {
     String asked = query == null ? "" : query.trim();
     List<String> words = asked.isEmpty() ? List.of() : List.of(asked.split("\\s+"));
     List<Object> parameters = new ArrayList<>(Arrays.asList(slice.machine(), slice.machine(),
@@ -214,7 +215,7 @@ public class Zxdb implements KnowsTheGames {
     String chosen = "SELECT e.id FROM entries e LEFT JOIN machinetypes m ON m.id = e.machinetype_id"
         + " LEFT JOIN scores s ON s.entry_id = e.id LEFT JOIN " + GENRES + " g ON g.id = e.genretype_id"
         + " LEFT JOIN releases r ON r.entry_id = e.id AND r.release_seq = 0"
-        + " WHERE (? IS NULL OR m.text = ?) AND (? IS NULL OR g.type = ?) AND (? IS NULL OR r.release_year = ?)" + named + order + " LIMIT " + MOST_AT_ONCE;
+        + " WHERE (? IS NULL OR m.text = ?) AND (? IS NULL OR g.type = ?) AND (? IS NULL OR r.release_year = ?)" + named + order + " LIMIT " + MOST_AT_ONCE + " OFFSET " + Math.max(0, from);
     parameters.add(asked + "%");
     return answers(Hit.class, ENTRY + " WHERE e.id IN (" + chosen + ")" + order, parameters.toArray());
   }
@@ -279,12 +280,30 @@ public class Zxdb implements KnowsTheGames {
    * down, five thousand unless a second argument says otherwise.
    */
   public static void main(String[] args) throws IOException, SQLException {
-    File building = new File(WHOLE.getPath() + ".building");
-    WHOLE.getParentFile().mkdirs();
-    bringDown(building);
-    Files.move(building.toPath(), WHOLE.toPath(), StandardCopyOption.REPLACE_EXISTING);
+    if (args.length == 2 && args[0].equals("served")) {
+      served(new File(args[1]));
+      return;
+    }
+    bringDownTheWhole((doing, percent) -> System.out.println(doing + (percent < 0 ? "" : " " + percent + " %")));
     if (args.length > 0) {
       keepTheMostVoted(args.length > 1 ? Integer.parseInt(args[1]) : SHIPPED_GAMES, new File(args[0], "zxdb.sqlite"));
+    }
+  }
+
+  /**
+   * The whole of ZXDB, as its maintainers publish it today, into ~/.oozx, where it answers from then on: what was being
+   * answered from goes on answering while it comes down.
+   *
+   * @param going what it is doing, and how far along as a percentage, or -1 when that cannot be known
+   */
+  public static void bringDownTheWhole(ObjIntConsumer<String> going) throws IOException, SQLException {
+    File building = new File(WHOLE.getPath() + ".building");
+    WHOLE.getParentFile().mkdirs();
+    bringDown(building, going);
+    synchronized (Zxdb.class) {
+      if (connection != null) connection.close();
+      connection = null;
+      Files.move(building.toPath(), WHOLE.toPath(), StandardCopyOption.REPLACE_EXISTING);
     }
   }
 
@@ -292,16 +311,21 @@ public class Zxdb implements KnowsTheGames {
    * ZXDB as its maintainers publish it, a MySQL script, read into SQLite a statement at a time and
    * only for the tables an answer is read from.
    */
-  private static void bringDown(File into) throws IOException, SQLException {
+  private static void bringDown(File into, ObjIntConsumer<String> going) throws IOException, SQLException {
     Files.deleteIfExists(into.toPath());
-    try (Connection db = open(into); Statement sql = db.createStatement();
-         ZipInputStream dump = new ZipInputStream(new ByteArrayInputStream(DownloadAndUnzip.downloadFile(new URL(DUMP))))) {
+    going.accept("Downloading", -1);
+    byte[] packed = DownloadAndUnzip.downloadFile(new URL(DUMP));
+    ByteArrayInputStream reading = new ByteArrayInputStream(packed);
+    try (Connection db = open(into); Statement sql = db.createStatement(); ZipInputStream dump = new ZipInputStream(reading)) {
       db.setAutoCommit(false);
       dump.getNextEntry();
       BufferedReader lines = new BufferedReader(new InputStreamReader(dump, StandardCharsets.UTF_8));
       StringBuilder statement = new StringBuilder();
+      int said = -1;
       for (String line = lines.readLine(); line != null; line = lines.readLine()) {
         statement.append(sqlite(line)).append('\n');
+        int read = (int) (100L * (packed.length - reading.available()) / packed.length);
+        if (read != said) going.accept("Reading", said = read);
         if (line.endsWith(";")) {
           Matcher table = TABLE.matcher(statement);
           if (table.find() && READ.contains(table.group(1))) {
@@ -310,6 +334,7 @@ public class Zxdb implements KnowsTheGames {
           statement.setLength(0);
         }
       }
+      going.accept("TOSEC list", -1);
       sql.executeUpdate("CREATE TABLE tosec (entry_id INTEGER NOT NULL, path TEXT NOT NULL)");
       try (PreparedStatement insert = db.prepareStatement("INSERT INTO tosec VALUES (?, ?)")) {
         for (String line : new String(DownloadAndUnzip.downloadFile(new URL(TOSEC)), StandardCharsets.UTF_8).split("\r?\n")) {
@@ -323,6 +348,7 @@ public class Zxdb implements KnowsTheGames {
         }
         insert.executeBatch();
       }
+      going.accept("Indexing", -1);
       indexed(sql);
       db.commit();
     }
@@ -359,6 +385,28 @@ public class Zxdb implements KnowsTheGames {
    * The most voted games of the whole database, every piece of hardware and the programs that need or support one, as
    * the part that ships with the build.
    */
+  /**
+   * The whole database as a web service serves it: every entry already answered, in the API's JSON, beside the few
+   * columns a search narrows and orders by, and the filters' values. Whoever serves it reads a row and hands it out, so
+   * the answer has one shape, the one written here.
+   */
+  static void served(File into) throws IOException, SQLException {
+    Files.deleteIfExists(into.toPath());
+    try (Connection db = open(WHOLE); Statement sql = db.createStatement()) {
+      sql.executeUpdate("ATTACH '" + into + "' AS served");
+      sql.executeUpdate("CREATE TABLE served.hits (id INTEGER PRIMARY KEY, title TEXT, names TEXT, votes INTEGER,"
+          + " machine TEXT, genre TEXT, year INTEGER, hit TEXT NOT NULL)");
+      sql.executeUpdate("WITH answered(hit) AS (" + ENTRY + ") INSERT INTO served.hits"
+          + " SELECT CAST(json_extract(hit, '$._id') AS INTEGER), json_extract(hit, '$._source.title'),"
+          + " NULL, json_extract(hit, '$._source.score.votes'), json_extract(hit, '$._source.machineType'),"
+          + " json_extract(hit, '$._source.genreType'), json_extract(hit, '$._source.originalYearOfRelease'), hit FROM answered");
+      sql.executeUpdate("UPDATE served.hits SET names = lower(title || coalesce((SELECT ' ' || group_concat(title, ' ')"
+          + " FROM aliases WHERE entry_id = served.hits.id), ''))");
+      sql.executeUpdate("CREATE INDEX served.hits_by_votes ON hits (votes DESC)");
+      sql.executeUpdate("CREATE TABLE served.metadata AS SELECT (" + METADATA + ") AS json");
+    }
+  }
+
   private static void keepTheMostVoted(int games, File shipped) throws IOException, SQLException {
     Files.deleteIfExists(shipped.toPath());
     try (Connection db = open(shipped); Statement sql = db.createStatement()) {

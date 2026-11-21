@@ -105,22 +105,10 @@ public class TheGamesKnown implements WhatGameThisIs {
     // At the right edge of the desk and no taller than it, so that it lands whole beside the machine playing the game.
     card.setSize(card.getWidth(), Math.min(card.getHeight(), Math.max(300, card.getParent().getHeight() - 24)));
     card.setLocation(Math.max(0, card.getParent().getWidth() - card.getWidth() - 12), 12);
-    // First what this disk knows, which is at once; then what the catalogue on the web adds, which can take seconds.
-    new SwingWorker<GameDetail, GameDetail>() {
+    new SwingWorker<GameDetail, Void>() {
       protected GameDetail doInBackground() {
         Desk.Game known = game.id() != null || game.file() == null ? game : gameIn(game.file());
-        if (known != null && known.id() != null) {
-          try {
-            GameDetail here = new com.fpetrola.oozx.api.Zxdb().details(known.id());
-            if (here != null) publish(here);
-          } catch (RuntimeException notOnThisDisk) {
-          }
-        }
         return lookUp(known == null ? game : new Desk.Game(game.file(), game.machine(), known.id(), known.title()));
-      }
-
-      protected void process(List<GameDetail> here) {
-        card.fill(here.get(here.size() - 1));
       }
 
       protected void done() {

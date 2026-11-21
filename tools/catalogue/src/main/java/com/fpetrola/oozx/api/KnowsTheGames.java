@@ -43,7 +43,12 @@ public interface KnowsTheGames {
   }
 
   /** What is known about the games whose title says this, within the slice. */
-  List<Hit> search(String query, Slice slice);
+  default List<Hit> search(String query, Slice slice) {
+    return search(query, slice, 0);
+  }
+
+  /** The same search, from that many on: the next of what it finds, for whoever has been through the first. */
+  List<Hit> search(String query, Slice slice, int from);
 
   /** One narrowing of the catalogue: a year, a genre and a machine, each left out when null. */
   record Slice(Integer year, String genre, String machine) {

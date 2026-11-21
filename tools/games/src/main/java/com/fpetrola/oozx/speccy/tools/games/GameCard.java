@@ -115,6 +115,10 @@ class GameCard extends JInternalFrame {
   private final Desk.Game asked;
   private final Consumer<String> askAgain;
   private boolean filled;
+  /** How big the card's insides are drawn: as wide as it was made they are as they were meant, narrower they shrink. */
+  private double zoom = 1;
+  private final List<Tile> tiles = new ArrayList<>();
+  private Heading heading;
 
   /** The card at once, saying it is looking: what is known of the game is {@link #fill filled} in as it comes. */
   GameCard(Desk.Game asked, Consumer<String> askAgain) {
@@ -122,6 +126,12 @@ class GameCard extends JInternalFrame {
     this.asked = asked;
     this.askAgain = askAgain;
     setSize(780, 660);
+    addComponentListener(new java.awt.event.ComponentAdapter() {
+      @Override
+      public void componentResized(java.awt.event.ComponentEvent resized) {
+        zoom(Math.max(0.6, Math.min(1.0, getWidth() / 780.0)));
+      }
+    });
     shown(null, true);
   }
 
@@ -143,7 +153,10 @@ class GameCard extends JInternalFrame {
     pages.removeAll();
     show("", "");
     JPanel card = new JPanel(new BorderLayout());
-    card.add(new Heading(asked, known, looking), BorderLayout.NORTH);
+    tiles.clear();
+    heading = new Heading(asked, known, looking);
+    heading.zoom(zoom);
+    card.add(heading, BorderLayout.NORTH);
     JPanel body = new JPanel(new BorderLayout());
     body.add(bar(askAgain, known == null && !looking), BorderLayout.NORTH);
     body.add(pages, BorderLayout.CENTER);
@@ -189,10 +202,19 @@ class GameCard extends JInternalFrame {
     back.setVisible(!page.isEmpty());
   }
 
+  /** Everything in the card drawn at that size: the heading, its words and screen, and the tiles of the wall. */
+  private void zoom(double by) {
+    if (Math.abs(by - zoom) < 0.02) return;
+    zoom = by;
+    if (heading != null) heading.zoom(by);
+    tiles.forEach(tile -> tile.setPreferredSize(new Dimension((int) (Tile.WIDE * by), (int) (Tile.HIGH * by))));
+    getContentPane().revalidate();
+    repaint();
+  }
+
   /** One tile per kind of thing there is, with how many, and the first of them as its picture. */
   private JComponent wall(Desk.Game asked, GameDetail known) {
-    JPanel wall = new JPanel(new GridLayout(0, 3, 12, 12));
-    wall.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+    JPanel wall = inColumns(() -> (int) (Tile.WIDE * zoom));
     way(wall, "About", 0, null, () -> about(known));
     way(wall, "Play it", 0, null, () -> toPlay(known));
     Desk.Game game = new Desk.Game(asked.file(), asked.machine(), known.id, known.title);
@@ -233,11 +255,14 @@ class GameCard extends JInternalFrame {
   private void way(JPanel wall, String kind, int howMany, String picture, Supplier<JComponent> page) {
     Color stripe = STRIPES[kinds++ % STRIPES.length];
     boolean[] made = {false};
-    wall.add(new Tile(howMany, kind, picture, stripe, () -> {
+    Tile tile = new Tile(howMany, kind, picture, stripe, () -> {
       if (!made[0]) pages.add(scrolling(page.get()), kind);
       made[0] = true;
       show(kind, howMany == 0 ? kind : howMany + " " + kind);
-    }));
+    });
+    tile.setPreferredSize(new Dimension((int) (Tile.WIDE * zoom), (int) (Tile.HIGH * zoom)));
+    tiles.add(tile);
+    wall.add(tile);
   }
 
   private static JComponent about(GameDetail known) {
@@ -290,8 +315,7 @@ class GameCard extends JInternalFrame {
 
   /** The pictures of one kind, large enough to tell apart, each opening whole. */
   private JComponent gallery(List<AdditionalDownload> files) {
-    JPanel gallery = new JPanel(new GridLayout(0, 3, 12, 12));
-    gallery.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+    JPanel gallery = inColumns(() -> (int) (220 * zoom));
     for (AdditionalDownload file : files) {
       JLabel picture = new JLabel("", JLabel.CENTER);
       picture.setPreferredSize(new Dimension(220, 165));
@@ -392,8 +416,27 @@ class GameCard extends JInternalFrame {
     return page;
   }
 
+  /** A grid of as many columns as fit, each at least that wide, worked out again as the card is made wider or narrower. */
+  private static JPanel inColumns(java.util.function.IntSupplier each) {
+    GridLayout columns = new GridLayout(0, 3, 12, 12);
+    JPanel grid = new JPanel(columns);
+    grid.setBorder(BorderFactory.createEmptyBorder(14, 14, 14, 14));
+    grid.addComponentListener(new java.awt.event.ComponentAdapter() {
+      @Override
+      public void componentResized(java.awt.event.ComponentEvent resized) {
+        int fit = Math.max(1, (grid.getWidth() - 28 + 12) / (each.getAsInt() + 12));
+        if (fit == columns.getColumns()) return;
+        columns.setColumns(fit);
+        grid.revalidate();
+      }
+    });
+    return grid;
+  }
+
+  /** A page that scrolls down and never sideways: it is as wide as the card, and what is in it fits that. */
   private static JScrollPane scrolling(JComponent page) {
-    JScrollPane scrolling = new JScrollPane(page);
+    JScrollPane scrolling = new JScrollPane(new AsWideAsTheCard(page));
+    scrolling.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
     scrolling.setBorder(null);
     scrolling.getVerticalScrollBar().setUnitIncrement(16);
     return scrolling;
@@ -498,12 +541,47 @@ class GameCard extends JInternalFrame {
     return path.substring(path.lastIndexOf('/') + 1);
   }
 
-  /** The top of the card: the game's name large over a dark ground, its screen, and the 48K's stripes in the corner. */
+  private static final class AsWideAsTheCard extends JPanel implements javax.swing.Scrollable {
+    AsWideAsTheCard(JComponent page) {
+      super(new BorderLayout());
+      add(page, BorderLayout.CENTER);
+    }
+
+    public Dimension getPreferredScrollableViewportSize() {
+      return getPreferredSize();
+    }
+
+    public int getScrollableUnitIncrement(java.awt.Rectangle visible, int orientation, int direction) {
+      return 16;
+    }
+
+    public int getScrollableBlockIncrement(java.awt.Rectangle visible, int orientation, int direction) {
+      return visible.height;
+    }
+
+    public boolean getScrollableTracksViewportWidth() {
+      return true;
+    }
+
+    public boolean getScrollableTracksViewportHeight() {
+      return getParent() != null && getPreferredSize().height < getParent().getHeight();
+    }
+  }
+
+  /**
+   * The top of the card: the game's name large over a dark ground, its screen, and the 48K's stripes in the corner. In a
+   * narrow card the screen goes above the name, so that the name keeps the width.
+   */
   private static final class Heading extends JPanel {
+    private static final String SIZE = "size";
+    private final JPanel words;
+    private JLabel screen;
+    private static final int NARROW = 640;
+
     Heading(Desk.Game asked, GameDetail known, boolean looking) {
       super(new BorderLayout(18, 0));
       setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 90));
-      JPanel words = new JPanel();
+      words = new JPanel();
       words.setOpaque(false);
       words.setLayout(new BoxLayout(words, BoxLayout.Y_AXIS));
       String file = asked.file() == null ? null : new File(asked.file()).getName();
@@ -522,15 +600,44 @@ class GameCard extends JInternalFrame {
         words.add(javax.swing.Box.createVerticalStrut(10));
         words.add(line(joined("     ", known.score == null ? null : "★ " + known.score, known.genre), 13f, Font.BOLD, STRIPES[1]));
         if (known.screenshots != null && !known.screenshots.isEmpty()) {
-          JLabel screen = new JLabel("", JLabel.CENTER);
+          JLabel screen = new JLabel("", JLabel.CENTER) {
+            @Override
+            protected void paintComponent(Graphics g) {
+              if (!(getIcon() instanceof javax.swing.ImageIcon shown)) return;
+              Graphics2D pen = (Graphics2D) g.create();
+              pen.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+              java.awt.Insets in = getInsets();
+              int room = getWidth() - in.left - in.right, high = getHeight() - in.top - in.bottom;
+              double fit = Math.min((double) room / shown.getIconWidth(), (double) high / shown.getIconHeight());
+              int w = (int) (shown.getIconWidth() * fit), h = (int) (shown.getIconHeight() * fit);
+              pen.drawImage(shown.getImage(), in.left + (room - w) / 2, in.top + (high - h) / 2, w, h, null);
+              pen.dispose();
+            }
+          };
+          // In a holder of its own, so that the frame stays the size of the screen when there is room beside it.
+          JPanel framed = new JPanel(new java.awt.GridBagLayout());
+          framed.setOpaque(false);
+          framed.add(screen);
+          boolean[] above = {false};
+          addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent resized) {
+              if (above[0] == getWidth() < NARROW) return;
+              above[0] = !above[0];
+              remove(framed);
+              add(framed, above[0] ? BorderLayout.NORTH : BorderLayout.WEST);
+              revalidate();
+            }
+          });
           // A Spectrum screen at its own size, a pixel for a pixel, so that nothing in it is blurred.
+          this.screen = screen;
           screen.setPreferredSize(new Dimension(260, 196));
           screen.setBorder(BorderFactory.createLineBorder(new Color(0x3A3A44), 2));
           // The screens the catalogue lists as files, which are all of them; the ones it gives for a cover, when it lists none.
           List<String> screens = known.additionalDownloads == null ? List.of() : known.additionalDownloads.stream()
               .filter(one -> one.path != null && one.type != null && one.type.endsWith("screen")).map(one -> one.path).toList();
           turning(screen, screens.isEmpty() ? known.screenshots : screens);
-          add(screen, BorderLayout.WEST);
+          add(framed, BorderLayout.WEST);
         }
       }
       add(words, BorderLayout.CENTER);
@@ -567,8 +674,19 @@ class GameCard extends JInternalFrame {
       });
     }
 
+    /** Its words and its screen at that size of the ones it was made with. */
+    void zoom(double by) {
+      for (java.awt.Component part : words.getComponents())
+        if (part instanceof JLabel said && said.getClientProperty(SIZE) instanceof Float size) said.setFont(said.getFont().deriveFont(size * (float) by));
+      if (screen != null) screen.setPreferredSize(new Dimension((int) (260 * by), (int) (196 * by)));
+      int edge = (int) (18 * by);
+      setBorder(BorderFactory.createEmptyBorder(edge, edge, edge, (int) (90 * by)));
+      revalidate();
+    }
+
     private static JLabel line(String text, float size, int style, Color colour) {
       JLabel line = new JLabel(text);
+      line.putClientProperty(SIZE, size);
       line.setFont(line.getFont().deriveFont(style, size));
       line.setForeground(colour);
       return line;
@@ -591,6 +709,8 @@ class GameCard extends JInternalFrame {
 
   /** One kind of thing on the wall: how many there are, large; what they are; and the first of them, when it is a picture. */
   private static final class Tile extends JComponent {
+    /** How big a tile is in a card as wide as it is first made; it is drawn as if it were 230 by 84, at its size. */
+    static final int WIDE = 190, HIGH = 64;
     private final int howMany;
     private final String kind;
     private final Color stripe;
@@ -601,7 +721,7 @@ class GameCard extends JInternalFrame {
       this.howMany = howMany;
       this.kind = kind;
       this.stripe = stripe;
-      setPreferredSize(new Dimension(230, 84));
+      setPreferredSize(new Dimension(WIDE, HIGH));
       setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
       if (picture != null) arriving(picture, 160, 160, arrived -> {
         this.picture = arrived.getImage();
@@ -632,20 +752,22 @@ class GameCard extends JInternalFrame {
       Graphics2D pen = (Graphics2D) g.create();
       pen.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
       pen.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-      int width = getWidth() - 1, height = getHeight() - 1;
+      double scale = getHeight() / 84.0;
+      pen.scale(scale, scale);
+      int width = (int) (getWidth() / scale) - 1, height = 83;
       pen.setColor(under ? ground().brighter() : ground());
       pen.fillRoundRect(0, 0, width, height, 14, 14);
       pen.setColor(under ? ink() : edge());
       pen.setStroke(new BasicStroke(under ? 1.6f : 1f));
       pen.drawRoundRect(0, 0, width, height, 14, 14);
       pen.setColor(stripe);
-      pen.fillRoundRect(18, (getHeight() - 40) / 2, 40, 40, 12, 12);
+      pen.fillRoundRect(18, 22, 40, 40, 12, 12);
       pen.setColor(INK);
       pen.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-      sign(pen, 38, getHeight() / 2);
+      sign(pen, 38, 42);
       if (picture != null) {
         java.awt.Shape whole = pen.getClip();
-        int left = getWidth() - 86, top = (getHeight() - 60) / 2;
+        int left = width + 1 - 86, top = 12;
         pen.clip(new java.awt.geom.RoundRectangle2D.Float(left, top, 72, 60, 10, 10));
         double fill = Math.max(72.0 / picture.getWidth(null), 60.0 / picture.getHeight(null));
         int wide = (int) (picture.getWidth(null) * fill), tall = (int) (picture.getHeight(null) * fill);

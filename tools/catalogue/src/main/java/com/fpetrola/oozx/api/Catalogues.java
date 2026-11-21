@@ -26,7 +26,8 @@ import java.util.function.Function;
 /**
  * Asks whoever can answer about a game, in the order that gives the best answer first.
  * <p>
- * The web service knows everything and is asked first. When it cannot be reached ZXDB answers
+ * The web services know everything and are asked first: ZXInfo's own, and then the one that answers its questions
+ * from ZXDB on the web (tools/zxinfo-worker). When neither can be reached ZXDB answers
  * from this machine instead, in the same shape and with the same files to download: fewer games
  * until the whole of it has been brought down, but nobody reading the answer has to know which
  * one gave it.
@@ -45,6 +46,7 @@ public final class Catalogues {
   public static List<KnowsTheGames> all() {
     List<KnowsTheGames> asking = new ArrayList<>();
     asking.add(new ZxInfoApiHandler());
+    asking.add(new ZxInfoApiHandler(ZxInfoApiHandler.OURS));
     asking.add(new Zxdb());
     dev.plugdesk.app.Plugins.found(KnowsTheGames.class).stream()
         .filter(one -> asking.stream().noneMatch(already -> already.getClass() == one.getClass()))
@@ -53,7 +55,12 @@ public final class Catalogues {
   }
 
   public static List<Hit> search(String query, KnowsTheGames.Slice slice) {
-    List<Hit> found = ask(who -> who.search(query, slice));
+    return search(query, slice, 0);
+  }
+
+  /** The search from that many on, for going on where the first answer ended. */
+  public static List<Hit> search(String query, KnowsTheGames.Slice slice, int from) {
+    List<Hit> found = ask(who -> who.search(query, slice, from));
     return found == null ? List.of() : found;
   }
 
@@ -69,8 +76,13 @@ public final class Catalogues {
    * alphabetically - and which ships in this build with the most voted games in it.
    */
   public static List<Hit> mostVoted(String query, KnowsTheGames.Slice slice) {
+    return mostVoted(query, slice, 0);
+  }
+
+  /** The most voted from that many on. */
+  public static List<Hit> mostVoted(String query, KnowsTheGames.Slice slice, int from) {
     Zxdb zxdb = new Zxdb();
-    return zxdb.canAnswer() ? zxdb.search(query, slice) : List.of();
+    return zxdb.canAnswer() ? zxdb.search(query, slice, from) : List.of();
   }
 
   /** Called by the released Game Browser; drop once its release passes a slice. */
@@ -134,7 +146,7 @@ public final class Catalogues {
         }
       } catch (RuntimeException wouldNotAnswer) {
         refused.put(who.where(), System.currentTimeMillis());
-        TellsThePerson.that(who.where() + " could not be asked, so what is known here answers instead: "
+        TellsThePerson.that(who.where() + " could not be asked, so the next catalogue answers instead: "
             + rootCauseOf(wouldNotAnswer));
         if (firstRefusal == null) {
           firstRefusal = wouldNotAnswer;
@@ -142,6 +154,11 @@ public final class Catalogues {
       }
     }
     return null;
+  }
+
+  /** Whether every web service failed lately, so what is known on this machine is what answers. */
+  public static boolean answeringHere() {
+    return restingAfterFailing(new ZxInfoApiHandler()) && restingAfterFailing(new ZxInfoApiHandler(ZxInfoApiHandler.OURS));
   }
 
   private static boolean restingAfterFailing(KnowsTheGames who) {

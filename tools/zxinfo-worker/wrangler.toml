@@ -1,0 +1,8 @@
+name = "zxinfo"
+main = "src/index.js"
+compatibility_date = "2025-11-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "zxinfo"
+database_id = "2de81a25-f20f-4186-97bf-62b956f6c6dd"

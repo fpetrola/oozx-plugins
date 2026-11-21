@@ -31,6 +31,7 @@ import dev.plugdesk.desk.Shelves;
 import javax.swing.*;
 import java.awt.BorderLayout;
 import java.awt.FlowLayout;
+import java.awt.GridLayout;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -83,6 +84,10 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
   private final JCheckBox unknownFilter = new JCheckBox("Only unknown");
   private final JCheckBox colourFilter = new JCheckBox("256 colours");
   private final JLabel libraryLabel = new JLabel();
+  private final JButton zxdb = new JButton();
+  private final JProgressBar zxdbGoing = new JProgressBar();
+  /** Asked once a run whether to bring the whole of ZXDB, when ZXInfo is not answering. */
+  private static boolean offered;
   private Shelves<GameSearchResult> shelves;
   /** While a whole search is put in the controls, so that each one chosen does not search on its own. */
   private boolean choosingAll;
@@ -222,8 +227,14 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
         // In an order that is not the catalogue's own: the web service answers with its first hundred and fifty titles
         // alphabetically, none of which anybody knows, so the most voted that match are asked for too, from all of it.
         List<Hit> hits = new ArrayList<>();
-        if (!AS_FOUND.equals(now.order())) hits.addAll(Catalogues.mostVoted(words, slice));
-        if (!words.isEmpty() || AS_FOUND.equals(now.order())) hits.addAll(Catalogues.search(words, slice));
+        List<Hit> voted = AS_FOUND.equals(now.order()) ? List.of() : Catalogues.mostVoted(words, slice);
+        boolean searched = !words.isEmpty() || AS_FOUND.equals(now.order());
+        List<Hit> asked = searched ? Catalogues.search(words, slice) : List.of();
+        hits.addAll(voted);
+        hits.addAll(asked);
+        // Where to go on from when the cards run out: the catalogue's own search, or else the most voted.
+        goingOn = searched ? new GoingOn(from -> Catalogues.search(words, slice, from), asked.size())
+            : new GoingOn(from -> Catalogues.mostVoted(words, slice, from), voted.size());
         Set<String> seen = new java.util.HashSet<>();
         hits.removeIf(hit -> hit._id != null && !seen.add(hit._id));
         found.addAll(fromTheCatalogue(hits));
@@ -231,10 +242,38 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
       List<GameSearchResult> results = oneTilePerGame(found);
       if (MOST_KNOWN.equals(now.order())) results.sort(BY_VOTES);
       else if (BEST_RATED.equals(now.order())) results.sort(BY_RATING);
-      // Not merely "has a file": one the archive will not hand over cannot be loaded either.
-      results.removeIf(result -> (now.colour() && !result.inColour) || (now.rzx() && !result.hasRzx)
-          || (now.map() && !result.hasMap) || (now.loadable() && (result.filename == null || !result.available)));
+      SwingUtilities.invokeLater(this::offerTheWholeZxdb);
+      results.removeIf(result -> !wanted(now, result));
       return results;
+    };
+  }
+
+  /** Not merely "has a file": one the archive will not hand over cannot be loaded either. */
+  private static boolean wanted(Search now, GameSearchResult result) {
+    return !((now.colour() && !result.inColour) || (now.rzx() && !result.hasRzx)
+        || (now.map() && !result.hasMap) || (now.loadable() && (result.filename == null || !result.available)));
+  }
+
+  /** How the search shown goes on, and how many of its answers have been taken. */
+  private record GoingOn(java.util.function.IntFunction<List<Hit>> from, int taken) {
+  }
+
+  private volatile GoingOn goingOn;
+
+  /** The next of what the net search found, past the ones shown: a shelf of this machine has no more than it shows. */
+  public Supplier<List<GameSearchResult>> more(String shelf, String words, List<GameSearchResult> shown) {
+    GoingOn going = goingOn;
+    if (going == null || going.taken() == 0 || PLAYED.equals(shelf) || FAVOURITES.equals(shelf)
+        || ON_THIS_MACHINE.equals(shelf) || config.getGameFolders().contains(shelf)) return null;
+    Search now = search();
+    Set<String> there = shown.stream().map(GamesFrame::keyOf).collect(Collectors.toSet());
+    return () -> {
+      List<Hit> next = going.from().apply(going.taken());
+      goingOn = new GoingOn(going.from(), going.taken() + next.size());
+      List<GameSearchResult> results = fromTheCatalogue(next);
+      results.forEach(this::sayWhereItIs);
+      results.removeIf(result -> there.contains(keyOf(result)) || !wanted(now, result));
+      return next.isEmpty() || !results.isEmpty() ? results : more(shelf, words, shown).get();
     };
   }
 
@@ -390,18 +429,19 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
     JButton rescan = new JButton("Rescan");
     rescan.setToolTipText("Look through every folder again, for games added since");
     rescan.addActionListener(e -> rescanEverything());
-    JPanel buttons = new JPanel(new FlowLayout(FlowLayout.LEADING, 0, 0));
-    buttons.setOpaque(false);
-    buttons.add(add);
-    buttons.add(Box.createHorizontalStrut(6));
-    buttons.add(rescan);
-    JPanel under = new JPanel(new BorderLayout(0, 6));
-    libraryLabel.setBorder(BorderFactory.createEmptyBorder(0, 12, 0, 0));
-    under.add(libraryLabel, BorderLayout.NORTH);
-    under.add(buttons, BorderLayout.CENTER);
-    under.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
+    zxdb.setText(Zxdb.WHOLE.exists() ? "Update ZXDB" : "Bring all of ZXDB here");
+    zxdb.setToolTipText("<html>ZXDB, the database ZXInfo is built from, answers here when ZXInfo cannot.<br>"
+        + "This build carries its five thousand most voted games; all of it is 27 MB to bring down.</html>");
+    zxdb.addActionListener(e -> bringZxdb());
+    zxdbGoing.setStringPainted(true);
+    zxdbGoing.setVisible(false);
+    libraryLabel.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
+    JPanel under = new JPanel(new GridLayout(0, 1, 0, 6));
+    for (JComponent each : List.of(libraryLabel, add, rescan, zxdb, zxdbGoing)) under.add(each);
+    under.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
     return under;
   }
+
 
   /** A folder of games can be left out without forgetting it: its games stop showing until it is taken back. */
   public JPopupMenu menuOfShelf(String shelf) {
@@ -465,6 +505,55 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
       }
     });
     return menu;
+  }
+
+  /**
+   * When ZXInfo is not answering and this machine has only the games of the build, whether to bring the whole of ZXDB
+   * so that every game is here: asked once, since bringing it is the person's to decide.
+   */
+  private void offerTheWholeZxdb() {
+    if (offered || Zxdb.WHOLE.exists() || !Catalogues.answeringHere() || !isShowing()) return;
+    offered = true;
+    if (JOptionPane.showConfirmDialog(this, "<html>ZXInfo is not answering, so the games known here are answering"
+            + " instead: the five thousand most voted.<br>Bring all of ZXDB, 27 MB, so that every game is here?</html>",
+        "ZXInfo is not answering", JOptionPane.YES_NO_OPTION) == JOptionPane.YES_OPTION) bringZxdb();
+  }
+
+  /** All of ZXDB, as its maintainers publish it today, brought down away from the window; the shelves look again with it. */
+  private void bringZxdb() {
+    zxdb.setEnabled(false);
+    zxdb.setText("Bringing ZXDB…");
+    zxdbGoing.setVisible(true);
+    zxdbGoing.setString("Starting");
+    zxdbGoing.setIndeterminate(true);
+    new SwingWorker<Void, Map.Entry<String, Integer>>() {
+      protected Void doInBackground() throws Exception {
+        Zxdb.bringDownTheWhole((doing, percent) -> publish(Map.entry(doing, percent)));
+        return null;
+      }
+
+      protected void process(List<Map.Entry<String, Integer>> going) {
+        Map.Entry<String, Integer> now = going.getLast();
+        zxdbGoing.setIndeterminate(now.getValue() < 0);
+        if (now.getValue() >= 0) zxdbGoing.setValue(now.getValue());
+        zxdbGoing.setString(now.getKey() + (now.getValue() < 0 ? "…" : " " + now.getValue() + " %"));
+      }
+
+      protected void done() {
+        zxdbGoing.setVisible(false);
+        zxdb.setEnabled(true);
+        zxdb.setText(Zxdb.WHOLE.exists() ? "Update ZXDB" : "Bring all of ZXDB here");
+        try {
+          get();
+          shelves.again();
+        } catch (Exception failed) {
+          Throwable cause = failed;
+          while (cause.getCause() != null) cause = cause.getCause();
+          JOptionPane.showMessageDialog(GamesFrame.this, "Could not bring ZXDB: "
+              + (cause.getMessage() != null ? cause.getMessage() : cause), "Games", JOptionPane.WARNING_MESSAGE);
+        }
+      }
+    }.execute();
   }
 
   /**

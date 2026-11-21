@@ -34,11 +34,22 @@ public class ZxInfoApiHandler implements KnowsTheGames {
 
   private Metadata metadata;
 
-  private final String BASE_URL = "https://api.zxinfo.dk";
+  /** ZXInfo's own service, and this project's, which answers the same questions from ZXDB (tools/zxinfo-worker). */
+  public static final String ZXINFO = "https://api.zxinfo.dk", OURS = "https://zxinfo.zxinfo-worker.workers.dev";
 
+  private final String BASE_URL;
+
+  public ZxInfoApiHandler() {
+    this(ZXINFO);
+  }
+
+  /** The web service at that address, which answers ZXInfo's questions in ZXInfo's words. */
+  public ZxInfoApiHandler(String address) {
+    BASE_URL = address;
+  }
 
   public String where() {
-    return "zxinfo.dk";
+    return java.net.URI.create(BASE_URL).getHost().replaceFirst("^api\\.", "");
   }
 
   public static void main(String[] args) {
@@ -50,8 +61,8 @@ public class ZxInfoApiHandler implements KnowsTheGames {
    * leave it out; the ones the server cannot do, like whether an entry has an RZX recording,
    * have to be applied to the results.
    */
-  public List<Hit> search(String query, Slice slice) {
-    SearchResponse response = withClient(zxClient -> zxClient.searchGames(query, 150, "0",
+  public List<Hit> search(String query, Slice slice, int from) {
+    SearchResponse response = withClient(zxClient -> zxClient.searchGames(query, 150, String.valueOf(from),
         ZxInfoClient.MODE_COMPACT, null, null, null, slice.year(), null, slice.genre(), null, slice.machine(),
         null, null, null, null, null, null, null, null));
     return response.hits.hits;
