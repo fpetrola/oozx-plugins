@@ -35,7 +35,7 @@ import com.google.inject.Singleton;
  * the frame is fifty lines shorter, the crystal a little faster, and its ROM is its own.
  */
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Timex TS2068", description = "The 2068 sold in America: sixty-cycle timing and a ROM of its own", known = "zxdb:1000506", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Timex TS2068", description = "The 2068 sold in America: sixty-cycle timing and a ROM of its own", known = "zxdb:1000506", icon = "device-desktop")
 public class Ts2068 extends Tc2068 {
   private static final MachineTimings TIMINGS = new MachineTimings(3528000, MachineTimings.TIMEX_SCLD_60HZ);
 

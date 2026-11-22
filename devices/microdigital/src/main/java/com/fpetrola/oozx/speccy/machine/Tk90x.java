@@ -37,7 +37,7 @@ import com.google.inject.Singleton;
  * the mains gives sixty cycles.
  */
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Microdigital TK90X", description = "The Brazilian 48K, with accented letters in its ROM", known = "zxdb:1000504", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Microdigital TK90X", description = "The Brazilian 48K, with accented letters in its ROM", known = "zxdb:1000504", icon = "device-desktop")
 public class Tk90x extends Spec48 {
   @Inject
   public Tk90x(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Machine.Unit unit, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

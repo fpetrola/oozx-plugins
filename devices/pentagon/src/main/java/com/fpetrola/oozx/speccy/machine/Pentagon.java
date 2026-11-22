@@ -48,7 +48,7 @@ import com.fasterxml.jackson.annotation.JsonMerge;
  * Its Beta 128 is on the board: the third ROM is TR-DOS, and the WD1793 behind it reads a disk image.
  */
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Pentagon", description = "The Russian 128 clone: nothing contended, TR-DOS built in, a timing of its own", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Pentagon", description = "The Russian 128 clone: nothing contended, TR-DOS built in, a timing of its own", icon = "device-desktop")
 public class Pentagon extends Spec128 {
 
   @Inject

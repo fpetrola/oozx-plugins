@@ -39,7 +39,7 @@ import com.fpetrola.oozx.speccy.modules.z80.Cpu;
 import com.fpetrola.emulation.helpers.machine.MachineTypes;
 
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Spectrum Plus 2A", description = "Amstrad's black +2: the +3's board without the disk drive", known = "zxdb:1000490", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Spectrum Plus 2A", description = "Amstrad's black +2: the +3's board without the disk drive", known = "zxdb:1000490", icon = "device-desktop")
 public class SpecPlus2A extends SpecPlus3 {
   @Inject
   public SpecPlus2A(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

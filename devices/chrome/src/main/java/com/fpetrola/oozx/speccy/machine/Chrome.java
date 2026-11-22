@@ -46,7 +46,7 @@ import java.util.Set;
  * plugs in rather than a thing a machine is made of, so here it is plugged in rather than built in.
  */
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Chrome", description = "A 128 with more memory, four ROMs and twice the speed", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Chrome", description = "A 128 with more memory, four ROMs and twice the speed", icon = "device-desktop")
 public class Chrome extends Spec128 implements PagingPlus3 {
   /** One of the two pages that are not a 128's goes where the ROM is. */
   private static final int RAM_BELOW = 0x01;

@@ -44,7 +44,7 @@ import java.util.Set;
  * eight K of ROM behind the slot, and nothing in the slot until somebody puts a cartridge there.
  */
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Timex TC2068", description = "A TC2048 with a sound chip and a cartridge slot", known = "zxdb:1000507", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Timex TC2068", description = "A TC2048 with a sound chip and a cartridge slot", known = "zxdb:1000507", icon = "device-desktop")
 public class Tc2068 extends Tc2048 {
   private final MemoryPart[] slot = new MemoryPart[8];
   private final MemoryPart[] behind = new MemoryPart[8];

@@ -42,7 +42,7 @@ import com.google.inject.Singleton;
  * part of it goes back to being the lock a 128 has.
  */
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Pentagon 1024K", description = "A Pentagon with a megabyte and a second port of its own", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Pentagon 1024K", description = "A Pentagon with a megabyte and a second port of its own", icon = "device-desktop")
 public class Pentagon1024 extends Pentagon512 {
   /** The later revision, in which the port is read as a 128 reads it. */
   private static final int REVISED = 0x04;

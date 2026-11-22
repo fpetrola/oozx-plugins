@@ -43,7 +43,7 @@ import java.util.Set;
  * the SE's - both kinds of paging at once, with the cartridge slots holding RAM - and so is the ROM.
  */
 @Singleton
-@dev.crystal.plugins.api.Offers(value = "Chloe 280SE", description = "The SE with sixty-four colours and a faster mode", icon = "device-desktop")
+@dev.crystal.plugins.api.Offers(value = "Machines/Chloe 280SE", description = "The SE with sixty-four colours and a faster mode", icon = "device-desktop")
 public class Chloe280Se extends SpecSe {
   /** What the low half of the speed register means, in how many cycles fit where one fitted. */
   private static final int[] SPEEDS = {1, 1, 2, 1, 4, 1, 8, 1, 16, 1, 16, 1, 16, 1, 16, 1};
