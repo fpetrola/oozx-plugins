@@ -17,7 +17,6 @@
 
 package com.fpetrola.oozx.speccy.machine;
 
-import com.fpetrola.oozx.config.RomFiles;
 import com.fpetrola.oozx.config.RomsOfItsOwn;
 
 import java.util.LinkedHashMap;
@@ -46,35 +45,5 @@ public class MicrodigitalRoms implements RomsOfItsOwn {
     tk95.put("Spanish", List.of("tk95-spanish.rom"));
     sets.put("Tk95", tk95);
     return sets;
-  }
-
-  @Override
-  public Map<String, RomFiles.Source> sources() {
-    Map<String, RomFiles.Source> published = new LinkedHashMap<>();
-    RomFiles.Source tk90xrom = new RomFiles.Source();
-    tk90xrom.url = "https://raw.githubusercontent.com/chernandezba/zesarux/da53a8d1755490a97fe6858866bc6eae7aead6f1/src/tk90x.rom";
-    tk90xrom.sha256 = "f3892b4140901f8289b962f5e097cf330c6997260052baac351026639012beeb";
-    tk90xrom.at = 0;
-    tk90xrom.length = 0;
-    published.put("tk90x.rom", tk90xrom);
-    RomFiles.Source tk90xspanishrom = new RomFiles.Source();
-    tk90xspanishrom.url = "https://raw.githubusercontent.com/chernandezba/zesarux/da53a8d1755490a97fe6858866bc6eae7aead6f1/src/tk90xs.rom";
-    tk90xspanishrom.sha256 = "9eff5867aa1123e84fb366f1e7f68a484666f845c6b33f67a62f6e6b7f1fcb4b";
-    tk90xspanishrom.at = 0;
-    tk90xspanishrom.length = 0;
-    published.put("tk90x-spanish.rom", tk90xspanishrom);
-    RomFiles.Source tk95rom = new RomFiles.Source();
-    tk95rom.url = "https://raw.githubusercontent.com/chernandezba/zesarux/da53a8d1755490a97fe6858866bc6eae7aead6f1/src/tk95.rom";
-    tk95rom.sha256 = "c0f7c0a7b2dd838488189cda052e414cd3474f3a718c1fde0a6cef3e8e0f4776";
-    tk95rom.at = 0;
-    tk95rom.length = 0;
-    published.put("tk95.rom", tk95rom);
-    RomFiles.Source tk95spanishrom = new RomFiles.Source();
-    tk95spanishrom.url = "https://raw.githubusercontent.com/chernandezba/zesarux/da53a8d1755490a97fe6858866bc6eae7aead6f1/src/tk95es.rom";
-    tk95spanishrom.sha256 = "4aa2421e29487917bfd183012b114a3caacbf10ff46f3686c87e94ba5c492819";
-    tk95spanishrom.at = 0;
-    tk95spanishrom.length = 0;
-    published.put("tk95-spanish.rom", tk95spanishrom);
-    return published;
   }
 }
