@@ -1,0 +1,33 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.github.fpetrola.oozx</groupId>
+        <artifactId>devices</artifactId>
+        <version>0.1.6</version>
+    </parent>
+
+    <artifactId>device-better-sound</artifactId>
+    <packaging>jar</packaging>
+
+    <name>Better sound</name>
+    <dependencies>
+        <!-- Los AY que tocan la música y los efectos del parlante. -->
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>device-ay</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- El beeper que toca lo que el AY deja, y el parlante de la máquina que se calla mientras tanto. -->
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>device-ula</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>devices-kit</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+</project>

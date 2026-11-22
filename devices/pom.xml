@@ -64,6 +64,7 @@
         <module>covox</module>
         <module>spec256</module>
         <module>specdrum</module>
+        <module>better-sound</module>
         <module>fuller</module>
         <module>opus</module>
         <module>didaktik</module>
