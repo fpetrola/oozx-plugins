@@ -10,11 +10,28 @@
     </parent>
     <artifactId>machine-pictures</artifactId>
     <packaging>jar</packaging>
-    <name>How each machine a plugin brings looks when it starts, drawn while the plugin is built</name>
+    <name>How each machine a plugin brings looks when it starts, and each thing clipped onto one in use, drawn while the plugin is built</name>
     <dependencies>
         <dependency>
             <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- The machine a desk starts with, for what is clipped onto one to be seen in use. -->
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>machines</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>devices-kit</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <!-- Draws a window as the other pictures are drawn: in the desk's first look, with smooth words. -->
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>tool-looks</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

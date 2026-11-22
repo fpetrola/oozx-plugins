@@ -35,7 +35,8 @@ import java.util.stream.Stream;
  * is. What opens a window is that window; a look, a few of the things a desk is made of wearing it. Anything else is
  * shown by the drawing its offer names, which the catalogue draws itself. A picture already there, drawn by an earlier
  * step of the build, stays.
- * It knows nothing of the emulator: only what each class answers.
+ * It knows nothing of the emulator: only what each class answers; what needs a machine to be seen in use is drawn
+ * before, by the step that starts one, with {@link #window}.
  * <p>
  * Run by the build in a java of its own, on the plugin's classpath: {@code <classes folder>}.
  */
@@ -46,25 +47,18 @@ public final class DrawsTheWindows {
     Path classes = Path.of(args[0]);
     // A module that compiles nothing, such as the one that gathers the others, has nothing to draw.
     if (!Files.isDirectory(classes)) System.exit(0);
-    Path pictures = classes.resolve("META-INF/pictures");
     try (Stream<Path> all = Files.walk(classes)) {
       for (Path file : all.filter(one -> one.toString().endsWith(".class") && !one.toString().contains("$")).toList()) {
         String name = classes.relativize(file).toString().replace(java.io.File.separatorChar, '.').replaceAll("\\.class$", "");
-        Path picture = pictures.resolve(name + ".png");
-        java.util.concurrent.FutureTask<Void> drawing = new java.util.concurrent.FutureTask<>(() -> {
-          draw(name, picture);
-          return null;
-        });
-        // A window on the window's thread, as Swing asks: what it leaves for later there, such as wearing the look a
-        // desk kept, comes after its picture. A look where it was: what it animates there asks for a screen.
-        if (aLook(name)) drawing.run();
-        else
-          javax.swing.SwingUtilities.invokeLater(drawing);
+        Path picture = classes.resolve("META-INF/pictures").resolve(name + ".png");
         try {
-          drawing.get();
-        } catch (java.util.concurrent.ExecutionException cannotBeDrawnHere) {
-          System.err.println("No picture of " + name + ": " + (cannotBeDrawnHere.getCause().getCause() != null
-              ? cannotBeDrawnHere.getCause().getCause() : cannotBeDrawnHere.getCause()));
+          Class<?> kind = Class.forName(name, false, Thread.currentThread().getContextClassLoader());
+          if (kind.getAnnotation(Offers.class) == null || Files.exists(picture)) continue;
+          // A look where it is: what it animates on the window's thread asks for a screen.
+          if (made(kind) instanceof Look look) written(picture, wearing(look));
+          else window(picture, () -> opened(kind), () -> { });
+        } catch (Throwable cannotBeDrawnHere) {
+          System.err.println("No picture of " + name + ": " + (cannotBeDrawnHere.getCause() != null ? cannotBeDrawnHere.getCause() : cannotBeDrawnHere));
         }
       }
     }
@@ -72,13 +66,37 @@ public final class DrawsTheWindows {
     System.exit(0);
   }
 
-  /** Its picture, when it says what it offers and has something to see: the window it opens, or the look it is. */
-  private static void draw(String name, Path picture) throws Exception {
-    Class<?> kind = Class.forName(name, false, Thread.currentThread().getContextClassLoader());
-    if (kind.getAnnotation(Offers.class) == null || Files.exists(picture)) return;
-    if (!Look.class.isAssignableFrom(kind)) new DarklafLooks().wear(FIRST);
-    JComponent shown = whatIsShown(kind);
+  /**
+   * The picture of the window {@code made} makes, none when it makes none: made and drawn on the window's thread, as
+   * Swing asks, in the first look, and {@code inUse} meanwhile away from it, so that what the window is told while it
+   * is used reaches it before it is drawn. What it leaves for later there, such as wearing the look a desk kept, comes
+   * after its picture.
+   */
+  public static void window(Path picture, java.util.concurrent.Callable<JComponent> made, Runnable inUse) throws Exception {
+    JComponent shown = onTheWindowsThread(() -> {
+      new DarklafLooks().wear(FIRST);
+      return made.call();
+    });
     if (shown == null) return;
+    inUse.run();
+    onTheWindowsThread(() -> {
+      new DarklafLooks().wear(FIRST);
+      written(picture, shown);
+      return null;
+    });
+  }
+
+  private static <T> T onTheWindowsThread(java.util.concurrent.Callable<T> doing) throws Exception {
+    java.util.concurrent.FutureTask<T> task = new java.util.concurrent.FutureTask<>(doing);
+    SwingUtilities.invokeLater(task);
+    try {
+      return task.get();
+    } catch (java.util.concurrent.ExecutionException failed) {
+      throw failed.getCause() instanceof Exception cause ? cause : failed;
+    }
+  }
+
+  private static void written(Path picture, JComponent shown) throws java.io.IOException {
     // Smooth words: with no screen to ask how to draw them they come out in hard pixels. Grey, not by subpixels, as a
     // picture is shrunk and shown on any ground.
     UIManager.put(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
@@ -89,23 +107,14 @@ public final class DrawsTheWindows {
     ImageIO.write(drawn, "png", picture.toFile());
   }
 
-  private static boolean aLook(String name) {
-    try {
-      return Look.class.isAssignableFrom(Class.forName(name, false, Thread.currentThread().getContextClassLoader()));
-    } catch (ClassNotFoundException | LinkageError notHere) {
-      return false;
-    }
-  }
-
-  /** What there is to see of it: the window it opens or the look it is; null when it has neither. */
-  private static JComponent whatIsShown(Class<?> kind) throws Exception {
+  /** The window it opens, or null when it opens none. */
+  private static JComponent opened(Class<?> kind) throws Exception {
     Object it = made(kind);
-    if (it instanceof Look look) return wearing(look);
     if (it == null || !answers(kind, "open")) return null;
     try {
       return (JComponent) kind.getMethod("open").invoke(it);
     } catch (java.lang.reflect.InvocationTargetException opensOnlyOnADesk) {
-      throw opensOnlyOnADesk;
+      throw opensOnlyOnADesk.getCause() instanceof Exception cause ? cause : opensOnlyOnADesk;
     }
   }
 

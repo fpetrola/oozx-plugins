@@ -74,6 +74,8 @@ public class JoystickFrame extends MachineFrame {
     this.gamepad = insteadOfAPad != null ? insteadOfAPad : () -> pad == null ? null : pad.controller();
     setSize(300, 220);
     controls.add(reading);
+    // The stick drawn at the size it is drawn for: unfolding asks for it, and with none it unfolds to nothing.
+    stick.setPreferredSize(new java.awt.Dimension(280, 140));
     assemble(stick);
     setCompact(false);
     Timer refresh = new Timer(REFRESH_MILLIS, e -> refresh());

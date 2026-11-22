@@ -146,6 +146,8 @@ public class KeyboardFrame extends MachineFrame {
     super("Keyboard");
     setSize(620, 420);
     prefersDock(Dock.BOTTOM);
+    // The keys drawn at the size they are drawn for: unfolding asks for it, and with none it unfolds to nothing.
+    keys.setPreferredSize(new java.awt.Dimension(600, 330));
     assemble(keys);
     setCompact(false);
 
