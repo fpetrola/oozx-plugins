@@ -35,6 +35,7 @@ import com.google.inject.Singleton;
  * because a machine that was sold is a machine, not because it does anything of its own.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Czerweny CZ Spectrum", description = "The Argentine 48K", icon = "device-desktop")
 public class CzSpectrum extends Spec48 {
   @Inject
   public CzSpectrum(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Machine.Unit unit, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

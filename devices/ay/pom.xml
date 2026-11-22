@@ -23,6 +23,12 @@
             <artifactId>media-snapshot</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!-- La ventana de una caja con este chip. -->
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>devices-kit</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

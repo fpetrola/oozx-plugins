@@ -45,6 +45,7 @@ import java.util.Set;
  * page at the top lets two more bits of the slot port reach into it.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Spectrum SE", description = "A 128 with a Timex display chip and RAM in its cartridge slots", icon = "device-desktop")
 public class SpecSe extends Spec128 {
   private static final int PAGES = 9;
   private static final int TOP_HALVES = 0xc0;

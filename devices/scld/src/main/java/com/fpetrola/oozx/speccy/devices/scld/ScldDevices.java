@@ -22,6 +22,7 @@ import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
+@dev.crystal.plugins.api.Offers(value = "Inside the machine/SCLD", description = "The Timex display register: the second screen, hi-res and colour a line at a time", icon = "layout-board")
 public class ScldDevices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);

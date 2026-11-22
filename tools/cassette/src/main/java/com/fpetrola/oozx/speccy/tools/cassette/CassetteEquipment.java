@@ -27,7 +27,7 @@ import java.io.File;
 
 /** The cassette deck, offered like any other equipment: found, not named by the application. */
 @Offers(value = "Disks and tape/Cassette",
-    description = "A tape deck for the machine: play, stop, rewind, and the blocks of the tape")
+    description = "A tape deck for the machine: play, stop, rewind, and the blocks of the tape", icon = "device-audio-tape")
 public class CassetteEquipment implements Equipment {
   public String name() {
     return "Cassette";

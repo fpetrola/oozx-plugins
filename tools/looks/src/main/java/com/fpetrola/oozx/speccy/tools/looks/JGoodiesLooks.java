@@ -21,7 +21,7 @@ import dev.crystal.plugins.api.Offers;
 
 import java.util.List;
 
-@Offers("Change the look: JGoodies")
+@Offers(value = "Looks/JGoodies", description = "The JGoodies looks, in Window, Look&Feel", icon = "palette")
 public class JGoodiesLooks extends FromThisPlugin {
 
   public String family() {

@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Cards and hard disks/DivMMC",
-    description = "A memory card the machine talks to a byte at a time, with esxDOS")
+    description = "A memory card the machine talks to a byte at a time, with esxDOS", icon = "device-sd-card")
 public class DivMmcEquipment implements Equipment {
   public String name() {
     return "DivMMC";

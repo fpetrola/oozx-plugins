@@ -116,6 +116,12 @@ class TheRomsAMachineRunsOnTest extends MachineTest {
     assertEquals(List.of("inves.rom"), roms.running(machine(CzSpectrumPlus.class)));
   }
 
+  /** One a jar brings says which of its ROMs are not here as any other does, or nobody would offer to fetch them. */
+  @Test
+  void aMachineAJarBringsSaysWhichOfItsRomsAreMissing() {
+    assertEquals(List.of("inves.rom"), roms.missingFor(machine(CzSpectrumPlus.class)));
+  }
+
   /**
    * A machine is offered its other ROMs whether or not any of them has been fetched yet: which
    * sets there are is what the build knows, and knowing is not having.

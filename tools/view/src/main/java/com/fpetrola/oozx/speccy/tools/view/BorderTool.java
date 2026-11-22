@@ -34,7 +34,7 @@ import javax.swing.JToggleButton;
  * El borde de la pantalla. Un boton que queda apretado mientras se ve, como el borde, que esta o
  * no esta. Lo que se elige queda para las maquinas que se abran despues.
  */
-@Offers("Show or hide the border")
+@Offers(value = "The screen/Border", description = "On a machine's bar: shows or hides the border around the picture", icon = "border-outer")
 public class BorderTool implements MachineTool {
 
   public javax.swing.Icon icon() {

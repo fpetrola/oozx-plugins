@@ -25,7 +25,7 @@ import dev.plugdesk.desk.Widgets;
 import javax.swing.Icon;
 import javax.swing.JInternalFrame;
 
-@Offers("Change the settings")
+@Offers(value = "Controls/Settings", description = "Every setting of the emulator, for new machines and for each open one: Emulator, Settings", icon = "settings")
 public class SettingsEquipment implements DeskEquipment {
   public String name() {
     return "Settings";

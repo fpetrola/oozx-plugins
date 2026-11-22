@@ -14,10 +14,10 @@ import java.util.stream.Stream;
  * What ZXInfo knows of an entry, a game or the real thing a plugin emulates, by its ZXDB id ({@code zxdb:1000221}): asked
  * of its API, answered from the copy of ZXDB that ships when it cannot be reached.
  */
+@dev.crystal.plugins.api.Offers(value = "Games/What is known", description = "What ZXDB and ZXInfo know of a game or a device: screens, authors and year, for the browser and this catalogue", icon = "world-search")
 public class KnownToZxInfo implements KnowsAbout {
 
   private static final String KNOWN = "zxdb:";
-  private static final Set<String> PICTURES = Set.of("Hardware picture", "Hardware advertisement scan", "Game map", "Inlay - Front");
   private static final Set<String> READING = Set.of("Hardware technical documentation", "Instructions", "Scanned instructions");
   private static final int NAMED = 3;
 
@@ -54,7 +54,7 @@ public class KnownToZxInfo implements KnowsAbout {
     String then = Stream.of(maker, year, prices.isEmpty() ? null : prices.getFirst())
         .filter(Objects::nonNull).filter(said -> !said.isEmpty()).collect(Collectors.joining("  ·  "));
     return new About(then.isEmpty() ? entry.title : then, plain(entry.hardwareBlurb), plain(entry.remarks),
-        downloads(entry, PICTURES).values().stream().filter(KnownToZxInfo::isPicture).toList(), facts, links(entry, id));
+        entry.pictures(), facts, links(entry, id));
   }
 
   private static void put(Map<String, String> facts, String what, String is) {
@@ -83,22 +83,8 @@ public class KnownToZxInfo implements KnowsAbout {
     links.put("Spectrum Computing", "https://spectrumcomputing.co.uk/entry/" + id);
     if (entry.relatedLinks != null) entry.relatedLinks.forEach(link -> links.putIfAbsent(link.siteName, link.url));
     if (entry.relatedSites != null) entry.relatedSites.forEach(link -> links.putIfAbsent(link.siteName, link.url));
-    downloads(entry, READING).forEach(links::putIfAbsent);
+    entry.downloads(READING).forEach(links::putIfAbsent);
     return links;
-  }
-
-  /** The files of those kinds, each under its name, at the address it is served from. */
-  private static Map<String, String> downloads(GameEntry entry, Set<String> kinds) {
-    Map<String, String> found = new LinkedHashMap<>();
-    if (entry.additionalDownloads != null) entry.additionalDownloads.stream()
-        .filter(download -> kinds.contains(download.type) && download.path != null)
-        .forEach(download -> found.put(download.path.substring(download.path.lastIndexOf('/') + 1),
-            ZxInfoApiHandler.mediaUrl(download.path)));
-    return found;
-  }
-
-  private static boolean isPicture(String address) {
-    return address.toLowerCase().matches(".*\\.(jpg|jpeg|png|gif)$");
   }
 
   /** ZXDB writes a mention of another entry as {Title|Publisher|id}: a person reads the title. */

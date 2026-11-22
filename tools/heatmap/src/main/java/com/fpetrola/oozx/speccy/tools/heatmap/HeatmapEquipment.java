@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 @Offers(value = "The game lab/Heatmap",
-    description = "How much code ran at each of the 64K addresses, and how much of that just now")
+    description = "How much code ran at each of the 64K addresses, and how much of that just now", icon = "flame")
 public class HeatmapEquipment implements Equipment {
   public String name() {
     return "Heatmap";

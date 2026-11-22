@@ -33,7 +33,7 @@ import com.fpetrola.oozx.speccy.devices.ay.AyPeripheral;
  * difference is that a machine comes with one of those and somebody chose this.
  */
 @com.google.inject.Singleton
-public class MelodikPeripheral extends AyPeripheral {
+public class MelodikPeripheral extends AyPeripheral implements com.fpetrola.oozx.speccy.peripherals.Pluggable {
 
   private boolean fitted;
 
@@ -59,5 +59,16 @@ public class MelodikPeripheral extends AyPeripheral {
 
   public void setFitted(boolean fitted) {
     this.fitted = fitted;
+  }
+
+  /** Fitting it is plugging it in, so that a window clipped onto a machine is what puts the box there. */
+  @Override
+  public void plugIn(boolean connected) {
+    fitted = connected;
+  }
+
+  @Override
+  public boolean isPluggedIn() {
+    return fitted;
   }
 }

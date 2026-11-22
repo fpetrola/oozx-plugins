@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Disks and tape/Interface 1",
-    description = "Eight Microdrive bays with their motor lamps, a serial port and the network", known = "zxdb:1000192")
+    description = "Eight Microdrive bays with their motor lamps, a serial port and the network", known = "zxdb:1000192", icon = "network")
 public class Interface1Equipment implements Equipment {
   public String name() {
     return "Interface 1";

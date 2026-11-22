@@ -38,7 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /** The wiki that travels in the application's jar, page by page: its sidebar on the left, the page asked for on the right. */
-@Offers("Read the guide")
+@Offers(value = "Help/Guide", description = "How to play, load, record and find everything, in the desk itself: Help, Guide", icon = "book")
 public class ReadmeEquipment implements Explains {
   private static final String STYLE = "body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; color: #333; }"
       + "h1 { color: #1f77b4; border-bottom: 2px solid #1f77b4; padding-bottom: 10px; }"

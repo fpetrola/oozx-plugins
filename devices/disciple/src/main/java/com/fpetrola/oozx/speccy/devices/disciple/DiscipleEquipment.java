@@ -25,7 +25,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.disk.DiskInterface;
 
 @Offers(value = "Disks and tape/DISCiPLE", description = "The +D's elder brother: disks, its own ROM, its own button",
-    known = "zxdb:1000117")
+    known = "zxdb:1000117", icon = "device-floppy")
 public class DiscipleEquipment implements Equipment {
   static final DiskInterface SHAPE = DiskInterface.shape(2, "NMI",
       "The button on the DISCiPLE: stops the program and brings up its snapshot menu", "mgt", "img", "dsk");

@@ -31,6 +31,7 @@ import com.google.inject.Singleton;
 
 /** The one that came after it, in the case of a +2 and with a ROM of its own again. */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Microdigital TK95", description = "The TK90X's successor, in a +2's case with a ROM of its own", known = "zxdb:1000522", icon = "device-desktop")
 public class Tk95 extends Tk90x {
   @Inject
   public Tk95(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Machine.Unit unit, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

@@ -35,6 +35,7 @@ import com.google.inject.Singleton;
  * nothing else about the machine changes: same ROMs, same timings, same lack of contention.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Pentagon 512K", description = "A Pentagon with half a megabyte", icon = "device-desktop")
 public class Pentagon512 extends Pentagon {
   @Inject
   public Pentagon512(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals,

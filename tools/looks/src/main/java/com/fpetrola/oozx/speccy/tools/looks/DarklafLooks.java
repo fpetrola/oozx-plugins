@@ -32,7 +32,7 @@ import com.github.weisj.darklaf.theme.Theme;
 import java.util.Arrays;
 import java.util.List;
 
-@Offers("Change the look: Darklaf themes")
+@Offers(value = "Looks/Darklaf", description = "Darklaf themes, light and dark, in Window, Look&Feel", icon = "palette")
 public class DarklafLooks extends FromThisPlugin {
 
   private static final Theme[] THEMES = {new DarculaTheme(), new OneDarkTheme(), new SolarizedLightTheme(),

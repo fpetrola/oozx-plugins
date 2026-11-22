@@ -36,6 +36,7 @@ import com.google.inject.Singleton;
  * missing, so everything above 0x7fff is bus and nothing else.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Spectrum 16K", description = "The first one: a 48K with three quarters of its memory missing", known = "zxdb:1000485", icon = "device-desktop")
 public class Spec16 extends Spec48 {
   @Inject
   public Spec16(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Machine.Unit unit, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

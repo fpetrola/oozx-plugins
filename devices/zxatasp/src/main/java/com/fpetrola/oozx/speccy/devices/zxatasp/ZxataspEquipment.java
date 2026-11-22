@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Cards and hard disks/ZXATASP",
-    description = "Hard disk bays and extra memory, where Save is what commits", known = "zxdb:1000945")
+    description = "Hard disk bays and extra memory, where Save is what commits", known = "zxdb:1000945", icon = "database")
 public class ZxataspEquipment implements Equipment {
   public String name() {
     return "ZXATASP";

@@ -41,6 +41,7 @@ import java.util.Set;
  * ROM of its own rather than one of a pair, and another is simply a fourth bit of the page number.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Scorpion ZS 256", description = "A Russian clone with 256K, paged its own way", icon = "device-desktop")
 public class Scorpion extends SpecPlus3 {
   /** The machine's own ROM, which is neither of the two a 128 chooses between. */
   private static final int ITS_OWN_ROM = 0x02;

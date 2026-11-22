@@ -44,7 +44,7 @@ import com.fpetrola.oozx.Speccy;
 /** The joystick window, offered like any other equipment: found, not named by the application. */
 @Offers(value = "Printers and pointers/Joystick",
     description = "Kempston, Sinclair 1 and 2, Cursor, Timex and Fuller, played with your keys or your own gamepad",
-    known = "zxdb:1000220")
+    known = "zxdb:1000220", icon = "device-gamepad-2")
 public class JoystickEquipment implements Equipment {
   public String name() {
     return "Joystick";

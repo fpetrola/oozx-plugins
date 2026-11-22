@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Things that make a sound/SpecDrum",
-    description = "Cheetah's drum machine, with a level meter and a volume", known = "zxdb:1000062")
+    description = "Cheetah's drum machine, with a level meter and a volume", known = "zxdb:1000062", icon = "music")
 public class SpecDrumEquipment implements Equipment {
   public String name() {
     return "SpecDrum";

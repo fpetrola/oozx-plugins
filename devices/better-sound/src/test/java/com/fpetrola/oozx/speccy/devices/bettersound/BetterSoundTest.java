@@ -130,6 +130,31 @@ class BetterSoundTest {
       assertEquals(tune[i], music.notes().get(i).period(), tune[i] * 0.01, "note " + i);
   }
 
+  /**
+   * Trantor's hum: pulses as narrow as Ping Pong's, but two or three alike and then another gap. A few that happen to
+   * be alike are no tone (three at 15940 T, then others): taken as tones they were the AY's, and the hum was gone.
+   */
+  @Test
+  void aHumOfNarrowPulsesIsNoTone() {
+    List<Runs.Run> tones = new ArrayList<>();
+    Ear ear = new Ear(p -> {
+    });
+    ear.onRun(r -> {
+      if (r.tone())
+        tones.add(r);
+    });
+    int[] gaps = {7447, 8488, 15940, 15940, 15940};
+    long t = 0, frameEnd = 69_888;
+    for (int i = 0; i < 400; i++, t += gaps[i % gaps.length]) {
+      ear.out(t, 0x10, 0xC490, 0xCC2E);
+      ear.out(t + 100, 0, 0xC499, 0xCC2E);
+      for (; frameEnd <= t; frameEnd += 69_888)
+        ear.frame(frameEnd);
+    }
+    ear.flush();
+    assertEquals(List.of(), tones);
+  }
+
   /** As its window does it: plugged in or out, and the machine told to bring its devices up to date. */
   private static void plug(Speccy speccy, BetterSoundPeripheral better, boolean in) {
     better.plugIn(in);

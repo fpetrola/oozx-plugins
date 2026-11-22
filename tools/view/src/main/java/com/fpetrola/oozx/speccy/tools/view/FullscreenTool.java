@@ -40,7 +40,7 @@ import java.util.WeakHashMap;
  * La pantalla sola, llenando el monitor. El panel se muda a una ventana sin bordes y vuelve, en
  * vez de dibujarse en otro lado, asi la maquina sigue andando y el teclado sigue funcionando.
  */
-@Offers("Play in full screen")
+@Offers(value = "The screen/Full screen", description = "On a machine's bar: the machine on the whole screen, to play", icon = "maximize")
 public class FullscreenTool implements MachineTool {
 
   /** Donde estaba cada pantalla y la ventana que la tiene ahora, mientras esta a pantalla completa. */

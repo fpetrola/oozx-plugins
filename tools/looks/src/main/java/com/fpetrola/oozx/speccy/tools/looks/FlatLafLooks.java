@@ -21,7 +21,7 @@ import dev.crystal.plugins.api.Offers;
 
 import java.util.List;
 
-@Offers("Change the look: FlatLaf")
+@Offers(value = "Looks/FlatLaf", description = "FlatLaf, flat and modern, light and dark, in Window, Look&Feel", icon = "palette")
 public class FlatLafLooks extends FromThisPlugin {
 
   public String family() {

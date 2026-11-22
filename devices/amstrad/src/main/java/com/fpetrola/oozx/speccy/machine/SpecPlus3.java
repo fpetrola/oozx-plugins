@@ -42,6 +42,7 @@ import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fasterxml.jackson.annotation.JsonMerge;
 
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Spectrum Plus 3", description = "A 3-inch disk drive, 0x1FFD on top of 0x7FFD and all-RAM modes", known = "zxdb:1000496", icon = "device-desktop")
 public class SpecPlus3 extends Spec128 implements PagingPlus3 {
   @Inject
   public SpecPlus3(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

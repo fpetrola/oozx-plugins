@@ -32,6 +32,7 @@ import com.fpetrola.oozx.speccy.modules.z80.Cpu;
 import com.fpetrola.emulation.helpers.machine.MachineTypes;
 
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Amstrad Spectrum +3e", description = "The +3 with ROMs rewritten for hard disks and memory cards", icon = "device-desktop")
 public class SpecPlus3E extends SpecPlus3 {
   @Inject
   public SpecPlus3E(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

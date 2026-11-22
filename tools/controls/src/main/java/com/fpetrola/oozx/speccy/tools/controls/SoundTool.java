@@ -34,7 +34,7 @@ import javax.swing.JSlider;
 import javax.swing.ToolTipManager;
 
 /** El sonido: silencio con el boton, volumen con la regla del clic derecho. */
-@Offers("Change the volume")
+@Offers(value = "Controls/Sound", description = "On a machine's bar: mutes and unmutes it; right-click for the volume", icon = "volume")
 public class SoundTool implements MachineTool {
 
   public javax.swing.Icon icon() {

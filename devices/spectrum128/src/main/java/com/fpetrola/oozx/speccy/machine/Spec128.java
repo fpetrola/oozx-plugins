@@ -40,6 +40,7 @@ import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fasterxml.jackson.annotation.JsonMerge;
 
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Spectrum 128K", description = "Paged memory on 0x7FFD, the AY sound chip and a second ROM", known = "zxdb:1000488", icon = "device-desktop")
 public class Spec128 extends Spectrum implements Paging128 {
 
   @Inject

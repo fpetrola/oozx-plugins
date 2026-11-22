@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Cards and hard disks/ZXCF CompactFlash",
-    description = "A CompactFlash bay, where Save is what commits", known = "zxdb:1000946")
+    description = "A CompactFlash bay, where Save is what commits", known = "zxdb:1000946", icon = "device-sd-card")
 public class ZxcfEquipment implements Equipment {
   public String name() {
     return "ZXCF CompactFlash";

@@ -42,7 +42,7 @@ import java.util.WeakHashMap;
  * Antes vivia en la ventana de maquina, que para ofrecer pokes tenia que saber leer listados
  * .pok. Ahora es una herramienta: sacar este plugin saca el boton.
  */
-@Offers("Put pokes in the game")
+@Offers(value = "Games/Pokes", description = "On a machine's bar: infinite lives and the like, from the pokes known for the game it runs", icon = "wand")
 public class PokesTool implements MachineTool {
 
   private final PokesManager pokes = PokesManager.shared();

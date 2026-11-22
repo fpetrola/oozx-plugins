@@ -46,7 +46,7 @@ import java.util.Map;
  * La velocidad: el cohete para ir a fondo, la regla del clic derecho para elegir, y en la barra
  * de estado a cuanto va de verdad.
  */
-@Offers("Run the machine faster")
+@Offers(value = "Controls/Full speed", description = "On a machine's bar: runs the machine as fast as this computer can; right-click to choose a speed", icon = "rocket")
 public class TurboTool implements MachineTool {
 
   /** Lo mas que pide la regla, y lo que pide el cohete al apretarlo. */

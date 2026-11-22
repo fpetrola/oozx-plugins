@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 /** Offered the way a board is: the desk finds it, and nothing in the emulator names it. */
-@Offers(value = "The game lab/Calls", description = "What called what, as a graph")
+@Offers(value = "The game lab/Calls", description = "What called what, as a graph", icon = "list-tree")
 public class CallsEquipment implements Equipment {
   public String name() {
     return "Calls";

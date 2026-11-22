@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.DeskEquipment;
 import javax.swing.JInternalFrame;
 
 /** The game browser, offered like any other equipment: found, not named by the application. */
-@Offers("Browse the game catalogue")
+@Offers(value = "Games/Game Browser", description = "Every known game on shelves: yours, the ones on this computer and the archive, with screens, details and play", icon = "books")
 public class GamesEquipment implements DeskEquipment {
   public String name() {
     return "Game Browser";

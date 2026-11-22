@@ -27,7 +27,7 @@ import dev.plugdesk.desk.Widgets;
 import javax.swing.SwingUtilities;
 
 /** Una, dos o tres veces el tamanio de la pantalla. */
-@Offers("Zoom the screen")
+@Offers(value = "The screen/Zoom", description = "On a machine's bar: makes the picture bigger or smaller", icon = "zoom-in")
 public class ZoomTool implements MachineTool {
 
   public javax.swing.Icon icon() {

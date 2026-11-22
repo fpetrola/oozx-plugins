@@ -238,8 +238,10 @@ public final class Runs implements Ear.Input {
       held = -1;
     }
     double f = halves >= 2 ? firstPeriod : 2.0 * h2, l = halves >= 2 ? lastPeriod : 2.0 * h2;
-    // a pulse is a tone once it has two whole periods: one pair is only two half periods that happen to add up
-    int n = pulse && halves < 4 ? Math.min(halves, 2) : halves;
+    // a pulse is a tone once it has two whole periods: one pair is only two half periods that happen to add up; a
+    // narrow one, four (Ping Pong's notes have a dozen, Trantor's hum two or three, and it is a hum of clicks)
+    boolean narrow = pulse && Math.min(h1, h2) * 4 < Math.max(h1, h2);
+    int n = pulse && halves < (narrow ? 8 : 4) ? Math.min(halves, 2) : halves;
     // and its whole periods only: ended on a pulse's fall, its last width is not a half period (Ping Pong's are 1 %)
     boolean width = pulse && n % 2 == 1;
     out.accept(new Run(key, start, width ? runEnd - h2 : runEnd, width ? n - 1 : n, halves == 0 ? 0 : f,

@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 @Offers(value = "The game lab/Ports",
-    description = "Every port the machine touched, counted, like a logic analyser on the bus")
+    description = "Every port the machine touched, counted, like a logic analyser on the bus", icon = "plug-connected")
 public class IoEquipment implements Equipment {
   public String name() {
     return "Ports";

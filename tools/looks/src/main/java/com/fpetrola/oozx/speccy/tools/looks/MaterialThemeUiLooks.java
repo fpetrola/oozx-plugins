@@ -21,7 +21,7 @@ import dev.crystal.plugins.api.Offers;
 
 import java.util.List;
 
-@Offers("Change the look: Material Theme UI")
+@Offers(value = "Looks/Material Theme UI", description = "The Material Theme UI themes, in Window, Look&Feel", icon = "palette")
 public class MaterialThemeUiLooks extends FromThisPlugin {
 
   public String family() {

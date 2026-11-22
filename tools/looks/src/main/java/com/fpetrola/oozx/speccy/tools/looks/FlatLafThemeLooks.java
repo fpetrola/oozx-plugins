@@ -21,7 +21,7 @@ import dev.crystal.plugins.api.Offers;
 
 import java.util.List;
 
-@Offers("Change the look: FlatLaf IntelliJ themes")
+@Offers(value = "Looks/FlatLaf IntelliJ themes", description = "Dozens of IntelliJ themes on FlatLaf, in Window, Look&Feel", icon = "palette")
 public class FlatLafThemeLooks extends FromThisPlugin {
 
   public String family() {

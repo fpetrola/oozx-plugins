@@ -41,6 +41,7 @@ import java.util.List;
  * emulator, it is found by answering to {@link ScreenEffect}, and the knob it brings is how it
  * is configured, written down and remembered.
  */
+@dev.crystal.plugins.api.Offers(value = "The screen/Tube curvature", description = "The bulge of an old television's glass, chosen in the screen settings", icon = "device-tv-old")
 public class TubeCurve implements ScreenEffect {
 
   /** How much the glass bulges, as hundredths: 0 is a flat panel, 10 is a small old portable. */

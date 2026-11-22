@@ -34,7 +34,7 @@ import java.io.File;
 @dev.crystal.plugins.api.Needs({"device-snapshots"})
 @Answers("rzx")
 @Offers(value = "Disks and tape/RZX Player",
-    description = "Plays a recording of somebody playing, frame by frame, and records yours")
+    description = "Plays a recording of somebody playing, frame by frame, and records yours", icon = "player-play")
 public class RzxEquipment implements Equipment {
   public String name() {
     return "RZX Player";

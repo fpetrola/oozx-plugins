@@ -22,7 +22,7 @@ import dev.crystal.plugins.api.Offers;
 
 @Offers(value = "Cartridges, freezers and colours/Multiface 128",
     description = "Romantic Robot's red button for the 128K: stop any program, save it, poke it",
-    known = "zxdb:1000273")
+    known = "zxdb:1000273", icon = "snowflake")
 public class Multiface128Equipment implements Equipment {
   public String name() {
     return MultifaceModel.M128.title;

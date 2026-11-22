@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.MachineTool;
 import dev.plugdesk.desk.Widgets;
 
 /** Apagar y prender la maquina. */
-@Offers("Reset the machine")
+@Offers(value = "Controls/Reset", description = "On a machine's bar: resets the machine, as its button did", icon = "refresh")
 public class ResetTool implements MachineTool {
 
   public javax.swing.Icon icon() {

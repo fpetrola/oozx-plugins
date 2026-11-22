@@ -27,6 +27,9 @@ import java.util.List;
 @Produces(MediaType.APPLICATION_JSON)
 public interface ZxInfoClient {
 
+    /** ZXInfo's own service, and this project's, which answers the same questions from ZXDB (tools/zxinfo-worker). */
+    String ZXINFO = "https://api.zxinfo.dk", OURS = "https://zxinfo.zxinfo-worker.workers.dev";
+
     /** JSON detail level accepted by /search and /games/{id}. The API defaults to "compact". */
     String MODE_TINY = "tiny";
     String MODE_COMPACT = "compact";
@@ -90,4 +93,34 @@ public interface ZxInfoClient {
     @GET
     @Path("/filecheck/{hash}")
     FileCheckResult getFileByHash(@PathParam("hash") String hash);
+
+    /**
+     * Asks the service at that address. Without a timeout a request nobody answers waits for ever (a catalogue run once
+     * sat four hours in one read), and the archive answers 301 when it moves, which has to be followed.
+     */
+    static <T> T at(String address, java.util.function.Function<ZxInfoClient, T> call) {
+        jakarta.ws.rs.client.Client client = ((org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder) jakarta.ws.rs.client.ClientBuilder.newBuilder())
+            .connectTimeout(20, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
+            .setFollowRedirects(true)
+            .build();
+        try {
+            return call.apply(((org.jboss.resteasy.client.jaxrs.ResteasyWebTarget) client.target(address)).proxy(ZxInfoClient.class));
+        } finally {
+            client.close();
+        }
+    }
+
+    /** Where ZXDB's own paths are actually served from: ZXInfo's screens, and Spectrum Computing for the rest. */
+    static String served(String path) {
+        // ZXDB lists some files by their whole address already - the RZX Archive's recordings at
+        // archive.org - and putting a host in front of one makes a link to nowhere.
+        if (path.startsWith("http")) {
+            return path;
+        }
+        if (path.startsWith("/zxscreens")) {
+            return "https://zxinfo.dk/media" + path;
+        }
+        return "https://spectrumcomputing.co.uk" + path;
+    }
 }

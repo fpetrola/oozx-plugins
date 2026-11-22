@@ -41,6 +41,7 @@ import java.util.Set;
  * covers, so the same bitmap can be coloured a line at a time instead of a cell at a time.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Timex TC2048", description = "A 48K with a second screen, 512 by 192 hi-res and colour a line at a time", known = "zxdb:1000508", icon = "device-desktop")
 public class Tc2048 extends Spec48 {
   @Inject
   public Tc2048(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Machine.Unit unit, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

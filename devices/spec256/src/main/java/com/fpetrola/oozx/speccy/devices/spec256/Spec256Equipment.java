@@ -23,7 +23,7 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers(value = "Cartridges, freezers and colours/Spec256", description = "A 1984 game in 256 colours")
+@Offers(value = "Cartridges, freezers and colours/Spec256", description = "A 1984 game in 256 colours", icon = "color-swatch")
 public class Spec256Equipment implements Equipment {
   public String name() {
     return "Spec256";

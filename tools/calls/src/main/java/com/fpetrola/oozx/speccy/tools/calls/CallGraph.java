@@ -110,7 +110,18 @@ final class CallGraph extends JPanel {
       return getModel().isVertex(cell);
     }
   };
-  private final mxGraphComponent component = new mxGraphComponent(graph);
+  private final mxGraphComponent component = new mxGraphComponent(graph) {
+    protected com.mxgraph.swing.handler.mxGraphHandler createGraphHandler() {
+      // Boxes are moved inside the view, never dragged out of it nor dropped in: neither of those is listened for.
+      return new com.mxgraph.swing.handler.mxGraphHandler(this) {
+        protected void installDragGestureHandler() {
+        }
+
+        protected void installDropTargetHandler() {
+        }
+      };
+    }
+  };
   private final JCheckBox decimal = new JCheckBox("Decimal");
   private final JCheckBox opcodes = new JCheckBox("Opcodes");
   private final JCheckBox follow = new JCheckBox("Follow");

@@ -37,6 +37,7 @@ import java.util.Set;
 
 /** The smaller of the two: the same machine without the slots, so its memory is a 128's and no more. */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Chloe 140SE", description = "The SE without the cartridge slots", icon = "device-desktop")
 public class Chloe140Se extends Chloe280Se {
   @Inject
   public Chloe140Se(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals,

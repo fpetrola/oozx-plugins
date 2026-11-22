@@ -26,6 +26,7 @@ import com.google.inject.multibindings.Multibinder;
 import com.fpetrola.oozx.Extension;
 
 /** The sound chip a machine has, the one a +3 wires differently, and the box for a machine with none. */
+@dev.crystal.plugins.api.Offers(value = "Inside the machine/AY sound chip", description = "The three-voice sound chip of the 128 and later, for every machine and box that has one", icon = "wave-sine")
 public class AyDevices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);

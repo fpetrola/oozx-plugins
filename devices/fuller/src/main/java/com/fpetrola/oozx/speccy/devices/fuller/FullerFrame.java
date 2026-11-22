@@ -16,89 +16,43 @@
  */
 package com.fpetrola.oozx.speccy.devices.fuller;
 
-import com.fpetrola.oozx.speccy.devices.DeviceFrame;
+import com.fpetrola.oozx.speccy.devices.ay.AyFrame;
 import com.fpetrola.oozx.speccy.modules.input.Input;
 import com.fpetrola.oozx.speccy.modules.joystick.Joystick.JoystickType;
 import dev.plugdesk.desk.Widgets;
 
-import javax.swing.JLabel;
-import javax.swing.JPanel;
 import javax.swing.JToggleButton;
-import javax.swing.Timer;
-import javax.swing.event.InternalFrameAdapter;
-import javax.swing.event.InternalFrameEvent;
-import java.awt.Color;
-import java.awt.GridLayout;
 
 /**
- * The Fuller Box on the desk: a light for the sound chip being written to, and the joystick
- * socket, where the keyboard's joystick can be plugged in.
+ * The Fuller Box on the desk: the sound chip's box, and the joystick socket, where the keyboard's joystick can be
+ * plugged in.
  */
-public class FullerFrame extends DeviceFrame<FullerPeripheral> {
+public class FullerFrame extends AyFrame<FullerPeripheral> {
 
-  private static final int REFRESH_MILLIS = 80;
-
-  private final JLabel chip = new JLabel("●");
-  private final JToggleButton socket = Widgets.iconToggle("1F579.svg", "Joystick",
-      "The keyboard's joystick, plugged into the Fuller's socket and read on port 0x7f");
-  private final JLabel written = new JLabel();
-  private final Timer refresh = new Timer(REFRESH_MILLIS, e -> refresh());
-  private long seen;
+  private final JToggleButton socket;
 
   public FullerFrame() {
-    super("Fuller Box", FullerPeripheral.class);
-    setSize(420, 160);
-    chip.setToolTipText("Lit while a program is writing to the sound chip");
+    this(Widgets.iconToggle("1F579.svg", "Joystick",
+        "The keyboard's joystick, plugged into the Fuller's socket and read on port 0x7f"));
+  }
+
+  private FullerFrame(JToggleButton socket) {
+    super("Fuller Box", FullerPeripheral.class,
+        "An AY-3-8912 on ports 0x3f and 0x5f, for music written for it on a 48K, and a joystick read on 0x7f.", socket);
+    this.socket = socket;
     socket.addActionListener(e -> {
       if (machine() != null) {
         Input.of(machine()).setup().keyboard().setOutput(socket.isSelected() ? JoystickType.JOYSTICK_TYPE_FULLER : JoystickType.JOYSTICK_TYPE_NONE);
       }
     });
-    controls.add(chip);
-    controls.add(socket);
-    JPanel inside = new JPanel(new GridLayout(0, 1));
-    inside.add(written);
-    inside.add(new JLabel("<html>An AY-3-8912 on ports 0x3f and 0x5f, for music written for it on a 48K, "
-        + "and a joystick read on 0x7f.</html>"));
-    assemble(inside);
-    addInternalFrameListener(new InternalFrameAdapter() {
-      @Override
-      public void internalFrameClosed(InternalFrameEvent e) {
-        refresh.stop();
-      }
-    });
-    refresh.start();
     plugged(null);
   }
 
   @Override
   protected void plugged(FullerPeripheral device) {
+    super.plugged(device);
     socket.setEnabled(device != null);
     socket.setSelected(device != null
         && Input.of(machine()).setup().keyboard().getOutput() == JoystickType.JOYSTICK_TYPE_FULLER);
-    refresh();
-  }
-
-  private void refresh() {
-    FullerPeripheral box = device();
-    if (box == null) {
-      chip.setForeground(Color.GRAY);
-      written.setText("not plugged into a machine");
-      return;
-    }
-    long now = box.writes();
-    chip.setForeground(now != seen ? new Color(0x30c030) : Color.GRAY);
-    seen = now;
-    written.setText("register writes: " + now);
-  }
-
-  @Override
-  protected String expandTip() {
-    return "Show what the box is, or just its lights";
-  }
-
-  @Override
-  protected String attachTip() {
-    return "Clip this onto the machine's window, which is what plugs the box in";
   }
 }

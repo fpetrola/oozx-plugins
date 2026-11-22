@@ -34,7 +34,7 @@ import javax.swing.JMenuItem;
 import javax.swing.SwingUtilities;
 
 /** Parar y seguir: un boton que muestra lo que va a hacer, y en la barra de estado lo que esta haciendo. */
-@Offers("Pause the machine")
+@Offers(value = "Controls/Pause", description = "On a machine's bar: stops the machine and starts it again where it was; also Emulator, Pause", icon = "player-pause")
 public class PauseTool implements MachineTool {
 
   public javax.swing.Icon icon() {

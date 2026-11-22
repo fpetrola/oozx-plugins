@@ -25,7 +25,7 @@ import com.fpetrola.oozx.speccy.devices.MachineTool;
 import dev.plugdesk.desk.Widgets;
 
 /** Guardar este juego entre los favoritos. */
-@Offers("Keep this game as a favourite")
+@Offers(value = "Games/Keep as favourite", description = "On a machine's bar: keeps the game that machine runs among your favourites", icon = "star")
 public class FavoriteTool implements MachineTool {
 
   public javax.swing.Icon icon() {

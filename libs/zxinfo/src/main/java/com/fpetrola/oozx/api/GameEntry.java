@@ -215,4 +215,24 @@ public class GameEntry {
         public String source;
         public String contenttype;
     }
+
+    /** The kinds of file ZXDB lists that are pictures of the thing itself. */
+    public static final java.util.Set<String> PICTURES = java.util.Set.of("Hardware picture", "Hardware advertisement scan",
+        "Game map", "Inlay - Front");
+
+    /** Its files of those kinds, each under its name, at the address it is served from. */
+    public Map<String, String> downloads(java.util.Set<String> kinds) {
+        Map<String, String> found = new java.util.LinkedHashMap<>();
+        if (additionalDownloads != null) additionalDownloads.stream()
+            .filter(download -> kinds.contains(download.type) && download.path != null)
+            .forEach(download -> found.put(download.path.substring(download.path.lastIndexOf('/') + 1),
+                ZxInfoClient.served(download.path)));
+        return found;
+    }
+
+    /** Where its pictures are: the files ZXDB lists as pictures of it that an image reader can open. */
+    public List<String> pictures() {
+        return downloads(PICTURES).values().stream()
+            .filter(address -> address.toLowerCase().matches(".*\\.(jpg|jpeg|png|gif)$")).toList();
+    }
 }

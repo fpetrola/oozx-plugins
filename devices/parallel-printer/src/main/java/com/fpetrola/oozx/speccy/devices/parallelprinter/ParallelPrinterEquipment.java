@@ -22,7 +22,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Printers and pointers/Parallel printer",
-    description = "A printer on a parallel port: continuous paper, text out")
+    description = "A printer on a parallel port: continuous paper, text out", icon = "printer")
 public class ParallelPrinterEquipment implements Equipment {
   public String name() {
     return "Parallel printer";

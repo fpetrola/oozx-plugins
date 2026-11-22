@@ -25,7 +25,7 @@ import dev.plugdesk.desk.Widgets;
 import javax.swing.Icon;
 import javax.swing.JInternalFrame;
 
-@Offers("See your favourite games")
+@Offers(value = "Games/Favorites", description = "The games you keep, to open again in one click", icon = "star")
 public class FavoritesEquipment implements DeskEquipment {
   public String name() {
     return "Favorites";

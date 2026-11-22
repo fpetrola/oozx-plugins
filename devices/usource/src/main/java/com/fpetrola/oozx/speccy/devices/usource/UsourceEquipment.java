@@ -23,7 +23,7 @@ import dev.crystal.plugins.api.Offers;
 
 @Offers(value = "Cartridges, freezers and colours/Currah µSource",
     description = "Currah's assembler and Forth in a ROM, flipped in and out as the real one was",
-    known = "zxdb:1000080")
+    known = "zxdb:1000080", icon = "code")
 public class UsourceEquipment implements Equipment {
   public String name() {
     return "Currah µSource";

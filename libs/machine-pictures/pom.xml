@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <!-- A library the devices' build runs, so it cannot be one of them, nor a plugin. -->
+    <parent>
+        <groupId>com.github.fpetrola.oozx</groupId>
+        <artifactId>libs</artifactId>
+        <version>0.1.6</version>
+    </parent>
+    <artifactId>machine-pictures</artifactId>
+    <packaging>jar</packaging>
+    <name>How each machine a plugin brings looks when it starts, drawn while the plugin is built</name>
+    <dependencies>
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.fpetrola.crystal-plugins</groupId>
+            <artifactId>framework-api</artifactId>
+            <version>0.1.6</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.1</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>

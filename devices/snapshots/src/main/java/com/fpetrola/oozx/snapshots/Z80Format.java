@@ -52,6 +52,7 @@ import static com.fpetrola.oozx.formats.CoreFields.*;
  * numbered pages. It is read as libspectrum reads it, and written as a version 3.
  */
 @Answers("z80")
+@dev.crystal.plugins.api.Offers(value = "Files it opens/Snapshots", description = "Z80, SNA, SZX, SP and EZX: a machine as it was, opened and saved with every device in it", icon = "file")
 public final class Z80Format extends DeclaredFormat implements SnapshotFormat {
 
   static final Fixed HEADER = Fixed.of("header", 30);

@@ -23,7 +23,7 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers(value = "The game lab/Frames", description = "What the machine did in each of the last hundred frames")
+@Offers(value = "The game lab/Frames", description = "What the machine did in each of the last hundred frames", icon = "movie")
 public class FramesEquipment implements Equipment {
   public String name() {
     return "Frames";

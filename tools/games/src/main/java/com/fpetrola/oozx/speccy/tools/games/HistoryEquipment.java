@@ -25,7 +25,7 @@ import dev.plugdesk.desk.Widgets;
 import javax.swing.Icon;
 import javax.swing.JInternalFrame;
 
-@Offers("See the snapshot history")
+@Offers(value = "Games/Snapshot History", description = "Every snapshot taken, to go back to a moment of a game", icon = "history")
 public class HistoryEquipment implements DeskEquipment {
   public String name() {
     return "Snapshot History";

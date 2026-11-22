@@ -27,7 +27,7 @@ import java.io.File;
 
 /** The dock of a Timex TC2068 or TS2068, offered like any other equipment, and asked for when nothing here opens a .dck. */
 @Offers(value = "Cartridges, freezers and colours/Timex dock",
-    description = "The TS2068's cartridge port: a program on a cartridge, ready at power-on")
+    description = "The TS2068's cartridge port: a program on a cartridge, ready at power-on", icon = "plug")
 @Answers("dck")
 public class DockEquipment implements Equipment {
   public String name() {

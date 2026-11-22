@@ -18,9 +18,6 @@
 // src/main/java/com/example/Main.java
 package com.fpetrola.oozx.api;
 
-import jakarta.ws.rs.client.Client;
-import jakarta.ws.rs.client.ClientBuilder;
-import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -29,13 +26,12 @@ import java.util.List;
 public class ZxInfoApiHandler implements KnowsTheGames {
   private static final int MOST_AT_ONCE = 1000, RETRIES = 5, AT_ONCE = 4;
   private static final long BACKOFF = 2000, BETWEEN_PAGES = 150;
-  private static final int CONNECT_SECONDS = 20, READ_SECONDS = 60;
   private static final String TOSEC = "TOSEC", TOSEC_SET = "/download/zx_spectrum_tosec_set_september_2023/";
 
   private Metadata metadata;
 
   /** ZXInfo's own service, and this project's, which answers the same questions from ZXDB (tools/zxinfo-worker). */
-  public static final String ZXINFO = "https://api.zxinfo.dk", OURS = "https://zxinfo.zxinfo-worker.workers.dev";
+  public static final String ZXINFO = ZxInfoClient.ZXINFO, OURS = ZxInfoClient.OURS;
 
   private final String BASE_URL;
 
@@ -208,16 +204,9 @@ public class ZxInfoApiHandler implements KnowsTheGames {
 
   /** Where ZXDB's own paths are actually served from: ZXInfo's screens, and Spectrum Computing for the rest. */
   public static String mediaUrl(String path) {
-    // ZXDB lists some files by their whole address already - the RZX Archive's recordings at
-    // archive.org - and putting a host in front of one makes a link to nowhere.
-    if (path.startsWith("http")) {
-      return path;
-    }
-    if (path.startsWith("/zxscreens")) {
-      return "https://zxinfo.dk/media" + path;
-    }
-    return "https://spectrumcomputing.co.uk" + path;
+    return ZxInfoClient.served(path);
   }
+
 
   /** Whether ZXDB keeps this one where it may not hand it out, which is what /denied/ means. */
   public static boolean denied(String path) {
@@ -378,21 +367,13 @@ public class ZxInfoApiHandler implements KnowsTheGames {
       // Siguiendo las mudanzas: el archivo contesta 301 desde api.zxinfo.dk hacia otro host, y
       // sin seguirlo toda pregunta era una negativa, el catalogo de este build contestaba en su
       // lugar y parecia que lo local le ganaba a internet.
-      Client client = ((org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder) ClientBuilder.newBuilder())
-          .connectTimeout(CONNECT_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
-          .readTimeout(READ_SECONDS, java.util.concurrent.TimeUnit.SECONDS)
-          .setFollowRedirects(true)
-          .build();
       try {
-        ResteasyWebTarget target = (ResteasyWebTarget) client.target(BASE_URL);
-        return call.apply(target.proxy(ZxInfoClient.class));
+        return ZxInfoClient.at(BASE_URL, call);
       } catch (jakarta.ws.rs.ProcessingException | jakarta.ws.rs.ServiceUnavailableException again) {
         if (attempt == RETRIES || !worthAskingAgain(again)) {
           throw again;
         }
         sleep(attempt * BACKOFF);
-      } finally {
-        client.close();
       }
     }
   }

@@ -22,7 +22,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 
 @Offers(value = "Things that make a sound/Fuller Box", description = "A sound chip of its own, and a joystick port",
-    known = "zxdb:1000159")
+    known = "zxdb:1000159", icon = "speakerphone")
 public class FullerEquipment implements Equipment {
   public String name() {
     return "Fuller Box";

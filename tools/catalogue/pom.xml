@@ -60,6 +60,12 @@
             <!-- Los trae la aplicacion: no van adentro del jar del plugin. -->
             <scope>provided</scope>
         </dependency>
+        <!-- ZXInfo's API in its own words, which this carries; the build of every plugin uses it too. -->
+        <dependency>
+            <groupId>com.github.fpetrola.oozx</groupId>
+            <artifactId>zxinfo</artifactId>
+            <version>${project.version}</version>
+        </dependency>
         <dependency>
             <groupId>com.github.fpetrola.oozx</groupId>
             <artifactId>tool-pokes</artifactId>

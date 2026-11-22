@@ -23,7 +23,7 @@ import dev.crystal.plugins.api.Offers;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
-@Offers(value = "The game lab/Poke finder", description = "Finds the byte that holds the lives, by playing")
+@Offers(value = "The game lab/Poke finder", description = "Finds the byte that holds the lives, by playing", icon = "search")
 public class PokeFinderEquipment implements Equipment {
   public String name() {
     return "Poke finder";

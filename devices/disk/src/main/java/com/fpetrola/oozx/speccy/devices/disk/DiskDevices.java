@@ -24,6 +24,7 @@ import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.Extension;
 
 /** The floppy controller a +3 has. */
+@dev.crystal.plugins.api.Offers(value = "Inside the machine/Disk drives", description = "The drives and controllers: the +3's floppy and the WD chips the disk interfaces use", icon = "disc")
 public class DiskDevices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);

@@ -49,6 +49,7 @@ import com.google.inject.Singleton;
  * and its joystick interface answers on fewer address lines than a Kempston does.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Inves Spectrum+", description = "The Spanish one: 64K, its ROM over RAM, and its faults", icon = "device-desktop")
 public class Inves extends Spec48 {
   /** Its line is four T-states longer than a Sinclair's, so its picture starts that much later. */
   private static final MachineTimings.Frame FRAME = new MachineTimings.Frame(

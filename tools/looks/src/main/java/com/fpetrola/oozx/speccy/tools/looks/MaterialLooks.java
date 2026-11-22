@@ -22,7 +22,7 @@ import dev.crystal.plugins.api.Offers;
 import javax.swing.UIManager;
 import java.util.List;
 
-@Offers("Change the look: Material")
+@Offers(value = "Looks/Material", description = "Material design looks, in Window, Look&Feel", icon = "palette")
 public class MaterialLooks extends FromThisPlugin {
 
   public String family() {

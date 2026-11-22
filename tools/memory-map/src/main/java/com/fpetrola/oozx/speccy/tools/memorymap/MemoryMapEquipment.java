@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 @Offers(value = "The game lab/Memory map",
-    description = "What is mapped where right now: a 128K's banks, the ROM, what a peripheral paged in")
+    description = "What is mapped where right now: a 128K's banks, the ROM, what a peripheral paged in", icon = "layout-grid")
 public class MemoryMapEquipment implements Equipment {
   public String name() {
     return "Memory map";

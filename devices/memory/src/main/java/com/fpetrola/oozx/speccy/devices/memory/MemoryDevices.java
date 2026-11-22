@@ -23,6 +23,7 @@ import com.google.inject.multibindings.Multibinder;
 import com.fpetrola.oozx.Extension;
 
 /** The pagers, and the memory an SE has. */
+@dev.crystal.plugins.api.Offers(value = "Inside the machine/Memory paging", description = "How the 128K and the +3 page their memory, which every bigger machine builds on", icon = "stack-2")
 public class MemoryDevices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);

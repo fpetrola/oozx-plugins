@@ -36,6 +36,7 @@ import com.fpetrola.emulation.helpers.machine.MachineTypes;
 import com.fpetrola.oozx.speccy.modules.machine.Machine;
 
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Sinclair Spectrum 48K (NTSC)", description = "The 48K as sold where the mains runs at sixty cycles: a shorter frame", icon = "device-desktop")
 public class Spec48Ntsc extends Spec48 {
   @Inject
   public Spec48Ntsc(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Machine.Unit unit, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

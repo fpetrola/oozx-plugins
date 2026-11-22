@@ -29,7 +29,7 @@ import javax.swing.JInternalFrame;
 import javax.swing.JOptionPane;
 
 /** Como se ve la pantalla: escalado, television y color. */
-@Offers("Adjust the screen: scaling, TV and colour")
+@Offers(value = "The screen/Screen settings", description = "On a machine's bar: scaling, the kind of television, colour and the tube", icon = "device-tv")
 public class ScreenSettingsTool implements MachineTool {
 
   public javax.swing.Icon icon() {

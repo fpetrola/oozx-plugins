@@ -34,6 +34,7 @@ import com.google.inject.Singleton;
  * nothing else: the machine whose ULA the ROM was written around is another one, and is not here.
  */
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Czerweny CZ Spectrum Plus", description = "The Argentine one with the Spanish ROM", icon = "device-desktop")
 public class CzSpectrumPlus extends CzSpectrum {
   @Inject
   public CzSpectrumPlus(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Machine.Unit unit, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

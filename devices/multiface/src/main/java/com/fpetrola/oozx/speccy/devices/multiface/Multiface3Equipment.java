@@ -21,7 +21,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import dev.crystal.plugins.api.Offers;
 
 @Offers(value = "Cartridges, freezers and colours/Multiface 3",
-    description = "Romantic Robot's red button for the +3: stop any program, save it, poke it", known = "zxdb:1000274")
+    description = "Romantic Robot's red button for the +3: stop any program, save it, poke it", known = "zxdb:1000274", icon = "snowflake")
 public class Multiface3Equipment implements Equipment {
   public String name() {
     return MultifaceModel.M3.title;

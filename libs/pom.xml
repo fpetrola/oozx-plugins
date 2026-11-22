@@ -39,6 +39,8 @@
         <module>zx-rzx</module>
         <module>rzx</module>
         <module>formats</module>
+        <module>zxinfo</module>
+        <module>machine-pictures</module>
     </modules>
 
     <properties>

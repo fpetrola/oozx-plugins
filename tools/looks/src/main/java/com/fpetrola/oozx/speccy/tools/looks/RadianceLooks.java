@@ -27,7 +27,7 @@ import java.util.List;
  * Radiance dice que pieles tiene y se las pone solo: ponerle el look por clase lo deja sin piel,
  * y todo lo que pinte despues falla por eso.
  */
-@Offers("Change the look: Radiance")
+@Offers(value = "Looks/Radiance", description = "The Radiance skins, in Window, Look&Feel", icon = "palette")
 public class RadianceLooks extends FromThisPlugin {
 
   public String family() {

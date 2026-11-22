@@ -25,7 +25,7 @@ import com.fpetrola.oozx.speccy.devices.MachineTool;
 import dev.plugdesk.desk.Widgets;
 
 /** Los ajustes de esta maquina, pegados a su ventana. */
-@Offers("Change the settings of this machine")
+@Offers(value = "Controls/Machine settings", description = "On a machine's bar: the settings of that machine alone, apart from the ones new machines start with", icon = "adjustments")
 public class MachineSettingsTool implements MachineTool {
 
   public javax.swing.Icon icon() {

@@ -31,6 +31,7 @@ import java.io.File;
  * all. It is the deck's, and the deck is a jar.
  */
 @Answers({"tap", "tzx", "csw", "pzx"})
+@dev.crystal.plugins.api.Offers(value = "Files it opens/Tapes", description = "TAP, TZX, CSW and PZX: opening one starts a machine and loads it, from File, Open or a double click", icon = "file-music")
 public class ATapeStartsAMachine implements StartsAMachineOn {
 
   @Override

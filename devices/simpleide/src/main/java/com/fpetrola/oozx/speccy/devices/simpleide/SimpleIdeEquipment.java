@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.DeviceFrame;
 import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.IdeBayFrame;
 
-@Offers(value = "Cards and hard disks/Simple 8-bit IDE", description = "A hard disk on one chip")
+@Offers(value = "Cards and hard disks/Simple 8-bit IDE", description = "A hard disk on one chip", icon = "database")
 public class SimpleIdeEquipment implements Equipment {
   public String name() {
     return "Simple 8-bit IDE";

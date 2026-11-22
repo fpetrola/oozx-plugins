@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 @Offers(value = "The game lab/Trace",
-    description = "The last instructions the machine ran, in order, disassembled when you look")
+    description = "The last instructions the machine ran, in order, disassembled when you look", icon = "route")
 public class TraceEquipment implements Equipment {
   public String name() {
     return "Trace";

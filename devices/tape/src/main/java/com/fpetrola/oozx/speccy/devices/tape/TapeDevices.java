@@ -22,6 +22,7 @@ import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
 /** A tape deck on every machine: the EAR line is the ULA's to read, the deck is this. */
+@dev.crystal.plugins.api.Offers(value = "Inside the machine/Tape deck", description = "The EAR line, the tape running and the loader that types LOAD; the Cassette window shows it", icon = "device-audio-tape")
 public class TapeDevices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(Tape.class);

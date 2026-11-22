@@ -25,7 +25,7 @@ import com.fpetrola.oozx.speccy.devices.MachineTool;
 import dev.plugdesk.desk.Widgets;
 
 /** Lo que el catalogo sabe del juego que esta corriendo. */
-@Offers("See the details of the game")
+@Offers(value = "Games/Game details", description = "On a machine's bar: what is known of the game that machine runs: authors, year, screens", icon = "info-circle")
 public class GameDetailsTool implements MachineTool {
 
   public javax.swing.Icon icon() {

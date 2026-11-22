@@ -86,11 +86,52 @@
     <build>
         <plugins>
             <plugin>
-                <!-- Each plugin's windows drawn into its jar, for the catalogue to show before it is brought. -->
+                <!-- A picture of everything each plugin offers, in its jar, for the catalogue to show at once: how each
+                     machine starts, what ZXDB has of what it is, and its windows, or what it is when it has none. -->
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.6.3</version>
                 <executions>
+                    <execution>
+                        <id>pictures-of-the-machines</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <includePluginDependencies>true</includePluginDependencies>
+                            <classpathScope>compile</classpathScope>
+                            <arguments>
+                                <argument>-Djava.awt.headless=true</argument>
+                                <argument>-Doozx.plugins=off</argument>
+                                <argument>-Duser.home=${project.build.directory}/pictures-home</argument>
+                                <argument>-Doozx.build.cache=${user.home}/.cache/oozx-build</argument>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.fpetrola.oozx.speccy.machine.PicturesOfTheMachines</argument>
+                                <argument>${project.build.outputDirectory}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>pictures-of-the-real-ones</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>exec</goal>
+                        </goals>
+                        <configuration>
+                            <executable>java</executable>
+                            <includePluginDependencies>true</includePluginDependencies>
+                            <classpathScope>compile</classpathScope>
+                            <arguments>
+                                <argument>-classpath</argument>
+                                <classpath/>
+                                <argument>com.fpetrola.oozx.api.PicturesOfTheRealOnes</argument>
+                                <argument>${project.build.outputDirectory}</argument>
+                            </arguments>
+                        </configuration>
+                    </execution>
                     <execution>
                         <id>draw-its-windows</id>
                         <phase>prepare-package</phase>
@@ -107,13 +148,21 @@
                                 <classpath/>
                                 <argument>com.fpetrola.oozx.speccy.tools.looks.DrawsTheWindows</argument>
                                 <argument>${project.build.outputDirectory}</argument>
-                                <argument>com.fpetrola.oozx.speccy.devices.Equipment</argument>
-                                <argument>com.fpetrola.oozx.speccy.devices.DeskEquipment</argument>
                             </arguments>
                         </configuration>
                     </execution>
                 </executions>
                 <dependencies>
+                    <dependency>
+                        <groupId>com.github.fpetrola.oozx</groupId>
+                        <artifactId>machine-pictures</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>com.github.fpetrola.oozx</groupId>
+                        <artifactId>zxinfo</artifactId>
+                        <version>${project.version}</version>
+                    </dependency>
                     <dependency>
                         <groupId>com.github.fpetrola.oozx</groupId>
                         <artifactId>tool-looks</artifactId>

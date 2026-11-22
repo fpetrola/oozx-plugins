@@ -32,6 +32,7 @@ import com.fpetrola.oozx.speccy.modules.z80.Cpu;
 import com.fpetrola.emulation.helpers.machine.MachineTypes;
 
 @Singleton
+@dev.crystal.plugins.api.Offers(value = "Spectrum Plus 2", description = "The 128K in Amstrad's grey case, with a tape deck built in", known = "zxdb:1000489", icon = "device-desktop")
 public class SpecPlus2 extends Spec128 {
   @Inject
   public SpecPlus2(MemoryBus memory, SpectrumMemory banks, Display display, PeripheralRegistry peripherals, Roms roms, Scheduler scheduler, Cpu cpu, Timer timer, Sound sound) {

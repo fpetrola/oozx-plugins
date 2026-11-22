@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 @Offers(value = "The game lab/Functions",
-    description = "The routines a run found, where each starts and how often it was called")
+    description = "The routines a run found, where each starts and how often it was called", icon = "math-function")
 public class FunctionsEquipment implements Equipment {
   public String name() {
     return "Functions";

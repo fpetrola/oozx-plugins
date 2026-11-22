@@ -23,7 +23,7 @@ import com.fpetrola.oozx.speccy.devices.Equipment;
 import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 @Offers(value = "The game lab/Debugger",
-    description = "Stops the machine anywhere: registers, memory, breakpoints, step by step")
+    description = "Stops the machine anywhere: registers, memory, breakpoints, step by step", icon = "bug")
 public class DebuggerEquipment implements Equipment {
   public String name() {
     return "Debugger";

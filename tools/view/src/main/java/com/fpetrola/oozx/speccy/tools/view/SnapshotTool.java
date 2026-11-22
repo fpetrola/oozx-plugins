@@ -27,7 +27,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 
 /** La maquina tal como esta, escrita en un archivo que se abre despues como cualquier snapshot. */
-@Offers("Save a snapshot of the machine")
+@Offers(value = "Controls/Snapshot", description = "On a machine's bar: saves the machine exactly as it is now, to open later", icon = "camera")
 public class SnapshotTool implements MachineTool {
 
   public javax.swing.Icon icon() {

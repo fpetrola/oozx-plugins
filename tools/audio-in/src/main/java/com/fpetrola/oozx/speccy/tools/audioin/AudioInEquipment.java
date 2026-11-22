@@ -24,7 +24,7 @@ import com.fpetrola.oozx.speccy.devices.MachineFrame;
 
 /** The cassette player made of air, offered like any other equipment: found, not named by the app. */
 @Offers(value = "The game lab/Real Cassette (audio in)",
-    description = "An oscilloscope on your sound card's input, for loading from a real cassette")
+    description = "An oscilloscope on your sound card's input, for loading from a real cassette", icon = "microphone")
 public class AudioInEquipment implements Equipment {
   public String name() {
     return "Real Cassette (audio in)";
