@@ -70,8 +70,7 @@ public class CatalogueBuilder {
           failed++;
           continue;
         }
-        index.add(new GameFingerprint.Known(game, screenshotOf(entry), hasMap(entry),
-            GameFingerprint.of(SnapshotPayload.of(image.toFile()))));
+        index.add(new GameFingerprint.Known(named(game), GameFingerprint.of(SnapshotPayload.of(image.toFile()))));
         index.save(catalogue);
         done++;
         System.out.println(done + "/" + wanted.size() + "  " + game + "  <- " + image.getFileName());
@@ -101,27 +100,12 @@ public class CatalogueBuilder {
     return voted;
   }
 
-  /** The loading screen, which is the picture a game is recognised by, or any screen it has. */
-  private static String screenshotOf(GameEntry entry) {
-    String any = null;
-    for (Object each : entry.screens == null ? List.of() : entry.screens) {
-      Screen screen = Screen.from(each);
-      if (screen != null && screen.url != null
-          && (any == null || screen.type == null || screen.type.toLowerCase().contains("loading"))) {
-        any = ZxInfoApiHandler.mediaUrl(screen.url);
-      }
-    }
-    return any;
-  }
-
-  private static boolean hasMap(GameEntry entry) {
-    for (AdditionalDownload download : entry.additionalDownloads == null
-        ? List.<AdditionalDownload>of() : entry.additionalDownloads) {
-      if (ZxInfoApiHandler.GAME_MAP_TYPE.equalsIgnoreCase(download.type)) {
-        return true;
-      }
-    }
-    return false;
+  /** Which game it is and what it is called, and nothing else: the rest is asked of the catalogues when needed. */
+  private static GameSummary named(GameSummary game) {
+    GameSummary named = new GameSummary();
+    named.id = game.id;
+    named.title = game.title;
+    return named;
   }
 
   /** The one already on disk from an earlier run, or the best download the entry offers. */

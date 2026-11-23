@@ -227,6 +227,21 @@ public class Zxdb implements KnowsTheGames {
         .findFirst().map(Hit::getSource).orElse(null);
   }
 
+  /**
+   * The entries of those games, asked together: what a list of thousands of games on a disk needs to be filtered by
+   * year or map, which no web service is asked game by game.
+   */
+  public List<Hit> games(java.util.Collection<String> ids) {
+    List<String> all = List.copyOf(ids);
+    List<Hit> found = new ArrayList<>();
+    for (int at = 0; at < all.size(); at += MOST_AT_ONCE) {
+      List<String> some = all.subList(at, Math.min(all.size(), at + MOST_AT_ONCE));
+      found.addAll(answers(Hit.class, ENTRY + " WHERE e.id IN ("
+          + some.stream().map(id -> "CAST(? AS INTEGER)").collect(Collectors.joining(", ")) + ")", some.toArray()));
+    }
+    return found;
+  }
+
   @Override
   public Metadata metadata() {
     return answers(Metadata.class, METADATA).get(0);

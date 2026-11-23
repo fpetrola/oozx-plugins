@@ -292,7 +292,8 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
 
   /** A file of this machine, as the library knows it when it does. */
   private GameSearchResult onThisMachine(String path, String title) {
-    return LocalGames.library().games().stream().filter(copy -> copy.path().equals(path)).findFirst().map(this::asResult)
+    return LocalGames.library().games().stream().filter(copy -> copy.path().equals(path)).findFirst()
+        .map(copy -> asResult(copy, copy.identified() ? inZxdb(List.of(copy.game().id)).get(copy.game().id) : null))
         .orElseGet(() -> {
           GameSearchResult result = new GameSearchResult(null, title, null, null, null, path);
           result.available = true;
@@ -312,11 +313,8 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
       result.id = result.id == null ? id : result.id;
       result.available = result.onThisMachine || DownloadAndUnzip.available(favorite.getSource());
       result.subtitle = result.subtitle == null ? DownloadAndUnzip.nameOf(favorite.getSource()) : result.subtitle;
-      GameFingerprint.Known known = result.screenshot1 != null || id == null ? null : LocalGames.library().catalogue().known(id);
-      if (known != null) {
-        result.screenshot1 = known.screenshot();
-        result.hasMap = known.hasMap();
-      }
+      GameEntry known = result.screenshot1 != null || id == null ? null : inZxdb(List.of(id)).get(id);
+      if (known != null) saidOf(known, result);
       return result;
     }
     String from = favorite.getSource();
@@ -634,22 +632,16 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
    * A game of this machine said in the same terms as one from the catalogue, so that the cards,
    * the menu and the loading path do not have to know where it came from.
    */
-  private GameSearchResult asResult(GameLibrary.Copy copy) {
+  private GameSearchResult asResult(GameLibrary.Copy copy, GameEntry known) {
     GameSearchResult result = new GameSearchResult(copy.identified() ? copy.game().id : null,
         copy.title(), null, null, null, copy.path());
     result.available = true;
     result.files = List.of(copy.path());
     result.onThisMachine = true;
-    result.subtitle = copy.identified()
-        ? copy.game().yearOfRelease + "  -  " + copy.game().publisher : "unknown";
-    // What the catalogue knows about the game beyond its name, so that the filters and the
-    // pictures work the same for a game on the disk as for one on the net, and with no network.
-    GameFingerprint.Known known = copy.identified()
-        ? LocalGames.library().catalogue().known(copy.game().id) : null;
-    if (known != null) {
-      result.screenshot1 = known.screenshot();
-      result.hasMap = known.hasMap();
-    }
+    result.subtitle = copy.identified() ? null : "unknown";
+    // What ZXDB says of the game beyond its name, so that the filters and the pictures work the same for a game on the
+    // disk as for one on the net, and with no network.
+    if (known != null) saidOf(known, result);
     result.hasRzx = copy.identified() && archive.hasRecordings(idOf(copy.game().id));
     // Preguntado ahora y no guardado: depende de que plugins estan puestos, y eso cambia.
     result.inColour = com.fpetrola.oozx.plugins.BesideTheGame.anythingBeside(copy.path());
@@ -672,13 +664,19 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
    * afterwards, by the same merge that joins them to what the net has.
    */
   private List<GameSearchResult> gamesOnThisMachine(String query, boolean onlyUnknown, String year, String inFolder) {
-    return LocalGames.library().games().stream()
+    List<GameLibrary.Copy> copies = LocalGames.library().games().stream()
         .filter(copy -> inFolder == null || copy.path().startsWith(inFolder))
         .filter(this::takenIntoAccount)
         .filter(copy -> !onlyUnknown || !copy.identified())
-        .filter(copy -> year == null || copy.identified() && year.equals(copy.game().yearOfRelease))
         .filter(copy -> query.isEmpty() || copy.title().toLowerCase().contains(query.toLowerCase()))
-        .map(this::asResult)
+        .toList();
+    // What ZXDB says of all of them, asked of the one on this machine at once: thousands of games, one question.
+    Map<String, GameEntry> known = inZxdb(copies.stream().filter(GameLibrary.Copy::identified)
+        .map(copy -> copy.game().id).distinct().toList());
+    return copies.stream()
+        .map(copy -> asResult(copy, copy.identified() ? known.get(copy.game().id) : null))
+        .filter(result -> year == null || result.id != null && known.containsKey(result.id)
+            && year.equals(String.valueOf(known.get(result.id).originalYearOfRelease)))
         .collect(Collectors.toList());
   }
 
@@ -898,16 +896,35 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
     });
   }
 
+  /** What an entry says of a game that a card shows and the filters ask: its screens, its year and publisher, its map. */
+  private static void saidOf(GameEntry game, GameSearchResult result) {
+    List<String> screenshots = new ArrayList<>();
+    if (game.screens != null) game.screens.forEach(each -> {
+      Screen screen = Screen.from(each);
+      if (screen != null) screenshots.add(ZxInfoApiHandler.mediaUrl(screen.url));
+    });
+    if (!screenshots.isEmpty()) result.screenshot1 = screenshots.get(0);
+    if (screenshots.size() > 1) result.screenshot2 = screenshots.get(1);
+    String said = java.util.stream.Stream.of(game.originalYearOfRelease == null ? null : String.valueOf(game.originalYearOfRelease),
+            game.publishers == null || game.publishers.isEmpty() ? null : game.publishers.getFirst().name)
+        .filter(java.util.Objects::nonNull).collect(Collectors.joining("  -  "));
+    if (result.subtitle == null && !said.isEmpty()) result.subtitle = said;
+    result.hasMap |= game.additionalDownloads != null && game.additionalDownloads.stream()
+        .anyMatch(download -> ZxInfoApiHandler.GAME_MAP_TYPE.equalsIgnoreCase(download.type));
+  }
+
+  /** What ZXDB on this machine says of those games, by id; nothing of one it does not have. */
+  private static Map<String, GameEntry> inZxdb(java.util.Collection<String> ids) {
+    Map<String, GameEntry> known = new java.util.HashMap<>();
+    if (!ids.isEmpty()) new Zxdb().games(ids).forEach(hit -> known.put(hit._id, hit._source));
+    return known;
+  }
+
   private List<GameSearchResult> fromTheCatalogue(List<Hit> search) {
     List<GameSearchResult> results = new ArrayList<>();
     for (Hit hit : search) {
       GameEntry game = Catalogues.withTosecFiles(hit._id, hit._source);
       if (!game.contentType.equals("SOFTWARE")) continue;
-      List<String> screenshots = new ArrayList<>();
-      game.screens.forEach(each -> {
-        Screen screen = Screen.from(each);
-        if (screen != null) screenshots.add(ZxInfoApiHandler.mediaUrl(screen.url));
-      });
       // What the entry offers that cannot be loaded, so a refusal can say what it was rather than "no tape available",
       // which is true and tells nobody anything.
       Map<String, String> offers = ZxInfoApiHandler.filesOf(game, DownloadAndUnzip::loadable);
@@ -915,7 +932,6 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
       Set<String> offered = offers.entrySet().stream()
           .filter(offer -> !DownloadAndUnzip.loadable(offer.getKey()))
           .map(Map.Entry::getValue).collect(Collectors.toCollection(LinkedHashSet::new));
-      boolean hasMap = false;
       List<RzxOption> recordings = new ArrayList<>();
       // The RZX Archive lists recordings ZXDB does not, and knows who made them. ZXDB has come to
       // list the archive's own as well, from its copy at archive.org, and those are offered once.
@@ -929,7 +945,6 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
           recordings.add(new RzxOption(DownloadAndUnzip.nameOf(download.path) + "  (ZXDB)",
               ZxInfoApiHandler.mediaUrl(download.path)));
         }
-        hasMap |= ZxInfoApiHandler.GAME_MAP_TYPE.equalsIgnoreCase(download.type);
       }
       for (RzxRecording recording : playable) {
         String by = recording.submitter() == null || recording.submitter().isBlank()
@@ -939,8 +954,8 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
       // The whole URL, not just the last part of it: the scorer needs the path to see that a
       // file sits under /denied/ and is not going to come down.
       String file = files.isEmpty() ? null : DownloadAndUnzip.preferred(files, url -> url);
-      GameSearchResult result = new GameSearchResult(hit._id, game.title, null,
-          screenshots.isEmpty() ? null : screenshots.get(0), screenshots.size() > 1 ? screenshots.get(1) : null, file);
+      GameSearchResult result = new GameSearchResult(hit._id, game.title, null, null, null, file);
+      saidOf(game, result);
       result.offers = String.join(", ", offered);
       result.available = DownloadAndUnzip.available(file);
       // Kept, not thrown away: an entry often has a 48K release and a 128K one, and the choice
@@ -950,12 +965,7 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
         result.score = game.score.score;
         result.votes = game.score.votes;
       }
-      result.subtitle = java.util.stream.Stream.of(game.originalYearOfRelease == null ? null : String.valueOf(game.originalYearOfRelease),
-              game.publishers == null || game.publishers.isEmpty() ? null : game.publishers.getFirst().name)
-          .filter(java.util.Objects::nonNull).collect(Collectors.joining("  -  "));
-      result.subtitle = result.subtitle.isEmpty() ? null : result.subtitle;
       result.hasRzx = !recordings.isEmpty();
-      result.hasMap = hasMap;
       result.recordings = recordings;
       results.add(result);
     }

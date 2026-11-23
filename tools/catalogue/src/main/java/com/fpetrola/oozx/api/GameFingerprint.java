@@ -128,17 +128,11 @@ public record GameFingerprint(Set<Integer> chunks) {
   }
 
   /**
-   * One game of the catalogue: what it is, what it looks like, what the entry carries besides the
-   * game, and what its image fingerprints to.
-   * <p>
-   * The picture and the map are in here rather than being asked for when needed because the point
-   * of a catalogue that ships is that it answers with no network. A wall of tiles used to cost one
-   * request per game to find out what each one looked like.
+   * One game of the catalogue: which it is, its ZXDB id and its title, and what its image fingerprints to. That is
+   * all a catalogue that ships is for: telling which game a file is, and finding a game by name, with no network.
+   * What the game is beyond that is asked of the catalogues, ZXInfo's first and ZXDB's on this machine last.
    */
-  public record Known(GameSummary game, String screenshot, boolean hasMap, GameFingerprint fingerprint) {
-    public Known(GameSummary game, GameFingerprint fingerprint) {
-      this(game, null, false, fingerprint);
-    }
+  public record Known(GameSummary game, GameFingerprint fingerprint) {
   }
 
   /**

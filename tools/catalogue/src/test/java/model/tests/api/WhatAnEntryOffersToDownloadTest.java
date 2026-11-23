@@ -131,6 +131,17 @@ class WhatAnEntryOffersToDownloadTest {
     assertEquals("0003012", here.search("manic miner", KnowsTheGames.Slice.EVERYTHING).get(0)._id);
   }
 
+  /** The games on a disk are thousands, and what filters them by year or map is asked of ZXDB in one question. */
+  @Test
+  void zxdbHereAnswersManyGamesInOneQuestion() {
+    Map<String, GameEntry> asked = new java.util.HashMap<>();
+    new Zxdb().games(java.util.List.of("0003012", "0000348", "9999999")).forEach(hit -> asked.put(hit._id, hit._source));
+
+    assertEquals(java.util.Set.of("0003012", "0000348"), asked.keySet(), "the one ZXDB does not have is not made up");
+    assertEquals(1984, asked.get("0000348").originalYearOfRelease);
+    assertTrue(asked.get("0000348").screens.size() > 0, "Avalon's screen is what its card shows");
+  }
+
   @Test
   void whatZxdbMayNotHandOutComesFromTosecHereToo() {
     Map<String, String> offers = ZxInfoApiHandler.filesOf(new Zxdb().game("0009366"), LOADABLE);
