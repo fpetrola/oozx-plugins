@@ -64,6 +64,7 @@ import java.util.stream.Collectors;
  * window. The rest needs the window, and comes back once there is one.
  */
 @dev.crystal.plugins.api.Offers(value = "Inside the machine/Sessions", description = "What keeps a machine whole: plugged boxes, disks and tapes come back as they were when it is opened again", icon = "archive")
+@dev.crystal.plugins.api.Answers(Session.ASKED_AS)
 public final class SzxSession implements Session {
 
   static final String BLOCK = "OOZX";
