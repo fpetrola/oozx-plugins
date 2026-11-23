@@ -85,7 +85,7 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
   private final JCheckBox colourFilter = new JCheckBox("256 colours");
   private final JLabel libraryLabel = new JLabel();
   private final JButton zxdb = new JButton();
-  private final JProgressBar zxdbGoing = new JProgressBar();
+  private final JProgressBar going = new JProgressBar();
   /** Asked once a run whether to bring the whole of ZXDB, when ZXInfo is not answering. */
   private static boolean offered;
   private Shelves<GameSearchResult> shelves;
@@ -431,11 +431,11 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
     zxdb.setToolTipText("<html>ZXDB, the database ZXInfo is built from, answers here when ZXInfo cannot.<br>"
         + "This build carries its five thousand most voted games; all of it is 27 MB to bring down.</html>");
     zxdb.addActionListener(e -> bringZxdb());
-    zxdbGoing.setStringPainted(true);
-    zxdbGoing.setVisible(false);
+    going.setStringPainted(true);
+    going.setVisible(false);
     libraryLabel.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 0));
     JPanel under = new JPanel(new GridLayout(0, 1, 0, 6));
-    for (JComponent each : List.of(libraryLabel, add, rescan, zxdb, zxdbGoing)) under.add(each);
+    for (JComponent each : List.of(libraryLabel, add, rescan, zxdb, going)) under.add(each);
     under.setBorder(BorderFactory.createEmptyBorder(0, 6, 0, 6));
     return under;
   }
@@ -521,24 +521,13 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
   private void bringZxdb() {
     zxdb.setEnabled(false);
     zxdb.setText("Bringing ZXDB…");
-    zxdbGoing.setVisible(true);
-    zxdbGoing.setString("Starting");
-    zxdbGoing.setIndeterminate(true);
-    new SwingWorker<Void, Map.Entry<String, Integer>>() {
+    new Going<Void>() {
       protected Void doInBackground() throws Exception {
-        Zxdb.bringDownTheWhole((doing, percent) -> publish(Map.entry(doing, percent)));
+        Zxdb.bringDownTheWhole(this::going);
         return null;
       }
 
-      protected void process(List<Map.Entry<String, Integer>> going) {
-        Map.Entry<String, Integer> now = going.getLast();
-        zxdbGoing.setIndeterminate(now.getValue() < 0);
-        if (now.getValue() >= 0) zxdbGoing.setValue(now.getValue());
-        zxdbGoing.setString(now.getKey() + (now.getValue() < 0 ? "…" : " " + now.getValue() + " %"));
-      }
-
-      protected void done() {
-        zxdbGoing.setVisible(false);
+      void finished() {
         zxdb.setEnabled(true);
         zxdb.setText(Zxdb.WHOLE.exists() ? "Update ZXDB" : "Bring all of ZXDB here");
         try {
@@ -554,13 +543,41 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
     }.execute();
   }
 
+  /** Work done away from the window that says how far it went on the bar under the shelves. */
+  private abstract class Going<T> extends SwingWorker<T, Map.Entry<String, Integer>> {
+    Going() {
+      going.setVisible(true);
+      going.setString("Starting");
+      going.setIndeterminate(true);
+    }
+
+    /** What it is doing, and the percent done or -1 while it cannot tell. */
+    void going(String doing, int percent) {
+      publish(Map.entry(doing, percent));
+    }
+
+    protected void process(List<Map.Entry<String, Integer>> said) {
+      Map.Entry<String, Integer> now = said.getLast();
+      going.setIndeterminate(now.getValue() < 0);
+      if (now.getValue() >= 0) going.setValue(now.getValue());
+      going.setString(now.getKey() + (now.getValue() < 0 ? "…" : " " + now.getValue() + " %"));
+    }
+
+    protected void done() {
+      going.setVisible(false);
+      finished();
+    }
+
+    abstract void finished();
+  }
+
   /**
    * Every folder again, for games that were not there last time. A scan skips what has not changed
    * in size or date, so this costs a listing of the folders and a fingerprint of what is new.
    */
   private void rescanEverything() {
     libraryLabel.setText("Looking again...");
-    new SwingWorker<Integer, Void>() {
+    new Going<Integer>() {
       @Override
       protected Integer doInBackground() throws Exception {
         int gone = LocalGames.library().forgetMissing();
@@ -570,7 +587,7 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
             .forEach(copy -> LocalGames.library().forget(Path.of(copy.path())));
         for (String folder : config.getGameFolders()) {
           if (config.takesIntoAccount(folder) && Files.isDirectory(Path.of(folder))) {
-            LocalGames.library().scan(Path.of(folder), LocalGames.CERTAINTY);
+            LocalGames.library().scan(Path.of(folder), LocalGames.CERTAINTY, this::going);
           }
         }
         LocalGames.library().save(LocalGames.file());
@@ -578,7 +595,7 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
       }
 
       @Override
-      protected void done() {
+      void finished() {
         looked(this, "Could not look again: ");
       }
     }.execute();
@@ -594,22 +611,22 @@ public class GamesFrame extends JInternalFrame implements Shelves.Of<GameSearchR
     Path folder = chooser.getSelectedFile().toPath();
     config.addGameFolder(folder.toString());
     libraryLabel.setText("Looking through " + folder.getFileName() + "...");
-    new SwingWorker<Integer, Void>() {
+    new Going<Integer>() {
       @Override
       protected Integer doInBackground() throws Exception {
-        int seen = LocalGames.library().scan(folder, LocalGames.CERTAINTY);
+        int seen = LocalGames.library().scan(folder, LocalGames.CERTAINTY, this::going);
         LocalGames.library().save(LocalGames.file());
         return seen;
       }
 
       @Override
-      protected void done() {
+      void finished() {
         looked(this, "Could not read " + folder + ": ");
       }
     }.execute();
   }
 
-  private void looked(SwingWorker<Integer, Void> looking, String failing) {
+  private void looked(SwingWorker<Integer, ?> looking, String failing) {
     try {
       looking.get();
     } catch (Exception failed) {

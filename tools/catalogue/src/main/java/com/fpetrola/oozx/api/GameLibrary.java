@@ -97,12 +97,20 @@ public class GameLibrary {
    * game. Returns how many files were looked at.
    */
   public int scan(Path directory, double certainty) throws IOException {
+    return scan(directory, certainty, (doing, percent) -> {
+    });
+  }
+
+  /** The same, saying how far it went: what it is doing, and the percent done or -1 while it cannot tell yet. */
+  public int scan(Path directory, double certainty, java.util.function.ObjIntConsumer<String> going) throws IOException {
+    going.accept("Listing " + directory.getFileName(), -1);
     List<Path> files;
     try (Stream<Path> walk = Files.walk(directory)) {
       files = walk.filter(Files::isRegularFile).filter(emulator::loadable).toList();
     }
-    for (Path file : files) {
-      identify(file, certainty);
+    for (int done = 0; done < files.size(); done++) {
+      going.accept(directory.getFileName() + ": " + done + " of " + files.size(), done * 100 / files.size());
+      identify(files.get(done), certainty);
     }
     return files.size();
   }
