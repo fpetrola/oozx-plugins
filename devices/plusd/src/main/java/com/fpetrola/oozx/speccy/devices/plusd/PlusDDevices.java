@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.plusd;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The +D: a WD1770, two drives, 8K of ROM and 8K of RAM, and a printer port. */
 public class PlusDDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(PlusDPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(PlusDPeripheral.class);
   }
 }

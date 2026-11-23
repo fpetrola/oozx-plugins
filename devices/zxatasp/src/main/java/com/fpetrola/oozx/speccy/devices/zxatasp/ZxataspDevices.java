@@ -20,12 +20,15 @@ package com.fpetrola.oozx.speccy.devices.zxatasp;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The ZXATASP: 512K of banked RAM and an IDE channel behind an 8255. */
 public class ZxataspDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "zxatasp", ZxataspPeripheral.class, "writeProtect", "upload", "disks");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ZxataspPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(ZxataspPeripheral.class);
   }
 }

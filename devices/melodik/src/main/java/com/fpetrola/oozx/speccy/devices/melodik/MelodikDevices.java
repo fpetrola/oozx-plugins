@@ -20,7 +20,6 @@ package com.fpetrola.oozx.speccy.devices.melodik;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /**
  * The AY box for a machine that has none of its own, which is a thing somebody bought and plugged
@@ -30,7 +29,10 @@ import com.google.inject.multibindings.Multibinder;
 public class MelodikDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "melodik", MelodikPeripheral.class, "fitted");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(MelodikPeripheral.class);
   }
 
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(MelodikPeripheral.class);
+  }
 }

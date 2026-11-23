@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.covox;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 public class CovoxDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "covox", CovoxPeripheral.class, "volume");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(CovoxPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(CovoxPeripheral.class);
   }
 }

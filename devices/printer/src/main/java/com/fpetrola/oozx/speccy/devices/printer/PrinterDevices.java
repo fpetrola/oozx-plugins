@@ -24,7 +24,6 @@ import com.fpetrola.z80.cpu.Z80Clock;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.multibindings.Multibinder;
 
 /**
  * The printer, and the two ways a machine's port bus reaches it. One belt and one roll of paper
@@ -33,9 +32,6 @@ import com.google.inject.multibindings.Multibinder;
  */
 public class PrinterDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);
-    devices.addBinding().to(ZxPrinterPeripheral.class);
-    devices.addBinding().to(ZxPrinterFullDecodePeripheral.class);
   }
 
   /**
@@ -56,4 +52,8 @@ public class PrinterDevices extends AbstractModule implements Extension {
     return new Printout();
   }
 
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(ZxPrinterPeripheral.class, ZxPrinterFullDecodePeripheral.class);
+  }
 }

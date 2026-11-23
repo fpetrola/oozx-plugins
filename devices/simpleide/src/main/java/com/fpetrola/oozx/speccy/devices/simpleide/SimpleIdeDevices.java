@@ -20,12 +20,15 @@ package com.fpetrola.oozx.speccy.devices.simpleide;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The Simple 8-bit IDE interface: one channel on the low byte of the bus. */
 public class SimpleIdeDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "simpleide", SimpleIdePeripheral.class, "disks");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(SimpleIdePeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(SimpleIdePeripheral.class);
   }
 }

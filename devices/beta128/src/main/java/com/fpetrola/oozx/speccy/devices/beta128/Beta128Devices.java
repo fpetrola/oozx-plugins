@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.beta128;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The Beta 128 somebody plugged into a 48K or a 128 - the board a Pentagon has on its own. */
 public class Beta128Devices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(PluggedBeta128Peripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(PluggedBeta128Peripheral.class);
   }
 }

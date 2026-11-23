@@ -33,9 +33,13 @@ import com.google.inject.multibindings.Multibinder;
 public class ChloeDevices extends AbstractModule implements Extension {
 
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ChloeUla2Peripheral.class);
     Multibinder<Spectrum> models = Multibinder.newSetBinder(binder(), Spectrum.class);
     models.addBinding().to(Chloe140Se.class);
     models.addBinding().to(Chloe280Se.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(ChloeUla2Peripheral.class);
   }
 }

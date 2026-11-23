@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.disciple;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The DISCiPLE: MGT's first interface - the +D's disk side, plus a joystick port and a network. */
 public class DiscipleDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(DisciplePeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(DisciplePeripheral.class);
   }
 }

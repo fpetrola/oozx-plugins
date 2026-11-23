@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.specdrum;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 public class SpecDrumDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "specdrum", SpecDrumPeripheral.class, "volume");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(SpecDrumPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(SpecDrumPeripheral.class);
   }
 }

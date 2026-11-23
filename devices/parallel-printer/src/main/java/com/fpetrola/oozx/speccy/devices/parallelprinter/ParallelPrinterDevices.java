@@ -23,11 +23,9 @@ import com.fpetrola.z80.cpu.Z80Clock;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.multibindings.Multibinder;
 
 public class ParallelPrinterDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ParallelPrinterPeripheral.class);
   }
 
   /** Ticks that never go backwards, out of a clock that is rebased every frame. */
@@ -36,5 +34,10 @@ public class ParallelPrinterDevices extends AbstractModule implements Extension 
   ParallelPrinter printer(Z80Clock clock, Machine machine) {
     return new ParallelPrinter(
         () -> machine.current.frameCount() * machine.current.getTimings().tstatesPerFrame() + clock.getTStates());
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(ParallelPrinterPeripheral.class);
   }
 }

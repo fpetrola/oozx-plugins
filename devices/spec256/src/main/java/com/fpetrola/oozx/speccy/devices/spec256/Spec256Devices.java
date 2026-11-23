@@ -32,6 +32,10 @@ import com.google.inject.multibindings.Multibinder;
 public class Spec256Devices extends AbstractModule implements Extension {
   protected void configure() {
     Multibinder.newSetBinder(binder(), Core.class).addBinding().to(Spec256Core.class);
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(Spec256Peripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(Spec256Peripheral.class);
   }
 }

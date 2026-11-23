@@ -81,7 +81,9 @@ public class IoFrame extends MachineFrame {
       watching = null;
     }
     if (now != null) {
-      watching = new Ports(now);
+      now.peripheralRegistry.register(Ports.class);
+      now.peripheralRegistry.activateType(Ports.class, true);
+      watching = now.peripheralRegistry.allThatAre(Ports.class).get(0);
     }
     draw();
   }

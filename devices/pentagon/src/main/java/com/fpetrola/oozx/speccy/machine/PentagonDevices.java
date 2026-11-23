@@ -32,9 +32,13 @@ public class PentagonDevices extends AbstractModule implements Extension {
 
   protected void configure() {
     Multibinder<Spectrum> models = Multibinder.newSetBinder(binder(), Spectrum.class);
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(Pentagon1024MemoryPeripheral.class);
     models.addBinding().to(Pentagon.class);
     models.addBinding().to(Pentagon512.class);
     models.addBinding().to(Pentagon1024.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(Pentagon1024MemoryPeripheral.class);
   }
 }

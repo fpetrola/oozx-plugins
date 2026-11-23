@@ -29,13 +29,13 @@ import com.fpetrola.oozx.Extension;
 @dev.crystal.plugins.api.Offers(value = "Inside the machine/AY sound chip", description = "The three-voice sound chip of the 128 and later, for every machine and box that has one", icon = "wave-sine")
 public class AyDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);
-    devices.addBinding().to(AyPeripheral.class);
-    devices.addBinding().to(AyPlus3Peripheral.class);
-    devices.addBinding().to(AyTimexPeripheral.class);
     Multibinder.newSetBinder(binder(),
         com.fpetrola.oozx.speccy.modules.snapshot.RestoredFromASnapshot.class)
         .addBinding().to(AyFromASnapshot.class);
   }
 
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(AyPeripheral.class, AyPlus3Peripheral.class, AyTimexPeripheral.class);
+  }
 }

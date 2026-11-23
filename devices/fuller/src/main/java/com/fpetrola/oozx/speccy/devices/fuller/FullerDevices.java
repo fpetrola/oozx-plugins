@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.fuller;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The Fuller Box: an AY and a joystick port for a 48K, on ports of its own. */
 public class FullerDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(FullerPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(FullerPeripheral.class);
   }
 }

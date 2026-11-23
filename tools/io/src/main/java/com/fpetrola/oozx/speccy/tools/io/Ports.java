@@ -80,7 +80,8 @@ public class Ports extends AbstractPeripheral {
   private final Speccy machine;
   private final Map<Integer, Port> ports = new LinkedHashMap<>();
 
-  public Ports(Speccy machine) {
+  @com.google.inject.Inject
+  Ports(Speccy machine) {
     super(List.of());
     this.machine = machine;
     // Wired to every line and needing nothing on them, which is every port there is.
@@ -94,8 +95,6 @@ public class Ports extends AbstractPeripheral {
         touched(port, true, value & 0xff);
       }
     }));
-    machine.peripheralRegistry.register(this);
-    machine.peripheralRegistry.activateType(getClass(), true);
   }
 
   /**

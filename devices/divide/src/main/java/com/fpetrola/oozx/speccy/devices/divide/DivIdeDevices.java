@@ -19,12 +19,15 @@ package com.fpetrola.oozx.speccy.devices.divide;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The DivIDE: an EPROM, 32K of RAM and an IDE channel behind the automapper. */
 public class DivIdeDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "divide", DivIdePeripheral.class, "writeProtect", "disks");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(DivIdePeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(DivIdePeripheral.class);
   }
 }

@@ -21,18 +21,20 @@ import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.multibindings.Multibinder;
 
 public class MouseDevices extends AbstractModule implements Extension {
 
   protected void configure() {
-    Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);
-    devices.addBinding().to(KempstonMousePeripheral.class);
   }
 
   @Provides
   @Singleton
   KempstonMouse mouse() {
     return new KempstonMouse();
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(KempstonMousePeripheral.class);
   }
 }

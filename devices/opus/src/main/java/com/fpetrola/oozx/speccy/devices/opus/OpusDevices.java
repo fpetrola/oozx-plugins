@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.opus;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The Opus Discovery: a WD1770 and a 6821 in memory rather than on ports, and two drives. */
 public class OpusDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(OpusPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(OpusPeripheral.class);
   }
 }

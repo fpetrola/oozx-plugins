@@ -19,13 +19,11 @@ import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.modules.tape.Tape;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** A tape deck on every machine: the EAR line is the ULA's to read, the deck is this. */
 @dev.crystal.plugins.api.Offers(value = "Inside the machine/Tape deck", description = "The EAR line, the tape running and the loader that types LOAD; the Cassette window shows it", icon = "device-audio-tape")
 public class TapeDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(Tape.class);
     // What is in the socket, while this jar is here: the ULA reads the line and the deck drives
     // it. With this jar gone the socket is empty, which is a machine with no lead in the back.
     com.google.inject.multibindings.OptionalBinder
@@ -35,5 +33,10 @@ public class TapeDevices extends AbstractModule implements Extension {
     // real, and are elsewhere: the speed the machine runs at, and the loader that types LOAD.
     com.fpetrola.oozx.config.Settings.mirror(binder(), "tape",
         com.fpetrola.oozx.speccy.modules.tape.TapeSettings.class, "invertedEar");
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(Tape.class);
   }
 }

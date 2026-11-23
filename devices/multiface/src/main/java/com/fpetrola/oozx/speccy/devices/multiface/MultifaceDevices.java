@@ -19,15 +19,15 @@ package com.fpetrola.oozx.speccy.devices.multiface;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The three Multifaces, each for the machine it was sold for. */
 public class MultifaceDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "multiface", MultifaceOnePeripheral.class, "stealth");
-    Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);
-    devices.addBinding().to(MultifaceOnePeripheral.class);
-    devices.addBinding().to(Multiface128Peripheral.class);
-    devices.addBinding().to(Multiface3Peripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(MultifaceOnePeripheral.class, Multiface128Peripheral.class, Multiface3Peripheral.class);
   }
 }

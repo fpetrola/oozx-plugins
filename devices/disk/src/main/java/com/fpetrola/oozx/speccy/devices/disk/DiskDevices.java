@@ -19,7 +19,6 @@ package com.fpetrola.oozx.speccy.devices.disk;
 
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 import com.fpetrola.oozx.config.Settings;
 import com.fpetrola.oozx.Extension;
 
@@ -27,11 +26,13 @@ import com.fpetrola.oozx.Extension;
 @dev.crystal.plugins.api.Offers(value = "Inside the machine/Disk drives", description = "The drives and controllers: the +3's floppy and the WD chips the disk interfaces use", icon = "disc")
 public class DiskDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);
-    devices.addBinding().to(Upd765Peripheral.class);
-    devices.addBinding().to(Beta128Peripheral.class);
     Settings.mirror(binder(), "floppy", Fdd.Limits.class, "fortyTrackMax", "eightyTrackMax");
     Settings.mirror(binder(), "beta128", Beta128Peripheral.TrDos.class, "bootOn48k", "autoBoot");
     Settings.mirror(binder(), "machine.plus3", Upd765Peripheral.class, "detectSpeedlock", "driveA", "driveB");
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(Upd765Peripheral.class, Beta128Peripheral.class);
   }
 }

@@ -32,7 +32,11 @@ public class InvesDevices extends AbstractModule implements Extension {
 
   protected void configure() {
     Multibinder<Spectrum> models = Multibinder.newSetBinder(binder(), Spectrum.class);
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(InvesInterruptFault.class);
     models.addBinding().to(Inves.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(InvesInterruptFault.class);
   }
 }

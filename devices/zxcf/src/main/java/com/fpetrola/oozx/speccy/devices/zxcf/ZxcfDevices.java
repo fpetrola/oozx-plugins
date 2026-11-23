@@ -20,12 +20,15 @@ package com.fpetrola.oozx.speccy.devices.zxcf;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The ZXCF: 1M of banked RAM and a CompactFlash card. */
 public class ZxcfDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "zxcf", ZxcfPeripheral.class, "upload", "disks");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ZxcfPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(ZxcfPeripheral.class);
   }
 }

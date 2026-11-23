@@ -45,12 +45,13 @@ class PortsOnTheMachineTest extends MachineTest {
   private final Speccy speccy = silentMachine();
 
   /** Records the T-state of each read/write reaching this port. */
-  private static class Probe extends AbstractPeripheral {
+  static class Probe extends AbstractPeripheral {
     final List<String> reached = new ArrayList<>();
 
-    Probe(Speccy speccy, int mask, int value) {
+    @com.google.inject.Inject
+    Probe(Speccy speccy) {
       super(List.of());
-      ports(Wired.at(mask, value, new DefaultPortHandler(true, true) {
+      ports(Wired.at(0xffff, 0x80ff, new DefaultPortHandler(true, true) {
         public BusAnswer read(int port) {
           reached.add("read at " + speccy.zxClock.getTStates());
           return BusAnswer.of(0xbf);
@@ -72,11 +73,10 @@ class PortsOnTheMachineTest extends MachineTest {
     return speccy.machine.current;
   }
 
-  private Probe plug(int mask, int value) {
-    Probe probe = new Probe(speccy, mask, value);
-    speccy.peripheralRegistry.register(probe);
+  private Probe plug() {
+    speccy.peripheralRegistry.register(Probe.class);
     speccy.peripheralRegistry.update();
-    return probe;
+    return speccy.peripheralRegistry.allThatAre(Probe.class).get(0);
   }
 
   /** Runs one instruction from uncontended page 2, starting at a given T-state; returns its cost. */
@@ -102,7 +102,7 @@ class PortsOnTheMachineTest extends MachineTest {
   @Test
   void anInWaitsTwiceBeforeTakingTheValueAndAnOutPutsItInBetween() {
     on(Spec48.class);
-    Probe probe = plug(0xffff, 0x80ff);
+    Probe probe = plug();
 
     assertEquals(11, costOf(IN_A_N, 0xff, 0x80, 1000));
     assertEquals(List.of("read at " + (1000 + 7 + 3)), probe.reached);

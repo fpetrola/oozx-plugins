@@ -20,12 +20,15 @@ package com.fpetrola.oozx.speccy.devices.zxmmc;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The ZXMMC: a card slot on two ports. */
 public class ZxmmcDevices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "zxmmc", ZxmmcPeripheral.class, "disks");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(ZxmmcPeripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(ZxmmcPeripheral.class);
   }
 }

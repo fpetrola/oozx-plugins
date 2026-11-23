@@ -19,11 +19,14 @@ package com.fpetrola.oozx.speccy.devices.interface2;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The cartridge port and the two joystick sockets somebody plugged into the back of a Spectrum. */
 public class Interface2Devices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(Interface2Peripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(Interface2Peripheral.class);
   }
 }

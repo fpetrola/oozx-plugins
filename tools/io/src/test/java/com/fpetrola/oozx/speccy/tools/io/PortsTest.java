@@ -49,6 +49,13 @@ class PortsTest extends MachineTest {
     }
   }
 
+  /** Clipped on as the window clips it on. */
+  private static Ports watching(Speccy speccy) {
+    speccy.peripheralRegistry.register(Ports.class);
+    speccy.peripheralRegistry.activateType(Ports.class, true);
+    return speccy.peripheralRegistry.allThatAre(Ports.class).get(0);
+  }
+
   private static int accumulator(Speccy speccy) {
     return speccy.cpu.getOoz80().getState().getRegister(RegisterName.A).read();
   }
@@ -56,7 +63,7 @@ class PortsTest extends MachineTest {
   @Test
   void everyPortTheMachineTouchedIsCounted() {
     Speccy speccy = touchingThePort();
-    Ports ports = new Ports(speccy);
+    Ports ports = watching(speccy);
 
     steps(speccy, 4);
 
@@ -72,7 +79,7 @@ class PortsTest extends MachineTest {
   @Test
   void itSaysWhichCodeTouchedThePort() {
     Speccy speccy = touchingThePort();
-    Ports ports = new Ports(speccy);
+    Ports ports = watching(speccy);
 
     steps(speccy, 4);
 
@@ -92,7 +99,7 @@ class PortsTest extends MachineTest {
     steps(unwatched, 4);
 
     Speccy watched = touchingThePort();
-    new Ports(watched);
+    watching(watched);
     steps(watched, 4);
 
     assertEquals(accumulator(unwatched), accumulator(watched),
@@ -102,7 +109,7 @@ class PortsTest extends MachineTest {
   @Test
   void lettingGoLeavesTheMachineAsItWas() {
     Speccy speccy = touchingThePort();
-    Ports ports = new Ports(speccy);
+    Ports ports = watching(speccy);
     steps(speccy, 4);
     long touched = ports.touched().get(0).reads() + ports.touched().get(0).writes();
 

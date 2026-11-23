@@ -22,10 +22,8 @@ import com.fpetrola.oozx.speccy.machine.Spec128;
 import com.fpetrola.oozx.speccy.machine.SpectrumMachine;
 import com.fpetrola.oozx.speccy.modules.z80.Cpu;
 import com.fpetrola.oozx.speccy.peripherals.AbstractPeripheral;
-import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.Inject;
 import com.google.inject.Singleton;
-import com.google.inject.multibindings.Multibinder;
 import model.harness.MachineTest;
 import org.junit.jupiter.api.Test;
 
@@ -80,8 +78,9 @@ class ResetReachesThePartsInOrderTest {
   private final Speccy speccy = machineWithAProbe();
 
   private Speccy machineWithAProbe() {
-    return MachineTest.silentMachine(
-        binder -> Multibinder.newSetBinder(binder, Peripheral.class).addBinding().to(Probe.class));
+    Speccy machine = MachineTest.silentMachine();
+    machine.peripheralRegistry.register(Probe.class);
+    return machine;
   }
 
   /** Selects the machine and resets the probe's log to empty. */

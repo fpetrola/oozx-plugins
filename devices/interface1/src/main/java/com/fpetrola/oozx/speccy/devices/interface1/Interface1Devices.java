@@ -20,12 +20,15 @@ package com.fpetrola.oozx.speccy.devices.interface1;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
-import com.google.inject.multibindings.Multibinder;
 
 /** The Interface 1: eight Microdrives, an RS232 and the ZX Net behind one shadow ROM. */
 public class Interface1Devices extends AbstractModule implements Extension {
   protected void configure() {
     com.fpetrola.oozx.config.Settings.mirror(binder(), "interface1", Interface1Peripheral.class, "microdriveSectors", "randomMicrodriveLength", "rs232Handshake", "rawNetwork");
-    Multibinder.newSetBinder(binder(), Peripheral.class).addBinding().to(Interface1Peripheral.class);
+  }
+
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(Interface1Peripheral.class);
   }
 }

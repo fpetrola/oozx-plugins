@@ -22,15 +22,12 @@ import com.fpetrola.oozx.speccy.peripherals.Peripheral;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
 import com.google.inject.Singleton;
-import com.google.inject.multibindings.Multibinder;
 import com.fpetrola.oozx.Extension;
 import com.fpetrola.oozx.speccy.modules.input.InputSetup;
 
 /** The Kempston interface. */
 public class JoystickDevices extends AbstractModule implements Extension {
   protected void configure() {
-    Multibinder<Peripheral> devices = Multibinder.newSetBinder(binder(), Peripheral.class);
-    devices.addBinding().to(KempstonStrictPeripheral.class);
   }
 
   @Provides
@@ -39,4 +36,8 @@ public class JoystickDevices extends AbstractModule implements Extension {
     return new KempstonStrictPeripheral(joystick, () -> input.kempstonJoystick());
   }
 
+  @Override
+  public java.util.List<Class<? extends Peripheral>> devices() {
+    return java.util.List.of(KempstonStrictPeripheral.class);
+  }
 }
