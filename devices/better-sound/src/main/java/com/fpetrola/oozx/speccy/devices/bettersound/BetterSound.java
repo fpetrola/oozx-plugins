@@ -64,7 +64,7 @@ final class BetterSound implements AudioSource, Processors.WriteListener {
   @Override
   public void written(long tstates, int port, int value, int pc, int sp) {
     if ((port & 1) == 0)
-      frames[(int) (recording & 1)].add((int) tstates, value & 0xff, pc, memory.peek(sp) | memory.peek(sp + 1) << 8);
+      frames[(int) (recording & 1)].add((int) tstates, value & 0xff, pc, memory.peek(sp) | memory.peek((sp + 1) & 0xffff) << 8);
   }
 
   @Override

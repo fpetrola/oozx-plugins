@@ -23,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.fpetrola.oozx</groupId>
     <artifactId>oozx-plugins</artifactId>
-    <version>0.1.6</version>
+    <version>0.1.7</version>
     <packaging>pom</packaging>
 
     <!--
@@ -58,7 +58,7 @@
         <dependency>
             <groupId>com.github.fpetrola.crystal-plugins</groupId>
             <artifactId>framework-api</artifactId>
-            <version>0.1.6</version>
+            <version>0.1.7</version>
         </dependency>
     </dependencies>
 
@@ -118,7 +118,7 @@
             <dependency>
                 <groupId>com.github.fpetrola.crystal-plugins</groupId>
                 <artifactId>framework-swing</artifactId>
-                <version>0.1.6</version>
+                <version>0.1.7</version>
                 <exclusions>
                     <exclusion>
                         <groupId>com.github.fpetrola.crystal-plugins</groupId>
@@ -230,7 +230,7 @@
             <plugin>
                 <groupId>com.github.fpetrola.crystal-plugins</groupId>
                 <artifactId>framework-maven-plugin</artifactId>
-                <version>0.1.6</version>
+                <version>0.1.7</version>
                 <extensions>true</extensions>
             </plugin>
             <plugin>
